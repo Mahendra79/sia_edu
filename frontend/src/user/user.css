@@ -1,0 +1,60 @@
+.user-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+
+.user-stat-grid .stat-card h3 {
+  margin-bottom: 0.55rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.user-stat-grid .stat-card strong {
+  font-size: 1.58rem;
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  color: var(--text-primary);
+}
+
+.user-stat-card-btn {
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.user-stat-card-btn:hover,
+.user-stat-card-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-strong) 34%, var(--border));
+  box-shadow: 0 14px 26px color-mix(in srgb, var(--bg-primary) 38%, black);
+  transform: translateY(-1px);
+}
+
+.profile-avatar-section {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.profile-avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: 1px solid var(--soft-border);
+  background: var(--surface-muted-soft);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-size: 2rem;
+}
+
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

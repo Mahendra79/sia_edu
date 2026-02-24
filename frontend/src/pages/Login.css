@@ -1,0 +1,19 @@
+.login-page .auth-experience {
+  min-height: clamp(520px, 72vh, 680px);
+}
+
+.login-intro-panel {
+  background:
+    radial-gradient(520px 230px at 88% -8%, var(--auth-glow-strong), transparent 72%),
+    linear-gradient(165deg, var(--surface-glass), var(--surface-overlay));
+}
+
+.login-form-panel {
+  background:
+    radial-gradient(460px 200px at 100% -4%, var(--auth-glow-soft), transparent 74%),
+    linear-gradient(165deg, var(--surface-glass), var(--surface-overlay));
+}
+
+.login-form-panel .auth-action-btn {
+  margin-top: 0.1rem;
+}

@@ -1,0 +1,123 @@
+.signup-experience {
+  min-height: clamp(600px, 79vh, 760px);
+}
+
+.signup-intro-panel {
+  background:
+    radial-gradient(540px 230px at 88% -8%, var(--auth-glow-strong), transparent 72%),
+    linear-gradient(165deg, var(--surface-glass), var(--surface-overlay));
+}
+
+.signup-form-panel {
+  background:
+    radial-gradient(500px 230px at 100% -8%, var(--auth-glow-soft), transparent 72%),
+    linear-gradient(165deg, var(--surface-glass), var(--surface-overlay));
+}
+
+.signup-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.signup-trust-strip span {
+  border: 1px solid var(--soft-border);
+  border-radius: 14px;
+  padding: 0.58rem 0.52rem;
+  background: var(--surface-muted-soft);
+  text-align: center;
+  display: grid;
+  gap: 0.08rem;
+}
+
+.signup-trust-strip strong {
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 0.96rem;
+}
+
+.signup-trust-strip small {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
+.signup-form-grid {
+  gap: 0.82rem;
+}
+
+.signup-meta {
+  border: 1px solid var(--soft-border);
+  border-radius: 12px;
+  background: var(--surface-muted-soft);
+  padding: 0.56rem 0.66rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.signup-meta span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.signup-meta strong {
+  font-size: 0.88rem;
+}
+
+.signup-strength-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+  overflow: hidden;
+  margin-top: 0.16rem;
+}
+
+.signup-strength-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  transition: width 0.2s ease;
+}
+
+.signup-strength-fill.level-0 {
+  width: 4%;
+  background: color-mix(in srgb, var(--danger) 80%, transparent);
+}
+
+.signup-strength-fill.level-1 {
+  width: 28%;
+  background: color-mix(in srgb, var(--danger) 82%, transparent);
+}
+
+.signup-strength-fill.level-2 {
+  width: 54%;
+  background: color-mix(in srgb, var(--warning) 78%, transparent);
+}
+
+.signup-strength-fill.level-3 {
+  width: 76%;
+  background: color-mix(in srgb, var(--success) 68%, var(--accent-strong));
+}
+
+.signup-strength-fill.level-4 {
+  width: 100%;
+  background: linear-gradient(90deg, var(--success), var(--accent-strong));
+}
+
+.signup-meta.match-ok strong {
+  color: var(--success);
+}
+
+.signup-meta.match-pending strong {
+  color: var(--text-primary);
+}
+
+.signup-policy-note {
+  grid-column: 1 / -1;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 980px) {
+  .signup-trust-strip {
+    grid-template-columns: 1fr;
+  }
+}
