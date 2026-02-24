@@ -1,7 +1,33 @@
 import axios from "axios";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/storage";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+const LOCAL_API_BASE_URL = "http://127.0.0.1:8000/api";
+const RENDER_API_BASE_URL = "https://sia-edu.onrender.com/api";
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const isProdBuild = import.meta.env.PROD;
+
+const isLoopbackApiUrl = (value) => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+    return ["127.0.0.1", "localhost", "::1"].includes(parsedUrl.hostname);
+  } catch {
+    return /(^|\/\/)(127\.0\.0\.1|localhost)(:|\/|$)/i.test(value);
+  }
+};
+
+const resolvedApiBaseUrl =
+  configuredApiBaseUrl && !(isProdBuild && isLoopbackApiUrl(configuredApiBaseUrl))
+    ? configuredApiBaseUrl
+    : isProdBuild
+      ? RENDER_API_BASE_URL
+      : LOCAL_API_BASE_URL;
+
+export const API_BASE_URL = resolvedApiBaseUrl.replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL: API_BASE_URL,
