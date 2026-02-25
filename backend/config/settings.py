@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -14,22 +15,66 @@ def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for item in values:
+        if item not in deduped:
+            deduped.append(item)
+    return deduped
+
+
+def _normalize_origin(origin: str) -> str:
+    return origin.strip().rstrip("/")
+
+
+def _origin_from_url(url: str) -> str:
+    value = _normalize_origin(url)
+    if not value:
+        return ""
+    parsed = urlsplit(value)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return value
+
+
+LOCAL_FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+RENDER_FRONTEND_ORIGINS = ["https://siasoftwareinnovationseducation.onrender.com"]
+DEFAULT_CORS_ORIGINS = [*LOCAL_FRONTEND_ORIGINS, *RENDER_FRONTEND_ORIGINS]
+DEFAULT_CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000", *DEFAULT_CORS_ORIGINS]
+
+
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set.")
 
-ALLOWED_HOSTS = _split_csv(os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost"))
+FRONTEND_BASE_URL = _normalize_origin(os.getenv("FRONTEND_BASE_URL", "http://localhost:5173"))
+FRONTEND_ORIGIN = _origin_from_url(FRONTEND_BASE_URL)
+
+ALLOWED_HOSTS = _split_csv(os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,sia-edu.onrender.com"))
 if DEBUG:
     for host in ("testserver", "0.0.0.0", "127.0.0.1", "localhost"):
         if host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(host)
 
-CSRF_TRUSTED_ORIGINS = _split_csv(
-    os.getenv(
-        "DJANGO_CSRF_TRUSTED_ORIGINS",
-        "http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1:5173,http://localhost:5173",
-    )
+CSRF_TRUSTED_ORIGINS = _dedupe_preserve_order(
+    [
+        origin
+        for origin in [
+            *DEFAULT_CSRF_TRUSTED_ORIGINS,
+            *[_normalize_origin(origin) for origin in _split_csv(os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", ""))],
+            FRONTEND_ORIGIN,
+        ]
+        if origin
+    ]
+)
+
+ALLOWED_HOSTS = _dedupe_preserve_order(
+    [
+        host.strip()
+        for host in ALLOWED_HOSTS
+        if host.strip()
+    ]
 )
 
 
@@ -135,8 +180,16 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = _split_csv(
-    os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+CORS_ALLOWED_ORIGINS = _dedupe_preserve_order(
+    [
+        origin
+        for origin in [
+            *DEFAULT_CORS_ORIGINS,
+            *[_normalize_origin(origin) for origin in _split_csv(os.getenv("CORS_ALLOWED_ORIGINS", ""))],
+            FRONTEND_ORIGIN,
+        ]
+        if origin
+    ]
 )
 CORS_ALLOW_CREDENTIALS = True
 if DEBUG:
@@ -213,7 +266,6 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 AUTH_DEBUG_TOKENS = os.getenv("AUTH_DEBUG_TOKENS", "False").lower() == "true"
 
-FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
 WEBSITE_NAME = os.getenv("WEBSITE_NAME", "SIA_EDU")
 WEBSITE_LOGO_URL = os.getenv("WEBSITE_LOGO_URL", "https://dummyimage.com/96x96/0b1220/ffffff.png&text=SIA")
 WEBSITE_LOGO_PATH = os.getenv("WEBSITE_LOGO_PATH", str((BASE_DIR / ".." / "frontend" / "src" / "assets" / "image.png").resolve()))

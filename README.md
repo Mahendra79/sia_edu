@@ -24,6 +24,11 @@ Create `backend/.env` from `backend/.env.example` and set:
 Notes:
 - Production-safe defaults are enabled (`DJANGO_DEBUG=False`, `DEV_PAYMENT_MODE=False`).
 - For local development you can set `DJANGO_DEBUG=True` and disable forced HTTPS redirect in `.env` (`DJANGO_SECURE_SSL_REDIRECT=False`).
+- For Render deployment, set backend env vars with exact origins (no trailing `/`):
+  - `DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,sia-edu.onrender.com`
+  - `CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com`
+  - `DJANGO_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com`
+  - `FRONTEND_BASE_URL=https://siasoftwareinnovationseducation.onrender.com`
 
 Run migrations and server:
 
@@ -101,7 +106,6 @@ python manage.py runserver
 
 cd frontend
 npm run dev 
-
 
 
 
