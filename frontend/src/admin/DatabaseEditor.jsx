@@ -263,7 +263,7 @@ export default function DatabaseEditor() {
       item.category?.name || "-",
       item.mentor_name || "-",
       Number(item.duration_days || 0) > 0 ? `${item.duration_days} days` : "-",
-      formatCurrency(item.price),
+      formatCurrency(item.price, "INR"),
       Number(item.discount_percent || 0) > 0 ? `${Number(item.discount_percent).toFixed(2)}%` : "-",
       item.is_active ? "Yes" : "No",
       formatDate(item.created_at),

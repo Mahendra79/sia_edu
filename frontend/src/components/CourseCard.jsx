@@ -113,8 +113,8 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
         <p>{course.short_description}</p>
         <div className="course-meta">
           <span className="course-price-stack">
-            <strong className="course-price-current">{formatCurrency(discountedPrice)}</strong>
-            {hasDiscount && <small className="course-price-original">{formatCurrency(listPrice)}</small>}
+            <strong className="course-price-current">{formatCurrency(discountedPrice, "INR")}</strong>
+            {hasDiscount && <small className="course-price-original">{formatCurrency(listPrice, "INR")}</small>}
           </span>
           <button
             type="button"

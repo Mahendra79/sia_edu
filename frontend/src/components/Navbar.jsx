@@ -22,6 +22,12 @@ const themeIconMap = {
   dark: HiOutlineMoon,
 };
 
+const themeLabelMap = {
+  navy: "navy",
+  light: "light",
+  dark: "dark",
+};
+
 export default function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, isAdmin, logout, user } = useAuth();
@@ -29,6 +35,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const ThemeIcon = themeIconMap[theme] || HiOutlineAcademicCap;
+  const currentThemeLabel = themeLabelMap[theme] || theme;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -133,9 +140,14 @@ export default function Navbar() {
           )}
         </div>
         <div className="nav-actions">
-          <button type="button" className="btn btn-muted btn-icon" onClick={toggleTheme}>
+          <button
+            type="button"
+            className="btn btn-muted btn-icon theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={`Theme: ${currentThemeLabel}`}
+            title={`Theme: ${currentThemeLabel}`}
+          >
             <ThemeIcon />
-            Theme: {theme}
           </button>
           {isAuthenticated && (
             <>
