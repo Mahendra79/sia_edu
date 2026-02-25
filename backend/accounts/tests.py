@@ -191,6 +191,20 @@ class AuthVerificationFlowTests(APITestCase):
             "Username can only contain letters, numbers, and @/./+/-/_ characters.",
         )
 
+    def test_signup_preflight_allows_render_frontend_origin(self):
+        response = self.client.options(
+            self.signup_url,
+            HTTP_ORIGIN="https://siasoftwareinnovationseducation.onrender.com",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.get("Access-Control-Allow-Origin"),
+            "https://siasoftwareinnovationseducation.onrender.com",
+        )
+
 
 class ProfileValidationTests(APITestCase):
     def setUp(self):
