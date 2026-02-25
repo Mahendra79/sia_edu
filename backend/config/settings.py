@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
+from urllib.parse import unquote
 
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -37,10 +38,47 @@ def _origin_from_url(url: str) -> str:
     return value
 
 
+def _normalize_allowed_host(host: str) -> str:
+    value = host.strip()
+    if not value:
+        return ""
+    if value == "*" or value.startswith("."):
+        return value
+
+    parsed = urlsplit(value if "://" in value else f"//{value}")
+    if parsed.hostname:
+        return parsed.hostname
+
+    # Fallback for malformed values: keep only hostname fragment.
+    return value.split("/")[0].split(":")[0].strip()
+
+
+def _database_from_url(database_url: str) -> dict:
+    parsed = urlsplit(database_url.strip())
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"postgres", "postgresql", "psql"}:
+        raise ImproperlyConfigured("DATABASE_URL must use a PostgreSQL scheme (postgres/postgresql).")
+
+    db_name = parsed.path.lstrip("/")
+    if not parsed.hostname or not db_name:
+        raise ImproperlyConfigured("DATABASE_URL must include host and database name.")
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": db_name,
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname,
+        "PORT": str(parsed.port or 5432),
+        "CONN_MAX_AGE": 60,
+    }
+
+
 LOCAL_FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 RENDER_FRONTEND_ORIGINS = ["https://siasoftwareinnovationseducation.onrender.com"]
 DEFAULT_CORS_ORIGINS = [*LOCAL_FRONTEND_ORIGINS, *RENDER_FRONTEND_ORIGINS]
 DEFAULT_CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000", *DEFAULT_CORS_ORIGINS]
+DEFAULT_ALLOWED_HOSTS = ["127.0.0.1", "localhost", "sia-edu.onrender.com"]
 
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
@@ -51,9 +89,23 @@ if not SECRET_KEY:
 FRONTEND_BASE_URL = _normalize_origin(os.getenv("FRONTEND_BASE_URL", "http://localhost:5173"))
 FRONTEND_ORIGIN = _origin_from_url(FRONTEND_BASE_URL)
 
-ALLOWED_HOSTS = _split_csv(os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,sia-edu.onrender.com"))
+frontend_host = _normalize_allowed_host(FRONTEND_ORIGIN)
+render_external_hostname = _normalize_allowed_host(os.getenv("RENDER_EXTERNAL_HOSTNAME", ""))
+allowed_hosts_from_env = [_normalize_allowed_host(host) for host in _split_csv(os.getenv("DJANGO_ALLOWED_HOSTS", ""))]
+ALLOWED_HOSTS = _dedupe_preserve_order(
+    [
+        host
+        for host in [
+            *DEFAULT_ALLOWED_HOSTS,
+            *allowed_hosts_from_env,
+            frontend_host,
+            render_external_hostname,
+        ]
+        if host
+    ]
+)
 if DEBUG:
-    for host in ("testserver", "0.0.0.0", "127.0.0.1", "localhost"):
+    for host in ("testserver", "0.0.0.0"):
         if host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(host)
 
@@ -68,15 +120,6 @@ CSRF_TRUSTED_ORIGINS = _dedupe_preserve_order(
         if origin
     ]
 )
-
-ALLOWED_HOSTS = _dedupe_preserve_order(
-    [
-        host.strip()
-        for host in ALLOWED_HOSTS
-        if host.strip()
-    ]
-)
-
 
 INSTALLED_APPS = [
     "corsheaders",
@@ -128,7 +171,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
-if DB_ENGINE == "django.db.backends.sqlite3":
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if DATABASE_URL:
+    DATABASES = {
+        "default": _database_from_url(DATABASE_URL)
+    }
+elif DB_ENGINE == "django.db.backends.sqlite3":
     DATABASES = {
         "default": {
             "ENGINE": DB_ENGINE,

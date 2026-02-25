@@ -25,10 +25,11 @@ Notes:
 - Production-safe defaults are enabled (`DJANGO_DEBUG=False`, `DEV_PAYMENT_MODE=False`).
 - For local development you can set `DJANGO_DEBUG=True` and disable forced HTTPS redirect in `.env` (`DJANGO_SECURE_SSL_REDIRECT=False`).
 - For Render deployment, set backend env vars with exact origins (no trailing `/`):
-  - `DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,sia-edu.onrender.com`
+  - `DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,sia-edu.onrender.com` (hostnames only, never `https://...`)
   - `CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com`
-  - `DJANGO_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com`
+  - `DJANGO_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com` (frontend origins, not backend host)
   - `FRONTEND_BASE_URL=https://siasoftwareinnovationseducation.onrender.com`
+  - Prefer `DATABASE_URL=postgresql://...` from Render Postgres connection string (if set, backend uses it directly).
 
 Run migrations and server:
 
@@ -106,7 +107,6 @@ python manage.py runserver
 
 cd frontend
 npm run dev 
-
 
 
 
