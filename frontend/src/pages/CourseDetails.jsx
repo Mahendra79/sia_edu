@@ -484,8 +484,8 @@ export default function CourseDetails() {
                   {hasDiscount ? <span className="pill pill-discount">{discountPercent.toFixed(0)}% OFF</span> : null}
                   {isPurchased ? <span className="pill pill-owned">Purchased</span> : null}
                   <div className="price-row">
-                    <strong>{formatCurrency(discountedPrice)}</strong>
-                    {hasDiscount ? <small>{formatCurrency(listPrice)}</small> : null}
+                    <strong>{formatCurrency(discountedPrice, "INR")}</strong>
+                    {hasDiscount ? <small>{formatCurrency(listPrice, "INR")}</small> : null}
                   </div>
                   <p className="price-note">
                     Secure checkout via billing flow. Guided plan: ~{courseDurationDays} days with 24x7 SIA_Chat support.
@@ -731,7 +731,7 @@ export default function CourseDetails() {
                             <h3>{item.title}</h3>
                             <p>{item.short_description}</p>
                             <div className="related-footer">
-                              <span>{formatCurrency(item.discounted_price ?? item.price)}</span>
+                              <span>{formatCurrency(item.discounted_price ?? item.price, "INR")}</span>
                               <Link to={`/course/${item.id}`}>View</Link>
                             </div>
                           </article>

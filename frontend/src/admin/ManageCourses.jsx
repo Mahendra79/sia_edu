@@ -437,9 +437,9 @@ export default function ManageCourses() {
           mentor_name: course.mentor_name || "-",
           mentor_title: course.mentor_title || "-",
           duration_days: Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-",
-          price: formatCurrency(course.price),
+          price: formatCurrency(course.price, "INR"),
           discount_percent: `${Number(course.discount_percent || 0).toFixed(2)}%`,
-          discounted_price: formatCurrency(course.discounted_price ?? course.price),
+          discounted_price: formatCurrency(course.discounted_price ?? course.price, "INR"),
           is_active: course.is_active ? "Yes" : "No",
           created_at: formatDate(course.created_at),
         })),
@@ -541,7 +541,7 @@ export default function ManageCourses() {
                         <td>{course.category?.name}</td>
                         <td>{course.mentor_name || "-"}</td>
                         <td>{Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-"}</td>
-                        <td>{formatCurrency(course.price)}</td>
+                        <td>{formatCurrency(course.price, "INR")}</td>
                         <td>{Number(course.discount_percent || 0) > 0 ? `${Number(course.discount_percent).toFixed(2)}%` : "-"}</td>
                         <td>{course.is_active ? "Yes" : "No"}</td>
                         <td>
