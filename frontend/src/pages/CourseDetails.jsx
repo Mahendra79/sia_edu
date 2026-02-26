@@ -18,7 +18,6 @@ import { courseService } from "../services/courseService";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
-const FIXED_DURATION_DAYS = 30;
 
 const DEFAULT_CURRICULUM = [
   "Module 1: Foundations, notation, and problem framing",
@@ -149,6 +148,14 @@ export default function CourseDetails() {
   const description = String(course?.description || "");
   const previewDescription = parseDescriptionPreview(description, descriptionExpanded);
   const canToggleDescription = description.length > DESCRIPTION_PREVIEW_LIMIT;
+  const courseDurationDays = useMemo(() => {
+    const value = Number(course?.duration_days);
+    if (Number.isFinite(value) && value > 0) {
+      return Math.round(value);
+    }
+    return null;
+  }, [course?.duration_days]);
+  const durationLabel = courseDurationDays ? `${courseDurationDays} days` : "Duration not set";
 
   const curriculum = useMemo(() => {
     const extracted = extractSectionBullets(description, ["Course content", "Curriculum"], 10);
@@ -218,7 +225,7 @@ export default function CourseDetails() {
                   <div className="course-hero-meta">
                     <span className="meta-pill">
                       <HiOutlineClock />
-                      {FIXED_DURATION_DAYS} days
+                      {durationLabel}
                     </span>
                   </div>
                   <div className="course-hero-image-wrap">
@@ -235,7 +242,7 @@ export default function CourseDetails() {
 
                 <aside className="course-details-panel course-pricing-card">
                   {isPurchased ? <span className="pill pill-owned">Purchased</span> : null}
-                  <p className="price-note">Guided plan duration: {FIXED_DURATION_DAYS} days.</p>
+                  <p className="price-note">Guided plan duration: {durationLabel}.</p>
                   <button
                     type="button"
                     className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}

@@ -273,6 +273,19 @@
   color: var(--danger);
 }
 
+/* Keep admin data tables horizontally scrollable on small screens. */
+.dashboard-content .table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.dashboard-content .table-wrap > table {
+  min-width: 920px;
+}
+
 @media (max-width: 980px) {
   .table-inline-field-wide {
     grid-column: auto;
@@ -280,5 +293,9 @@
 
   .mis-chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-content .table-wrap > table {
+    min-width: 860px;
   }
 }
