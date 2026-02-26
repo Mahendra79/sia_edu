@@ -18,6 +18,7 @@ import { courseService } from "../services/courseService";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
+const FIXED_DURATION_DAYS = 30;
 
 const DEFAULT_CURRICULUM = [
   "Module 1: Foundations, notation, and problem framing",
@@ -25,24 +26,6 @@ const DEFAULT_CURRICULUM = [
   "Module 3: Evaluation, optimization, and reliability checks",
   "Module 4: Capstone delivery and skill assessment",
 ];
-
-const STOP_WORDS = new Set([
-  "and",
-  "the",
-  "for",
-  "with",
-  "this",
-  "that",
-  "your",
-  "from",
-  "into",
-  "course",
-  "using",
-  "build",
-  "learn",
-  "skills",
-  "ready",
-]);
 
 function resolveCourseImageUrl(imagePath) {
   if (!imagePath) {
@@ -103,12 +86,12 @@ function extractSectionBullets(description, headings, max = 8) {
       continue;
     }
 
-    if (/^[A-Za-z][A-Za-z0-9\s/&'-]{2,48}:\s*$/.test(line) && !/^[-*•]/.test(line)) {
+    if (/^[A-Za-z][A-Za-z0-9\s/&'-]{2,48}:\s*$/.test(line) && !/^[-*]/.test(line)) {
       break;
     }
 
-    if (/^[-*•]\s+/.test(line)) {
-      bullets.push(line.replace(/^[-*•]\s+/, "").trim());
+    if (/^[-*]\s+/.test(line)) {
+      bullets.push(line.replace(/^[-*]\s+/, "").trim());
       continue;
     }
     if (/^\d+[.)]\s+/.test(line)) {
@@ -117,25 +100,6 @@ function extractSectionBullets(description, headings, max = 8) {
   }
 
   return uniqueItems(bullets, max);
-}
-
-function deriveTags(course, description) {
-  const explicitTags = extractSectionBullets(description, ["Explore related topics", "Related topics"], 10);
-  if (explicitTags.length > 0) {
-    return explicitTags;
-  }
-
-  const categoryTag = course?.category?.name ? [course.category.name] : [];
-  const words = `${course?.title || ""} ${course?.short_description || ""}`
-    .split(/[^A-Za-z0-9+.#]+/)
-    .map((item) => item.trim())
-    .filter(
-      (item) =>
-        item.length >= 4 &&
-        !STOP_WORDS.has(item.toLowerCase()) &&
-        !/^\d+$/.test(item),
-    );
-  return uniqueItems([...categoryTag, ...words], 8);
 }
 
 function parseDescriptionPreview(text, expanded) {
@@ -147,41 +111,6 @@ function parseDescriptionPreview(text, expanded) {
     return fullText;
   }
   return `${fullText.slice(0, DESCRIPTION_PREVIEW_LIMIT).trim()}...`;
-}
-
-function deriveDurationDays(course, description) {
-  const direct = Number(course?.duration_days || 0);
-  if (direct > 0) {
-    return direct;
-  }
-  const match = String(description || "").match(/(\d{1,3})\s*days?/i);
-  if (match?.[1]) {
-    const fromText = Number(match[1]);
-    if (fromText > 0) {
-      return fromText;
-    }
-  }
-  return 30;
-}
-
-function formatRupees(value) {
-  const rounded = Math.max(0, Math.round(Number(value) || 0));
-  return `₹${rounded.toLocaleString("en-IN")}`;
-}
-
-function calculatePriceSummary(listPrice, discountPercent) {
-  const normalizedPrice = Math.max(0, Number(listPrice) || 0);
-  const normalizedDiscount = Math.min(100, Math.max(0, Number(discountPercent) || 0));
-  const discountAmount = Math.round((normalizedPrice * normalizedDiscount) / 100);
-  const finalPrice = Math.max(0, Math.round(normalizedPrice - discountAmount));
-
-  return {
-    listPrice: Math.round(normalizedPrice),
-    discountPercent: Math.round(normalizedDiscount),
-    discountAmount,
-    finalPrice,
-    hasDiscount: normalizedDiscount > 0,
-  };
 }
 
 export default function CourseDetails() {
@@ -216,10 +145,6 @@ export default function CourseDetails() {
     loadCourseDetails();
   }, [loadCourseDetails]);
 
-  const priceSummary = useMemo(
-    () => calculatePriceSummary(course?.price, course?.discount_percent),
-    [course?.price, course?.discount_percent],
-  );
   const isPurchased = Boolean(course?.is_purchased);
   const description = String(course?.description || "");
   const previewDescription = parseDescriptionPreview(description, descriptionExpanded);
@@ -230,8 +155,6 @@ export default function CourseDetails() {
     return extracted.length > 0 ? extracted : DEFAULT_CURRICULUM;
   }, [description]);
 
-  const topicTags = useMemo(() => deriveTags(course, description), [course, description]);
-  const courseDurationDays = useMemo(() => deriveDurationDays(course, description), [course, description]);
   const imageUrl = resolveCourseImageUrl(course?.image);
 
   const handleBuyCourse = () => {
@@ -295,7 +218,7 @@ export default function CourseDetails() {
                   <div className="course-hero-meta">
                     <span className="meta-pill">
                       <HiOutlineClock />
-                      {courseDurationDays} days
+                      {FIXED_DURATION_DAYS} days
                     </span>
                   </div>
                   <div className="course-hero-image-wrap">
@@ -311,13 +234,8 @@ export default function CourseDetails() {
                 </article>
 
                 <aside className="course-details-panel course-pricing-card">
-                  {priceSummary.hasDiscount ? <span className="pill pill-discount">{priceSummary.discountPercent}% OFF</span> : null}
                   {isPurchased ? <span className="pill pill-owned">Purchased</span> : null}
-                  <div className="price-row">
-                    <strong>{formatRupees(priceSummary.finalPrice)}</strong>
-                    {priceSummary.hasDiscount ? <small>{formatRupees(priceSummary.listPrice)}</small> : null}
-                  </div>
-                  <p className="price-note">Secure checkout via billing flow. Guided plan: ~{courseDurationDays} days.</p>
+                  <p className="price-note">Guided plan duration: {FIXED_DURATION_DAYS} days.</p>
                   <button
                     type="button"
                     className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
@@ -331,17 +249,6 @@ export default function CourseDetails() {
 
               <section className="course-body">
                 <div className="course-main-column">
-                  <article className="course-details-panel">
-                    <h2>Explore related topics</h2>
-                    <div className="topic-tags">
-                      {topicTags.map((tag) => (
-                        <span key={tag} className="topic-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
-
                   <article className="course-details-panel">
                     <h2>Course content / curriculum</h2>
                     <ul className="curriculum-list">
@@ -366,29 +273,6 @@ export default function CourseDetails() {
                         {descriptionExpanded ? "Show less" : "Show more"}
                       </button>
                     ) : null}
-                  </article>
-
-                  <article className="course-details-panel">
-                    <h2>Price Discount & Final Price</h2>
-                    <p className="price-note">We have price discount for this course.</p>
-                    <div className="price-breakdown">
-                      <div className="price-breakdown-row">
-                        <span>Price</span>
-                        <strong>{formatRupees(priceSummary.listPrice)}</strong>
-                      </div>
-                      <div className="price-breakdown-row">
-                        <span>Discount</span>
-                        <strong>{priceSummary.discountPercent}%</strong>
-                      </div>
-                      <div className="price-breakdown-row">
-                        <span>Discount Amount</span>
-                        <strong>{formatRupees(priceSummary.discountAmount)}</strong>
-                      </div>
-                      <div className="price-breakdown-row total">
-                        <span>Final Price</span>
-                        <strong>{formatRupees(priceSummary.finalPrice)}</strong>
-                      </div>
-                    </div>
                   </article>
                 </div>
 
