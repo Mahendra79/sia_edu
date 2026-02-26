@@ -73,6 +73,25 @@ function buildCoursePayload(form) {
   return payload;
 }
 
+function formatRoundedInr(value) {
+  const rounded = Math.max(0, Math.round(Number(value) || 0));
+  return `₹${rounded.toLocaleString("en-IN")}`;
+}
+
+function calculateRoundedPriceSummary(price, discountPercent) {
+  const normalizedPrice = Math.max(0, Number(price) || 0);
+  const normalizedDiscount = Math.min(100, Math.max(0, Number(discountPercent) || 0));
+  const discountAmount = Math.round((normalizedPrice * normalizedDiscount) / 100);
+  const finalPrice = Math.max(0, Math.round(normalizedPrice - discountAmount));
+
+  return {
+    listPrice: Math.round(normalizedPrice),
+    discountPercent: Math.round(normalizedDiscount),
+    discountAmount,
+    finalPrice,
+  };
+}
+
 function InlineField({ label, className = "", children }) {
   return (
     <div className={`table-inline-field ${className}`.trim()}>
@@ -92,6 +111,11 @@ function InlineCourseForm({
   savingLabel,
   saving,
 }) {
+  const priceSummary = useMemo(
+    () => calculateRoundedPriceSummary(form.price, form.discount_percent),
+    [form.price, form.discount_percent],
+  );
+
   return (
     <form className="table-inline-edit-wrap table-inline-edit-grid course-inline-edit-form" onSubmit={onSubmit}>
       <InlineField label="Course Title">
@@ -169,7 +193,7 @@ function InlineCourseForm({
           aria-label="Price"
           type="number"
           min="0"
-          step="0.01"
+          step="1"
           placeholder="Price"
           value={form.price}
           onChange={(event) => setForm((prev) => ({ ...prev, price: event.target.value }))}
@@ -183,12 +207,19 @@ function InlineCourseForm({
           type="number"
           min="0"
           max="100"
-          step="0.01"
+          step="1"
           placeholder="Discount (%)"
           value={form.discount_percent}
           onChange={(event) => setForm((prev) => ({ ...prev, discount_percent: event.target.value }))}
           required
         />
+      </InlineField>
+
+      <InlineField label="Final Price (Rounded)" className="table-inline-field-wide">
+        <div className="meta-note">
+          Price: {formatRoundedInr(priceSummary.listPrice)} | Discount: {priceSummary.discountPercent}% (
+          {formatRoundedInr(priceSummary.discountAmount)}) | Final Price: {formatRoundedInr(priceSummary.finalPrice)}
+        </div>
       </InlineField>
 
       <InlineField label="Category">
