@@ -26,35 +26,49 @@ function formatRoundedInr(value) {
   }).format(normalizeRoundedNumber(value));
 }
 
-function calculateRoundedPriceSummary(price, discountPercent) {
+function normalizeFinalPrice(price, finalPrice) {
   const normalizedPrice = normalizeRoundedNumber(price);
-  const normalizedDiscount = Math.min(100, Math.max(0, Math.round(Number(discountPercent) || 0)));
-  const discountAmount = Math.round((normalizedPrice * normalizedDiscount) / 100);
-  const finalPrice = Math.max(0, normalizedPrice - discountAmount);
-
-  return {
-    listPrice: normalizedPrice,
-    discountPercent: normalizedDiscount,
-    discountAmount,
-    finalPrice,
-  };
+  return Math.min(normalizedPrice, normalizeRoundedNumber(finalPrice));
 }
 
-function calculateRoundedDiscountPercentFromFinalPrice(price, finalPrice) {
+function calculateExactDiscountPercentFromFinalPrice(price, finalPrice) {
   const normalizedPrice = normalizeRoundedNumber(price);
   if (normalizedPrice <= 0) {
     return 0;
   }
-  const normalizedFinal = Math.min(normalizedPrice, normalizeRoundedNumber(finalPrice));
-  const discountAmount = normalizedPrice - normalizedFinal;
-  return Math.round((discountAmount / normalizedPrice) * 100);
+  const normalizedFinal = normalizeFinalPrice(normalizedPrice, finalPrice);
+  const discountPercent = ((normalizedPrice - normalizedFinal) * 100) / normalizedPrice;
+  return Number(discountPercent.toFixed(2));
+}
+
+function calculateRoundedDiscountPercentFromFinalPrice(price, finalPrice) {
+  return Math.round(calculateExactDiscountPercentFromFinalPrice(price, finalPrice));
+}
+
+function calculatePriceSummaryFromFinalPrice(price, finalPrice) {
+  const normalizedPrice = normalizeRoundedNumber(price);
+  const normalizedFinal = normalizeFinalPrice(normalizedPrice, finalPrice);
+  const discountAmount = Math.max(0, normalizedPrice - normalizedFinal);
+  const discountPercentExact = calculateExactDiscountPercentFromFinalPrice(normalizedPrice, normalizedFinal);
+  const discountPercentRounded = Math.round(discountPercentExact);
+
+  return {
+    listPrice: normalizedPrice,
+    discountPercentExact,
+    discountPercentRounded,
+    discountAmount,
+    finalPrice: normalizedFinal,
+  };
 }
 
 function deriveCourseFinalPrice(course) {
   if (course?.discounted_price !== undefined && course?.discounted_price !== null) {
     return normalizeRoundedNumber(course.discounted_price);
   }
-  return calculateRoundedPriceSummary(course?.price, course?.discount_percent).finalPrice;
+  const normalizedPrice = normalizeRoundedNumber(course?.price);
+  const discountPercent = Number(course?.discount_percent || 0);
+  const derivedFinal = Math.round(normalizedPrice - (normalizedPrice * discountPercent) / 100);
+  return Math.max(0, derivedFinal);
 }
 
 const EMPTY_FORM = {
@@ -76,7 +90,7 @@ const EMPTY_FORM = {
 function toCourseForm(course) {
   const price = normalizeRoundedNumber(course.price);
   const finalPrice = deriveCourseFinalPrice(course);
-  const discountPercent = calculateRoundedDiscountPercentFromFinalPrice(price, finalPrice);
+  const discountPercentExact = calculateExactDiscountPercentFromFinalPrice(price, finalPrice);
 
   return {
     title: course.title || "",
@@ -88,7 +102,7 @@ function toCourseForm(course) {
     duration_days: String(course.duration_days ?? "30"),
     price: String(price),
     final_price: String(finalPrice),
-    discount_percent: String(discountPercent),
+    discount_percent: discountPercentExact.toFixed(2),
     category_id: String(course.category?.id || ""),
     is_active: Boolean(course.is_active),
     image: null,
@@ -106,8 +120,8 @@ function firstApiError(error, fallback) {
 
 function buildCoursePayload(form) {
   const price = normalizeRoundedNumber(form.price);
-  const finalPrice = normalizeRoundedNumber(form.final_price);
-  const discountPercent = calculateRoundedDiscountPercentFromFinalPrice(price, finalPrice);
+  const finalPrice = normalizeFinalPrice(price, form.final_price);
+  const discountPercent = calculateExactDiscountPercentFromFinalPrice(price, finalPrice);
 
   const payload = new FormData();
   payload.append("title", form.title.trim());
@@ -118,7 +132,7 @@ function buildCoursePayload(form) {
   payload.append("mentor_bio", form.mentor_bio.trim());
   payload.append("duration_days", String(form.duration_days || "30").trim());
   payload.append("price", String(price));
-  payload.append("discount_percent", String(discountPercent));
+  payload.append("discount_percent", discountPercent.toFixed(2));
   payload.append("category_id", String(form.category_id));
   payload.append("is_active", String(Boolean(form.is_active)));
   if (form.image) {
@@ -147,10 +161,7 @@ function InlineCourseForm({
   saving,
 }) {
   const priceSummary = useMemo(
-    () => {
-      const autoDiscountPercent = calculateRoundedDiscountPercentFromFinalPrice(form.price, form.final_price);
-      return calculateRoundedPriceSummary(form.price, autoDiscountPercent);
-    },
+    () => calculatePriceSummaryFromFinalPrice(form.price, form.final_price),
     [form.price, form.final_price],
   );
 
@@ -238,8 +249,8 @@ function InlineCourseForm({
             setForm((prev) => {
               const nextPrice = event.target.value;
               const nextFinalPrice = prev.final_price === "" ? nextPrice : prev.final_price;
-              const nextDiscount = calculateRoundedDiscountPercentFromFinalPrice(nextPrice, nextFinalPrice);
-              return { ...prev, price: nextPrice, final_price: nextFinalPrice, discount_percent: String(nextDiscount) };
+              const nextDiscount = calculateExactDiscountPercentFromFinalPrice(nextPrice, nextFinalPrice);
+              return { ...prev, price: nextPrice, final_price: nextFinalPrice, discount_percent: nextDiscount.toFixed(2) };
             })
           }
           required
@@ -257,8 +268,8 @@ function InlineCourseForm({
           onChange={(event) =>
             setForm((prev) => {
               const nextFinalPrice = event.target.value;
-              const nextDiscount = calculateRoundedDiscountPercentFromFinalPrice(prev.price, nextFinalPrice);
-              return { ...prev, final_price: nextFinalPrice, discount_percent: String(nextDiscount) };
+              const nextDiscount = calculateExactDiscountPercentFromFinalPrice(prev.price, nextFinalPrice);
+              return { ...prev, final_price: nextFinalPrice, discount_percent: nextDiscount.toFixed(2) };
             })
           }
           required
@@ -272,7 +283,7 @@ function InlineCourseForm({
           min="0"
           max="100"
           step="1"
-          value={priceSummary.discountPercent}
+          value={priceSummary.discountPercentRounded}
           readOnly
         />
       </InlineField>
