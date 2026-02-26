@@ -275,6 +275,7 @@
 
 /* Keep admin data tables horizontally scrollable on small screens. */
 .dashboard-content .table-wrap {
+  display: block;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -284,6 +285,10 @@
 
 .dashboard-content .table-wrap > table {
   min-width: 920px;
+}
+
+.dashboard-content .panel-card {
+  min-width: 0;
 }
 
 @media (max-width: 980px) {

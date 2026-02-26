@@ -1254,14 +1254,19 @@
 
   .sidebar {
     position: static;
-    display: flex;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
     gap: 0.45rem;
   }
 
   .sidebar .nav-link-item {
-    white-space: nowrap;
-    width: auto;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .dashboard-content {
+    width: 100%;
   }
 
   .admin-grid-two,
@@ -1378,6 +1383,10 @@
 }
 
 @media (max-width: 560px) {
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+
   .logo-image-shell {
     width: 52px;
     height: 52px;
