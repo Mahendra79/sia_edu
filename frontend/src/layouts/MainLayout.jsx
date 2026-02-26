@@ -1,8 +1,7 @@
-import Chatbot from "../components/Chatbot";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
-export default function MainLayout({ children, showChatbot = false }) {
+export default function MainLayout({ children }) {
   return (
     <div className="app-shell">
       <Navbar />
@@ -10,7 +9,6 @@ export default function MainLayout({ children, showChatbot = false }) {
         {children}
       </main>
       <Footer />
-      {showChatbot ? <Chatbot /> : null}
     </div>
   );
 }

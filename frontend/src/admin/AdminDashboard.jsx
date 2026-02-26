@@ -69,7 +69,7 @@ export default function AdminDashboard() {
             <div className="stat-grid">
               <button type="button" className="stat-card stat-card-button" onClick={() => navigate("/admin/payments?status=success")}>
                 <h3>Total Revenue</h3>
-                <strong>{formatCurrency(summary?.revenue_summary)}</strong>
+                <strong>{formatCurrency(summary?.revenue_summary, "INR")}</strong>
               </button>
               <button type="button" className="stat-card stat-card-button" onClick={() => navigate("/admin/users?scope=all")}>
                 <h3>Total Users</h3>
