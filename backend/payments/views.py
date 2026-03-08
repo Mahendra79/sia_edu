@@ -334,6 +334,19 @@ class ConfirmPaymentView(APIView):
             _send_payment_success_email_once(transaction)
             return Response({"status": "success"}, status=status.HTTP_200_OK)
 
+        # If order creation fell back to dev mode (e.g. missing gateway credentials),
+        # allow local-style confirmation even when DEV_PAYMENT_MODE is true.
+        transaction_mode = str((transaction.metadata or {}).get("mode", "")).strip().lower()
+        is_dev_fallback_transaction = transaction_mode == "dev_payment" or str(transaction.razorpay_order_id or "").startswith("dev_order_")
+
+        if is_dev_fallback_transaction:
+            transaction.payment_status = "success"
+            transaction.failure_reason = ""
+            transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
+            _create_or_update_enrollment(transaction)
+            _send_payment_success_email_once(transaction)
+            return Response({"status": "success", "mode": "dev-fallback"}, status=status.HTTP_200_OK)
+
         # Local testing mode (DEV_PAYMENT_MODE=False): mark success directly.
         if not _use_real_gateway():
             transaction.payment_status = "success"
