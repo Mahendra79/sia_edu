@@ -21,10 +21,11 @@ class PaymentTransaction(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10, default="usd")
+    currency = models.CharField(max_length=10, default="inr")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending", db_index=True)
-    stripe_session_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
-    stripe_payment_intent = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_order_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    razorpay_payment_id = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_signature = models.CharField(max_length=255, null=True, blank=True)
     failure_reason = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     is_deleted = models.BooleanField(default=False, db_index=True)
@@ -35,7 +36,7 @@ class PaymentTransaction(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["payment_status"]),
-            models.Index(fields=["stripe_session_id"]),
+            models.Index(fields=["razorpay_order_id"]),
         ]
 
     def __str__(self) -> str:

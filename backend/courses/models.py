@@ -29,6 +29,7 @@ class Course(models.Model):
         help_text="Estimated learning plan duration in days.",
     )
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    final_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     discount_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,

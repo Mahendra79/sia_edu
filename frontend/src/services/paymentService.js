@@ -4,11 +4,18 @@ export const paymentService = {
   getBilling(courseId) {
     return api.get(`/payments/billing/${courseId}/`);
   },
+  createRazorpayOrder(payload) {
+    return api.post("/payments/create-order/", payload);
+  },
   createCheckoutSession(payload) {
-    return api.post("/payments/create-checkout-session/", payload);
+    return api.post("/payments/create-order/", payload);
   },
   confirmPayment(payload) {
     return api.post("/payments/confirm/", payload);
+  },
+  getInvoice(paymentId, options = {}) {
+    const inline = options.inline ? "1" : "0";
+    return api.get(`/payments/invoice/${paymentId}/?inline=${inline}`, { responseType: "blob" });
   },
   getMyPaymentHistory(params) {
     return api.get("/payments/history/me/", { params });

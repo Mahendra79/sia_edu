@@ -5,6 +5,7 @@ from email.mime.image import MIMEImage
 from html import escape
 import logging
 from pathlib import Path
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -321,7 +322,77 @@ def _build_registration_success_email_html(
     return _wrap_email_document(body)
 
 
-def _send_html_email(*, to_email: str, subject: str, html_body: str, inline_logo_path: str | None = None) -> None:
+def _build_payment_success_email_html(
+    *,
+    user_name: str,
+    website_name: str,
+    logo_src: str,
+    course_name: str,
+    total_amount: str,
+    currency: str,
+    invoice_number: str,
+    transaction_id: str,
+    payment_ref: str,
+    payment_date: str,
+    payment_history_link: str,
+    contact_email: str,
+    instagram_link: str,
+    linkedin_link: str,
+    youtube_link: str,
+) -> str:
+    body = f"""
+      {_render_header(website_name, logo_src)}
+      <tr>
+        <td style="padding:28px 28px 8px 28px;">
+          <p style="margin:0 0 10px 0;font-size:20px;line-height:28px;font-weight:700;color:#0f172a;">Hello {_safe(user_name)},</p>
+          <p style="margin:0 0 14px 0;font-size:30px;line-height:36px;font-weight:800;color:#047857;">Payment Successful</p>
+          <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#334155;">
+            Your payment has been confirmed and your enrollment is active.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 28px 0 28px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fbff;border:1px solid #d9e6ff;border-radius:14px;">
+            <tr><td style="padding:16px 18px 4px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Course:</strong> {_safe(course_name)}</td></tr>
+            <tr><td style="padding:2px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Total Paid:</strong> {_safe(currency)} {_safe(total_amount)}</td></tr>
+            <tr><td style="padding:2px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Invoice No:</strong> {_safe(invoice_number)}</td></tr>
+            <tr><td style="padding:2px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Transaction ID:</strong> {_safe(transaction_id)}</td></tr>
+            <tr><td style="padding:2px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Payment Ref:</strong> {_safe(payment_ref)}</td></tr>
+            <tr><td style="padding:2px 18px 16px 18px;font-size:14px;line-height:22px;color:#334155;"><strong>Date:</strong> {_safe(payment_date)}</td></tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 28px 0 28px;">
+          <a href="{_safe(payment_history_link)}" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;line-height:20px;padding:10px 18px;border-radius:10px;">Open Payment History</a>
+          <p style="margin:12px 0 0 0;font-size:13px;line-height:20px;color:#475569;">
+            Your invoice PDF is attached to this email.
+          </p>
+        </td>
+      </tr>
+      {_render_social_section(instagram_link, linkedin_link, youtube_link)}
+      <tr>
+        <td style="padding:16px 28px 0 28px;">
+          <p style="margin:0;font-size:14px;line-height:22px;color:#475569;">
+            Need assistance? Contact us at
+            <a href="mailto:{_safe(contact_email)}" style="color:#1d4ed8;text-decoration:none;font-weight:700;">{_safe(contact_email)}</a>
+          </p>
+        </td>
+      </tr>
+      {_render_footer(website_name)}
+    """
+    return _wrap_email_document(body)
+
+
+def _send_html_email(
+    *,
+    to_email: str,
+    subject: str,
+    html_body: str,
+    inline_logo_path: str | None = None,
+    attachments: list[tuple[str, bytes, str]] | None = None,
+) -> None:
     plain_body = strip_tags(html_body)
     message = EmailMultiAlternatives(
         subject=subject,
@@ -339,6 +410,9 @@ def _send_html_email(*, to_email: str, subject: str, html_body: str, inline_logo
             image.add_header("Content-Disposition", "inline", filename=logo_file.name)
             image.add_header("X-Attachment-Id", LOGO_CID)
             message.attach(image)
+    for attachment in attachments or []:
+        filename, payload, content_type = attachment
+        message.attach(filename, payload, content_type)
     try:
         message.send(fail_silently=False)
     except Exception:
@@ -420,5 +494,42 @@ def send_registration_success_email(user) -> None:
         subject=f"Registration Successful - Welcome to {context['website_name']}",
         html_body=html_body,
         inline_logo_path=context["logo_path"],
+    )
+
+
+def send_payment_success_email(*, transaction, invoice_pdf: bytes) -> None:
+    context = _mail_branding_context()
+    pricing = (transaction.metadata or {}).get("pricing") or {}
+    total = Decimal(str(pricing.get("total", transaction.total or 0))).quantize(Decimal("0.01"))
+    currency = str(pricing.get("currency", transaction.currency or "INR")).upper()
+    payment_ref = str(transaction.razorpay_payment_id or transaction.razorpay_order_id or transaction.id)
+    payment_history_link = f"{str(getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:5173')).rstrip('/')}/user/payment-history?invoice={transaction.id}"
+    created_display = transaction.created_at.strftime("%d %b %Y, %I:%M %p UTC")
+    invoice_number = f"INV-{transaction.created_at:%y%m%d}-{transaction.id:04d}"
+
+    html_body = _build_payment_success_email_html(
+        user_name=transaction.user.name or transaction.user.username,
+        website_name=context["website_name"],
+        logo_src=context["logo_src"],
+        course_name=transaction.course.title,
+        total_amount=f"{total:.2f}",
+        currency=currency,
+        invoice_number=invoice_number,
+        transaction_id=str(transaction.id),
+        payment_ref=payment_ref,
+        payment_date=created_display,
+        payment_history_link=payment_history_link,
+        contact_email=context["contact_email"],
+        instagram_link=context["instagram_link"],
+        linkedin_link=context["linkedin_link"],
+        youtube_link=context["youtube_link"],
+    )
+
+    _send_html_email(
+        to_email=transaction.user.email,
+        subject=f"Payment Successful - Invoice {invoice_number}",
+        html_body=html_body,
+        inline_logo_path=context["logo_path"],
+        attachments=[(f"{invoice_number}.pdf", invoice_pdf, "application/pdf")],
     )
 

@@ -19,10 +19,12 @@ const INITIAL_FILTERS = {
 export default function PaymentHistory() {
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
+  const [invoiceLoadingId, setInvoiceLoadingId] = useState(null);
   const [filters, setFilters] = useState(() => ({
     ...INITIAL_FILTERS,
     status: searchParams.get("status") || "",
   }));
+  const highlightedPaymentId = Number(searchParams.get("invoice") || 0);
   const queryKey = useMemo(
     () => `${filters.status}|${filters.date_from}|${filters.date_to}`,
     [filters.status, filters.date_from, filters.date_to],
@@ -52,6 +54,30 @@ export default function PaymentHistory() {
     fetchPage,
     onError: handleLoadError,
   });
+
+  const openInvoice = async (paymentId, inline) => {
+    setInvoiceLoadingId(paymentId);
+    try {
+      const response = await paymentService.getInvoice(paymentId, { inline });
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blobUrl = window.URL.createObjectURL(blob);
+      if (inline) {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      } else {
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = `invoice_${paymentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      addToast({ type: "error", message: "Unable to generate invoice." });
+    } finally {
+      setInvoiceLoadingId(null);
+    }
+  };
 
   return (
     <UserLayout>
@@ -87,15 +113,40 @@ export default function PaymentHistory() {
                     <th>Status</th>
                     <th>Total</th>
                     <th>Date</th>
+                    <th>Invoice</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payments.map((payment) => (
-                    <tr key={payment.id}>
+                    <tr key={payment.id} className={highlightedPaymentId === payment.id ? "table-row-highlight" : ""}>
                       <td>{payment.course_title}</td>
                       <td>{payment.payment_status}</td>
                       <td>{formatCurrency(payment.total)}</td>
                       <td>{formatDate(payment.created_at)}</td>
+                      <td>
+                        {payment.payment_status === "success" ? (
+                          <div className="inline-controls">
+                            <button
+                              type="button"
+                              className="btn btn-muted"
+                              disabled={invoiceLoadingId === payment.id}
+                              onClick={() => openInvoice(payment.id, true)}
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-muted"
+                              disabled={invoiceLoadingId === payment.id}
+                              onClick={() => openInvoice(payment.id, false)}
+                            >
+                              Download
+                            </button>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

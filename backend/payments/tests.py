@@ -11,116 +11,53 @@ from payments.models import PaymentTransaction
 
 
 @override_settings(
-    STRIPE_SECRET_KEY="",
-    DEV_PAYMENT_MODE=True,
-    FRONTEND_BASE_URL="http://localhost:5173",
-    CORS_ALLOWED_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"],
+    DEV_PAYMENT_MODE=False,
+    RAZORPAY_CURRENCY="inr",
+    DEFAULT_TAX_RATE="0.18",
 )
-class CheckoutSessionSecurityTests(APITestCase):
+class RazorpayOrderTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="checkout_user",
-            email="checkout_user@example.com",
+            username="payment_user",
+            email="payment_user@example.com",
             phone="7111111111",
-            name="Checkout User",
+            name="Payment User",
             password="StrongPass123!",
         )
         self.client.force_authenticate(self.user)
         category = Category.objects.create(name="Payments", description="Payments Category")
         self.course = Course.objects.create(
             category=category,
-            title="Secure Checkout Course",
+            title="Razorpay Course",
             short_description="Checkout course",
             description="Checkout course description",
-            price="150.00",
-            is_active=True,
-        )
-        self.checkout_url = reverse("create-checkout-session")
-
-    def test_rejects_redirect_urls_from_untrusted_origins(self):
-        response = self.client.post(
-            self.checkout_url,
-            {
-                "course_id": self.course.id,
-                "success_url": "https://evil.example/success?session_id={CHECKOUT_SESSION_ID}",
-                "cancel_url": "https://evil.example/failure",
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(PaymentTransaction.objects.count(), 0)
-
-    def test_allows_frontend_origin_redirect_urls(self):
-        response = self.client.post(
-            self.checkout_url,
-            {
-                "course_id": self.course.id,
-                "success_url": "http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}",
-                "cancel_url": "http://localhost:5173/failure",
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["mode"], "dev")
-        self.assertIn("checkout_url", response.data)
-
-        transaction = PaymentTransaction.objects.get(id=response.data["transaction_id"])
-        self.assertTrue(transaction.stripe_session_id.startswith("dev_session_"))
-
-
-@override_settings(
-    STRIPE_SECRET_KEY="",
-    DEV_PAYMENT_MODE=True,
-    DEFAULT_TAX_RATE="0.18",
-    FRONTEND_BASE_URL="http://localhost:5173",
-    CORS_ALLOWED_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"],
-)
-class BillingDiscountComputationTests(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username="discount_user",
-            email="discount_user@example.com",
-            phone="7222222222",
-            name="Discount User",
-            password="StrongPass123!",
-        )
-        self.client.force_authenticate(self.user)
-        category = Category.objects.create(name="Discount Category", description="Discount")
-        self.course = Course.objects.create(
-            category=category,
-            title="Discounted Course",
-            short_description="Discount course",
-            description="Discount course description",
             price="100.00",
             discount_percent="10.00",
             is_active=True,
         )
 
-    def test_billing_preview_uses_db_discount_and_tax(self):
+    def test_create_order_in_local_mock_mode(self):
+        response = self.client.post(reverse("create-razorpay-order"), {"course_id": self.course.id}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["mode"], "dev")
+        self.assertTrue(str(response.data["order_id"]).startswith("dev_order_"))
+
+    def test_billing_preview_calculates_tax_inclusive_total(self):
         response = self.client.get(reverse("billing-preview", kwargs={"course_id": self.course.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["amount"], "100.00")
-        self.assertEqual(response.data["discount_percent"], "10.00")
         self.assertEqual(response.data["discount_amount"], "10.00")
-        self.assertEqual(response.data["subtotal"], "90.00")
-        self.assertEqual(response.data["tax"], "16.20")
-        self.assertEqual(response.data["total"], "106.20")
+        self.assertEqual(response.data["final_price"], "90.00")
+        self.assertEqual(response.data["total"], "90.00")
+        self.assertEqual(response.data["tax_rate_percent"], "18.00")
 
-    def test_checkout_session_transaction_uses_discounted_total(self):
-        response = self.client.post(
-            reverse("create-checkout-session"),
-            {
-                "course_id": self.course.id,
-                "success_url": "http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}",
-                "cancel_url": "http://localhost:5173/failure",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        transaction = PaymentTransaction.objects.get(id=response.data["transaction_id"])
-        self.assertEqual(transaction.amount, Decimal("100.00"))
-        self.assertEqual(transaction.tax, Decimal("16.20"))
-        self.assertEqual(transaction.total, Decimal("106.20"))
+    def test_confirm_payment_marks_success_in_local_mock_mode(self):
+        order_response = self.client.post(reverse("create-razorpay-order"), {"course_id": self.course.id}, format="json")
+        tx_id = order_response.data["transaction_id"]
+        response = self.client.post(reverse("confirm-payment"), {"transaction_id": tx_id}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "success")
 
+        transaction = PaymentTransaction.objects.get(id=tx_id)
+        self.assertEqual(transaction.payment_status, "success")
+        self.assertEqual(transaction.total, Decimal("90.00"))

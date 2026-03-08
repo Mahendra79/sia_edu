@@ -16,6 +16,21 @@ import MainLayout from "../layouts/MainLayout";
 import { paymentService } from "../services/paymentService";
 import { formatCurrency } from "../utils/format";
 
+function loadRazorpayScript() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve(window.Razorpay);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(window.Razorpay);
+    script.onerror = () => reject(new Error("Unable to load Razorpay checkout script."));
+    document.body.appendChild(script);
+  });
+}
+
 export default function Billing() {
   const { courseId } = useParams();
   const { addToast } = useToast();
@@ -46,22 +61,37 @@ export default function Billing() {
 
   const billingSummary = useMemo(() => {
     const amount = Number(billing?.amount || 0);
-    const discountPercent = Number(billing?.discount_percent || 0);
-    const discountAmount = Number(billing?.discount_amount || 0);
-    const subtotal = Number(billing?.subtotal ?? amount - discountAmount);
-    const tax = Number(billing?.tax || 0);
+    const finalPrice = Number(billing?.final_price ?? billing?.subtotal ?? amount);
+    const discountAmount = Number(Math.max(0, amount - finalPrice).toFixed(2));
+    const discountPercent = amount > 0 ? Number(((discountAmount * 100) / amount).toFixed(2)) : 0;
+    const backendTaxRatePercent = Number(billing?.tax_rate_percent ?? 0);
+    const backendSubtotal = Number(billing?.subtotal ?? 0);
+    const backendTax = Number(billing?.tax ?? 0);
+
+    const fallbackTaxRatePercent = 18;
+    const taxRatePercent = backendTaxRatePercent > 0 ? backendTaxRatePercent : fallbackTaxRatePercent;
+
+    let subtotal = backendSubtotal;
+    let tax = backendTax;
+    if (taxRatePercent > 0 && finalPrice > 0 && (subtotal <= 0 || tax <= 0)) {
+      subtotal = Number((finalPrice / (1 + taxRatePercent / 100)).toFixed(2));
+      tax = Number((finalPrice - subtotal).toFixed(2));
+    }
+
     const total = Number(billing?.total || 0);
 
     return {
       courseTitle: billing?.course_title || "Selected Course",
       amount,
+      finalPrice,
       discountPercent,
       discountAmount,
       subtotal,
+      taxRatePercent,
       tax,
       total,
       hasDiscount: discountPercent > 0 || discountAmount > 0,
-      currency: String(billing?.currency || "USD").toUpperCase(),
+      currency: String(billing?.currency || "INR").toUpperCase(),
     };
   }, [billing]);
 
@@ -69,16 +99,51 @@ export default function Billing() {
     setPaymentError("");
     setPaying(true);
     try {
-      const success_url = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
-      const cancel_url = `${window.location.origin}/failure`;
-      const response = await paymentService.createCheckoutSession({
+      const response = await paymentService.createRazorpayOrder({
         course_id: Number(courseId),
-        success_url,
-        cancel_url,
       });
-      window.location.href = response.data.checkout_url;
+      const orderPayload = response.data || {};
+
+      if (orderPayload.mode === "dev") {
+        await paymentService.confirmPayment({
+          transaction_id: orderPayload.transaction_id,
+        });
+        window.location.href = `/success?transaction_id=${orderPayload.transaction_id}&confirmed=1`;
+        return;
+      }
+
+      const RazorpayCheckout = await loadRazorpayScript();
+      const options = {
+        key: orderPayload.key_id,
+        amount: orderPayload.amount,
+        currency: orderPayload.currency,
+        name: "SIA EDU",
+        description: orderPayload.description || orderPayload.course_title || "Course purchase",
+        order_id: orderPayload.order_id,
+        prefill: orderPayload.prefill || {},
+        theme: { color: "#1f4bb8" },
+        handler: async (gatewayResponse) => {
+          try {
+            await paymentService.confirmPayment({
+              transaction_id: orderPayload.transaction_id,
+              razorpay_order_id: gatewayResponse.razorpay_order_id,
+              razorpay_payment_id: gatewayResponse.razorpay_payment_id,
+              razorpay_signature: gatewayResponse.razorpay_signature,
+            });
+            window.location.href = `/success?transaction_id=${orderPayload.transaction_id}&confirmed=1`;
+          } catch {
+            window.location.href = "/failure";
+          }
+        },
+      };
+
+      const razorpay = new RazorpayCheckout(options);
+      razorpay.on("payment.failed", () => {
+        window.location.href = "/failure";
+      });
+      razorpay.open();
     } catch (error) {
-      const message = error.response?.data?.detail || "Unable to initialize secure checkout.";
+      const message = error.response?.data?.detail || "Unable to initialize Razorpay checkout.";
       setPaymentError(message);
       addToast({ type: "error", message });
       setPaying(false);
@@ -124,11 +189,11 @@ export default function Billing() {
                   </strong>
                 </div>
                 <div className="billing-row">
-                  <span>Subtotal</span>
+                  <span>Subtotal (Excl. GST)</span>
                   <strong>{formatCurrency(billingSummary.subtotal, billingSummary.currency)}</strong>
                 </div>
                 <div className="billing-row">
-                  <span>Tax</span>
+                  <span>GST ({billingSummary.taxRatePercent.toFixed(0)}%)</span>
                   <strong>{formatCurrency(billingSummary.tax, billingSummary.currency)}</strong>
                 </div>
                 <div className="billing-row total">
@@ -142,11 +207,11 @@ export default function Billing() {
                   <HiOutlineShieldCheck />
                   <h2>Secure Payment</h2>
                 </div>
-                <p className="card-subtitle">Your transaction is encrypted and processed through Stripe Checkout.</p>
+                <p className="card-subtitle">Your transaction is encrypted and processed through Razorpay.</p>
                 <ul className="billing-checklist">
                   <li>
                     <HiOutlineLockClosed />
-                    Card and UPI details are entered on Stripe-hosted secure pages.
+                    Card and UPI details are entered on Razorpay-hosted secure pages.
                   </li>
                   <li>
                     <HiOutlineClock />
@@ -156,7 +221,7 @@ export default function Billing() {
                 {paymentError ? <p className="billing-status-banner">{paymentError}</p> : null}
                 <button type="button" className="btn btn-primary btn-icon" disabled={paying} onClick={handleCheckout}>
                   <HiOutlineReceiptPercent />
-                  {paying ? "Redirecting to secure checkout..." : "Continue to Secure Payment"}
+                  {paying ? "Opening Razorpay..." : "Continue to Razorpay Payment"}
                 </button>
                 <p className="billing-legal">
                   By continuing, you agree to the platform billing and refund policy. Need help? General Information:
