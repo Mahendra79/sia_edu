@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from email.mime.image import MIMEImage
 from html import escape
@@ -7,6 +8,7 @@ import logging
 from pathlib import Path
 from decimal import Decimal
 
+import requests
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
@@ -394,6 +396,62 @@ def _send_html_email(
     attachments: list[tuple[str, bytes, str]] | None = None,
 ) -> None:
     plain_body = strip_tags(html_body)
+    attachments = attachments or []
+
+    # Prefer Resend API when key is configured (works on Render free plan where SMTP is blocked).
+    resend_api_key = str(getattr(settings, "RESEND_API_KEY", "")).strip()
+    resend_api_url = str(getattr(settings, "RESEND_API_URL", "https://api.resend.com/emails")).strip()
+    resend_from_email = str(getattr(settings, "RESEND_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL)).strip()
+    if resend_api_key and resend_api_url and resend_from_email:
+        try:
+            resend_html = html_body
+            if f"cid:{LOGO_CID}" in resend_html:
+                resend_logo_url = str(
+                    getattr(
+                        settings,
+                        "WEBSITE_LOGO_URL",
+                        "https://dummyimage.com/96x96/0b1220/ffffff.png&text=SIA",
+                    )
+                ).strip()
+                if resend_logo_url:
+                    resend_html = resend_html.replace(f"cid:{LOGO_CID}", resend_logo_url)
+
+            resend_payload: dict = {
+                "from": resend_from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": resend_html,
+                "text": plain_body,
+            }
+
+            if attachments:
+                resend_payload["attachments"] = [
+                    {
+                        "filename": filename,
+                        "content": base64.b64encode(payload).decode("ascii"),
+                        "content_type": content_type,
+                    }
+                    for filename, payload, content_type in attachments
+                ]
+
+            response = requests.post(
+                resend_api_url,
+                headers={
+                    "Authorization": f"Bearer {resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=resend_payload,
+                timeout=int(getattr(settings, "EMAIL_TIMEOUT", 20)),
+            )
+            response.raise_for_status()
+            return
+        except Exception:
+            logger.exception(
+                "Failed to send account email via Resend to %s with subject '%s'. Falling back to Django backend.",
+                to_email,
+                subject,
+            )
+
     message = EmailMultiAlternatives(
         subject=subject,
         body=plain_body,
@@ -410,7 +468,7 @@ def _send_html_email(
             image.add_header("Content-Disposition", "inline", filename=logo_file.name)
             image.add_header("X-Attachment-Id", LOGO_CID)
             message.attach(image)
-    for attachment in attachments or []:
+    for attachment in attachments:
         filename, payload, content_type = attachment
         message.attach(filename, payload, content_type)
     try:
