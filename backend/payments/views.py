@@ -1,29 +1,36 @@
+import hashlib
+import hmac
+import json
+import logging
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
-import stripe
 from django.conf import settings
 from django.utils.dateparse import parse_date
-from rest_framework import generics, serializers, status
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from django.http import HttpResponse
 
 from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
+from accounts.email_service import send_payment_success_email
 from analytics.models import AdminActivityLog
 from courses.models import Course, Enrollment
 from deleted_records.services import record_soft_delete
+from payments.invoice import build_invoice_pdf
 from payments.models import PaymentTransaction
 from payments.serializers import (
     AdminPaymentUpdateSerializer,
     BillingPreviewSerializer,
     ConfirmPaymentSerializer,
-    CreateCheckoutSessionSerializer,
+    CreateRazorpayOrderSerializer,
     PaymentTransactionSerializer,
     calculate_totals,
-    validate_checkout_redirect_url,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _log_admin_action(user, action: str, target_type: str, target_id: str, details: str = ""):
@@ -37,18 +44,42 @@ def _log_admin_action(user, action: str, target_type: str, target_id: str, detai
         )
 
 
-def _stripe_ready() -> bool:
-    if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.strip() == "sk_test_replace_me":
-        return False
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-    return True
+def _use_real_gateway() -> bool:
+    # Requested behavior:
+    # DEV_PAYMENT_MODE=False -> local testing/mock flow
+    # DEV_PAYMENT_MODE=True -> real Razorpay flow
+    return bool(settings.DEV_PAYMENT_MODE)
+
+
+def _has_razorpay_credentials() -> bool:
+    return bool(settings.RAZORPAY_KEY_ID.strip() and settings.RAZORPAY_KEY_SECRET.strip())
+
+
+def _razorpay_client():
+    try:
+        import razorpay
+    except ImportError:
+        return None
+
+    key_id = settings.RAZORPAY_KEY_ID.strip()
+    key_secret = settings.RAZORPAY_KEY_SECRET.strip()
+    if not key_id or not key_secret:
+        return None
+    return razorpay.Client(auth=(key_id, key_secret))
 
 
 def _tax_rate() -> Decimal:
     try:
-        return Decimal(str(settings.DEFAULT_TAX_RATE))
+        configured_rate = Decimal(str(settings.DEFAULT_TAX_RATE))
     except InvalidOperation:
-        return Decimal("0.00")
+        configured_rate = Decimal("0.18")
+    if configured_rate <= Decimal("0.00"):
+        return Decimal("0.18")
+    return configured_rate
+
+
+def _tax_rate_percent() -> Decimal:
+    return (_tax_rate() * Decimal("100")).quantize(Decimal("0.01"))
 
 
 def _create_or_update_enrollment(transaction: PaymentTransaction):
@@ -65,6 +96,22 @@ def _create_or_update_enrollment(transaction: PaymentTransaction):
     transaction.save(update_fields=["enrollment", "updated_at"])
 
 
+def _send_payment_success_email_once(transaction: PaymentTransaction):
+    metadata = transaction.metadata or {}
+    if metadata.get("success_email_sent"):
+        return
+    try:
+        invoice_pdf = build_invoice_pdf(transaction)
+        send_payment_success_email(transaction=transaction, invoice_pdf=invoice_pdf)
+        transaction.metadata = {
+            **metadata,
+            "success_email_sent": True,
+        }
+        transaction.save(update_fields=["metadata", "updated_at"])
+    except Exception:
+        logger.exception("Failed to send payment success email for transaction %s", transaction.id)
+
+
 class BillingPreviewView(APIView):
     permission_classes = [IsActiveAuthenticated]
 
@@ -77,28 +124,35 @@ class BillingPreviewView(APIView):
             course.price,
             _tax_rate(),
             course.discount_percent,
+            course.final_price,
         )
+        if amount > Decimal("0.00"):
+            discount_percent = ((discount_amount * Decimal("100")) / amount).quantize(Decimal("0.01"))
+        else:
+            discount_percent = Decimal("0.00")
         data = {
             "course_id": course.id,
             "course_title": course.title,
             "amount": amount,
-            "discount_percent": course.discount_percent,
+            "final_price": total,
+            "discount_percent": discount_percent,
             "discount_amount": discount_amount,
             "subtotal": subtotal,
+            "tax_rate_percent": _tax_rate_percent(),
             "tax": tax,
             "total": total,
-            "currency": settings.STRIPE_CURRENCY,
+            "currency": settings.RAZORPAY_CURRENCY,
         }
         return Response(BillingPreviewSerializer(data).data)
 
 
-class CreateCheckoutSessionView(APIView):
+class CreateRazorpayOrderView(APIView):
     permission_classes = [IsActiveAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "payments"
 
     def post(self, request):
-        serializer = CreateCheckoutSessionSerializer(data=request.data)
+        serializer = CreateRazorpayOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         course = Course.objects.filter(id=serializer.validated_data["course_id"], is_deleted=False, is_active=True).first()
@@ -112,26 +166,24 @@ class CreateCheckoutSessionView(APIView):
             course.price,
             _tax_rate(),
             course.discount_percent,
+            course.final_price,
         )
+        if amount > Decimal("0.00"):
+            discount_percent = ((discount_amount * Decimal("100")) / amount).quantize(Decimal("0.01"))
+        else:
+            discount_percent = Decimal("0.00")
 
         pricing_snapshot = {
             "amount": str(amount),
-            "discount_percent": str(course.discount_percent),
+            "final_price": str(total),
+            "discount_percent": str(discount_percent),
             "discount_amount": str(discount_amount),
             "subtotal": str(subtotal),
+            "tax_rate_percent": str(_tax_rate_percent()),
             "tax": str(tax),
             "total": str(total),
-            "currency": settings.STRIPE_CURRENCY,
+            "currency": settings.RAZORPAY_CURRENCY,
         }
-
-        frontend_url = settings.FRONTEND_BASE_URL.rstrip("/")
-        success_url = serializer.validated_data.get("success_url") or f"{frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = serializer.validated_data.get("cancel_url") or f"{frontend_url}/failure"
-        try:
-            success_url = validate_checkout_redirect_url(success_url)
-            cancel_url = validate_checkout_redirect_url(cancel_url)
-        except serializers.ValidationError:
-            return Response({"detail": "Checkout redirect URL is not allowed."}, status=status.HTTP_400_BAD_REQUEST)
 
         transaction = PaymentTransaction.objects.create(
             user=request.user,
@@ -139,79 +191,98 @@ class CreateCheckoutSessionView(APIView):
             amount=amount,
             tax=tax,
             total=total,
-            currency=settings.STRIPE_CURRENCY,
+            currency=settings.RAZORPAY_CURRENCY,
             payment_status="pending",
             metadata={"pricing": pricing_snapshot},
         )
 
-        if not _stripe_ready():
-            if settings.DEV_PAYMENT_MODE:
-                session_id = f"dev_session_{transaction.id}_{uuid4().hex[:8]}"
-                checkout_url = success_url.replace("{CHECKOUT_SESSION_ID}", session_id)
-                transaction.stripe_session_id = session_id
-                transaction.metadata = {
-                    **transaction.metadata,
-                    "mode": "dev_payment",
-                    "checkout_url": checkout_url,
-                }
-                transaction.save(update_fields=["stripe_session_id", "metadata", "updated_at"])
-                return Response(
-                    {
-                        "checkout_url": checkout_url,
-                        "session_id": session_id,
-                        "transaction_id": transaction.id,
-                        "mode": "dev",
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
-            transaction.payment_status = "failed"
-            transaction.failure_reason = "Stripe key is not configured."
-            transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
-            return Response({"detail": "Stripe is not configured on server."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Local testing mode (DEV_PAYMENT_MODE=False) OR missing credentials:
+        # no real gateway call, always return mock order for local testing.
+        if (not _use_real_gateway()) or (not _has_razorpay_credentials()):
+            dev_order_id = f"dev_order_{transaction.id}_{uuid4().hex[:8]}"
+            transaction.razorpay_order_id = dev_order_id
+            transaction.metadata = {
+                **transaction.metadata,
+                "mode": "dev_payment",
+                "fallback_reason": "local_mode_or_missing_credentials",
+            }
+            transaction.save(update_fields=["razorpay_order_id", "metadata", "updated_at"])
+            return Response(
+                {
+                    "mode": "dev",
+                    "transaction_id": transaction.id,
+                    "order_id": dev_order_id,
+                    "amount": int(total * Decimal("100")),
+                    "currency": settings.RAZORPAY_CURRENCY,
+                    "course_title": course.title,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        client = _razorpay_client()
+        if not client:
+            # Defensive fallback (should already be handled above).
+            dev_order_id = f"dev_order_{transaction.id}_{uuid4().hex[:8]}"
+            transaction.razorpay_order_id = dev_order_id
+            transaction.metadata = {
+                **transaction.metadata,
+                "mode": "dev_payment",
+                "fallback_reason": "razorpay_client_unavailable",
+            }
+            transaction.save(update_fields=["razorpay_order_id", "metadata", "updated_at"])
+            return Response(
+                {
+                    "mode": "dev",
+                    "transaction_id": transaction.id,
+                    "order_id": dev_order_id,
+                    "amount": int(total * Decimal("100")),
+                    "currency": settings.RAZORPAY_CURRENCY,
+                    "course_title": course.title,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         try:
-            session = stripe.checkout.Session.create(
-                mode="payment",
-                payment_method_types=["card"],
-                line_items=[
-                    {
-                        "price_data": {
-                            "currency": settings.STRIPE_CURRENCY,
-                            "product_data": {
-                                "name": course.title,
-                                "description": course.short_description,
-                            },
-                            "unit_amount": int(total * Decimal("100")),
-                        },
-                        "quantity": 1,
-                    }
-                ],
-                metadata={
-                    "transaction_id": str(transaction.id),
-                    "user_id": str(request.user.id),
-                    "course_id": str(course.id),
-                },
-                success_url=success_url,
-                cancel_url=cancel_url,
+            order = client.order.create(
+                {
+                    "amount": int(total * Decimal("100")),
+                    "currency": settings.RAZORPAY_CURRENCY.upper(),
+                    "receipt": f"sia_txn_{transaction.id}",
+                    "notes": {
+                        "transaction_id": str(transaction.id),
+                        "course_id": str(course.id),
+                        "user_id": str(request.user.id),
+                    },
+                }
             )
-        except stripe.error.StripeError as exc:
+        except Exception as exc:
             transaction.payment_status = "failed"
             transaction.failure_reason = str(exc)
             transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
-            return Response({"detail": "Unable to create checkout session."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Unable to create Razorpay order."}, status=status.HTTP_400_BAD_REQUEST)
 
-        transaction.stripe_session_id = session.id
+        transaction.razorpay_order_id = order.get("id")
         transaction.metadata = {
             **transaction.metadata,
-            "checkout_url": session.url,
+            "gateway_order": order,
         }
-        transaction.save(update_fields=["stripe_session_id", "metadata", "updated_at"])
+        transaction.save(update_fields=["razorpay_order_id", "metadata", "updated_at"])
 
         return Response(
             {
-                "checkout_url": session.url,
-                "session_id": session.id,
+                "mode": "live",
                 "transaction_id": transaction.id,
+                "key_id": settings.RAZORPAY_KEY_ID,
+                "order_id": order.get("id"),
+                "amount": order.get("amount"),
+                "currency": order.get("currency"),
+                "course_title": course.title,
+                "description": course.short_description,
+                "prefill": {
+                    "name": request.user.name or request.user.username,
+                    "email": request.user.email,
+                    "contact": request.user.phone or "",
+                },
             },
             status=status.HTTP_201_CREATED,
         )
@@ -225,106 +296,175 @@ class ConfirmPaymentView(APIView):
     def post(self, request):
         serializer = ConfirmPaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        session_id = serializer.validated_data["session_id"]
 
-        transaction = PaymentTransaction.objects.select_related("course", "user").filter(
-            stripe_session_id=session_id,
-            user=request.user,
-        ).first()
+        transaction = None
+        transaction_id = serializer.validated_data.get("transaction_id")
+        legacy_session_id = serializer.validated_data.get("session_id")
+        provided_order_id = serializer.validated_data.get("razorpay_order_id")
+
+        if transaction_id:
+            transaction = PaymentTransaction.objects.select_related("course", "user").filter(
+                id=transaction_id,
+                user=request.user,
+            ).first()
+        elif provided_order_id:
+            transaction = PaymentTransaction.objects.select_related("course", "user").filter(
+                razorpay_order_id=provided_order_id,
+                user=request.user,
+            ).first()
+        elif legacy_session_id:
+            transaction = PaymentTransaction.objects.select_related("course", "user").filter(
+                razorpay_order_id=legacy_session_id,
+                user=request.user,
+            ).first()
+
+        # Local compatibility fallback for older frontend flows.
+        if not transaction and not _use_real_gateway():
+            transaction = (
+                PaymentTransaction.objects.select_related("course", "user")
+                .filter(user=request.user, payment_status="pending", is_deleted=False)
+                .order_by("-created_at")
+                .first()
+            )
+
         if not transaction:
             return Response({"detail": "Transaction not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if transaction.payment_status == "success":
+            _send_payment_success_email_once(transaction)
             return Response({"status": "success"}, status=status.HTTP_200_OK)
 
-        if not _stripe_ready():
-            if settings.DEV_PAYMENT_MODE and session_id.startswith("dev_session_"):
-                transaction.payment_status = "success"
-                transaction.failure_reason = ""
-                transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
-                _create_or_update_enrollment(transaction)
-                return Response({"status": "success", "mode": "dev"}, status=status.HTTP_200_OK)
-            return Response({"detail": "Stripe is not configured on server."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        try:
-            session = stripe.checkout.Session.retrieve(session_id)
-        except stripe.error.StripeError:
-            return Response({"detail": "Unable to verify payment."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if session.payment_status == "paid":
+        # Local testing mode (DEV_PAYMENT_MODE=False): mark success directly.
+        if not _use_real_gateway():
             transaction.payment_status = "success"
-            transaction.stripe_payment_intent = session.payment_intent
             transaction.failure_reason = ""
-            transaction.save(update_fields=["payment_status", "stripe_payment_intent", "failure_reason", "updated_at"])
+            transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
             _create_or_update_enrollment(transaction)
-            return Response({"status": "success"}, status=status.HTTP_200_OK)
+            _send_payment_success_email_once(transaction)
+            return Response({"status": "success", "mode": "dev"}, status=status.HTTP_200_OK)
 
-        transaction.payment_status = "failed"
-        transaction.failure_reason = "Payment not completed."
-        transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
-        Enrollment.objects.update_or_create(
-            user=request.user,
-            course=transaction.course,
-            defaults={"payment_status": "failed", "status": "cancelled"},
+        order_id = serializer.validated_data.get("razorpay_order_id", "")
+        payment_id = serializer.validated_data.get("razorpay_payment_id", "")
+        signature = serializer.validated_data.get("razorpay_signature", "")
+
+        if not order_id or not payment_id or not signature:
+            return Response({"detail": "Missing Razorpay payment details."}, status=status.HTTP_400_BAD_REQUEST)
+        if transaction.razorpay_order_id and transaction.razorpay_order_id != order_id:
+            return Response({"detail": "Razorpay order mismatch."}, status=status.HTTP_400_BAD_REQUEST)
+
+        secret = settings.RAZORPAY_KEY_SECRET.strip()
+        if not secret:
+            return Response({"detail": "Razorpay secret is not configured on server."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        signed_payload = f"{order_id}|{payment_id}".encode("utf-8")
+        expected_signature = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_signature, signature):
+            transaction.payment_status = "failed"
+            transaction.failure_reason = "Invalid Razorpay signature."
+            transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
+            Enrollment.objects.update_or_create(
+                user=request.user,
+                course=transaction.course,
+                defaults={"payment_status": "failed", "status": "cancelled"},
+            )
+            return Response({"status": "failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        transaction.payment_status = "success"
+        transaction.razorpay_order_id = order_id
+        transaction.razorpay_payment_id = payment_id
+        transaction.razorpay_signature = signature
+        transaction.failure_reason = ""
+        transaction.save(
+            update_fields=[
+                "payment_status",
+                "razorpay_order_id",
+                "razorpay_payment_id",
+                "razorpay_signature",
+                "failure_reason",
+                "updated_at",
+            ]
         )
-        return Response({"status": "failed"}, status=status.HTTP_400_BAD_REQUEST)
+        _create_or_update_enrollment(transaction)
+        _send_payment_success_email_once(transaction)
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
-class StripeWebhookView(APIView):
+class InvoiceDownloadView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, payment_id: int):
+        transaction = (
+            PaymentTransaction.objects.select_related("user", "course")
+            .filter(id=payment_id, is_deleted=False, payment_status="success")
+            .first()
+        )
+        if not transaction:
+            return Response({"detail": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if (not request.user.is_admin) and transaction.user_id != request.user.id:
+            return Response({"detail": "You are not allowed to access this invoice."}, status=status.HTTP_403_FORBIDDEN)
+
+        pdf_bytes = build_invoice_pdf(transaction)
+        inline = str(request.query_params.get("inline", "0")).lower() in {"1", "true", "yes"}
+        disposition = "inline" if inline else "attachment"
+        filename = f"{transaction.id}_invoice.pdf"
+
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+        return response
+
+
+class RazorpayWebhookView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "webhook"
     authentication_classes = []
 
     def post(self, request):
-        if not _stripe_ready() or not settings.STRIPE_WEBHOOK_SECRET:
-            return Response({"detail": "Stripe webhook is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET.strip()
+        if not webhook_secret:
+            return Response({"detail": "Razorpay webhook is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         payload = request.body
-        signature = request.META.get("HTTP_STRIPE_SIGNATURE", "")
-        try:
-            event = stripe.Webhook.construct_event(payload, signature, settings.STRIPE_WEBHOOK_SECRET)
-        except (ValueError, stripe.error.SignatureVerificationError):
+        signature = request.META.get("HTTP_X_RAZORPAY_SIGNATURE", "")
+        expected_signature = hmac.new(webhook_secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_signature, signature):
             return Response({"detail": "Invalid webhook signature."}, status=status.HTTP_400_BAD_REQUEST)
 
-        event_type = event.get("type")
-        data_object = event["data"]["object"]
+        try:
+            event = json.loads(payload.decode("utf-8"))
+        except ValueError:
+            return Response({"detail": "Invalid webhook payload."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if event_type == "checkout.session.completed":
-            session_id = data_object.get("id")
-            transaction = PaymentTransaction.objects.select_related("user", "course").filter(
-                stripe_session_id=session_id
-            ).first()
-            if transaction:
-                transaction.payment_status = "success"
-                transaction.stripe_payment_intent = data_object.get("payment_intent")
-                transaction.failure_reason = ""
-                transaction.save(
-                    update_fields=["payment_status", "stripe_payment_intent", "failure_reason", "updated_at"]
-                )
-                _create_or_update_enrollment(transaction)
+        event_type = event.get("event")
+        payment_entity = ((event.get("payload") or {}).get("payment") or {}).get("entity") or {}
+        order_id = payment_entity.get("order_id")
+        payment_id = payment_entity.get("id")
 
-        if event_type in {"checkout.session.async_payment_failed", "payment_intent.payment_failed"}:
-            transaction_id = None
-            metadata = data_object.get("metadata") or {}
-            if metadata.get("transaction_id"):
-                transaction_id = metadata["transaction_id"]
+        if not order_id:
+            return Response({"received": True}, status=status.HTTP_200_OK)
 
-            transaction = None
-            if transaction_id:
-                transaction = PaymentTransaction.objects.filter(id=transaction_id).first()
-            if not transaction and data_object.get("id"):
-                transaction = PaymentTransaction.objects.filter(stripe_session_id=data_object["id"]).first()
+        transaction = PaymentTransaction.objects.select_related("user", "course").filter(razorpay_order_id=order_id).first()
+        if not transaction:
+            return Response({"received": True}, status=status.HTTP_200_OK)
 
-            if transaction:
-                transaction.payment_status = "failed"
-                transaction.failure_reason = "Payment failed from webhook."
-                transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
-                Enrollment.objects.update_or_create(
-                    user=transaction.user,
-                    course=transaction.course,
-                    defaults={"payment_status": "failed", "status": "cancelled"},
-                )
+        if event_type == "payment.captured":
+            transaction.payment_status = "success"
+            transaction.razorpay_payment_id = payment_id
+            transaction.failure_reason = ""
+            transaction.save(update_fields=["payment_status", "razorpay_payment_id", "failure_reason", "updated_at"])
+            _create_or_update_enrollment(transaction)
+            _send_payment_success_email_once(transaction)
+
+        if event_type in {"payment.failed", "order.paid"} and payment_entity.get("status") == "failed":
+            transaction.payment_status = "failed"
+            transaction.failure_reason = "Payment failed from Razorpay webhook."
+            transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
+            Enrollment.objects.update_or_create(
+                user=transaction.user,
+                course=transaction.course,
+                defaults={"payment_status": "failed", "status": "cancelled"},
+            )
 
         return Response({"received": True}, status=status.HTTP_200_OK)
 
@@ -398,6 +538,7 @@ class AdminPaymentDetailView(APIView):
         new_status = serializer.validated_data.get("payment_status")
         if new_status == "success":
             _create_or_update_enrollment(transaction)
+            _send_payment_success_email_once(transaction)
         elif new_status == "failed":
             Enrollment.objects.update_or_create(
                 user=transaction.user,
@@ -425,4 +566,3 @@ class AdminPaymentDetailView(APIView):
         transaction.save(update_fields=["is_deleted", "updated_at"])
         _log_admin_action(request.user, "delete_payment", "PaymentTransaction", str(transaction.id), reason)
         return Response({"message": "Payment soft deleted."}, status=status.HTTP_200_OK)
-

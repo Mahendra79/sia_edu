@@ -167,7 +167,7 @@ export default function Home() {
               <HiOutlineShieldCheck />
               <div>
                 <strong>Secure Billing</strong>
-                <span>Stripe checkout flow</span>
+                <span>Razorpay checkout flow</span>
               </div>
             </div>
             <div className="hero-stat-card">

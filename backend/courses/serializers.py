@@ -46,6 +46,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "mentor_bio",
             "duration_days",
             "price",
+            "final_price",
             "discount_percent",
             "discounted_price",
             "has_discount",
@@ -58,6 +59,28 @@ class CourseSerializer(serializers.ModelSerializer):
             "highlight_title",
             "created_at",
         )
+
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+        price = Decimal(str(attrs.get("price", getattr(instance, "price", 0)) or 0)).quantize(Decimal("0.01"))
+        final_price = attrs.get("final_price", getattr(instance, "final_price", None))
+
+        if final_price is None:
+            return attrs
+
+        normalized_final = Decimal(str(final_price)).quantize(Decimal("0.01"))
+        if normalized_final < Decimal("0.00"):
+            raise serializers.ValidationError({"final_price": "Final price cannot be negative."})
+        if normalized_final > price:
+            raise serializers.ValidationError({"final_price": "Final price cannot be greater than price."})
+
+        attrs["final_price"] = normalized_final
+        if price <= Decimal("0.00"):
+            attrs["discount_percent"] = Decimal("0.00")
+        else:
+            discount_percent = ((price - normalized_final) * Decimal("100")) / price
+            attrs["discount_percent"] = max(Decimal("0.00"), min(Decimal("100.00"), discount_percent.quantize(Decimal("0.01"))))
+        return attrs
 
     def get_average_rating(self, obj):
         cached = getattr(obj, "avg_rating", None)
@@ -80,6 +103,8 @@ class CourseSerializer(serializers.ModelSerializer):
         return pattern.sub(lambda match: f"<mark>{match.group(0)}</mark>", obj.title)
 
     def get_discounted_price(self, obj):
+        if obj.final_price is not None:
+            return Decimal(str(obj.final_price)).quantize(Decimal("0.01"))
         price = Decimal(str(obj.price or 0))
         discount_percent = Decimal(str(obj.discount_percent or 0))
         discount_percent = max(Decimal("0"), min(Decimal("100"), discount_percent))

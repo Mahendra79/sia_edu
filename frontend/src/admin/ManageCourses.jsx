@@ -13,26 +13,30 @@ import { downloadCsv, fetchAllPaginated } from "../utils/export";
 import { formatDate } from "../utils/format";
 import "./admin.css";
 
-function normalizeRoundedNumber(value) {
-  return Math.max(0, Math.round(Number(value) || 0));
+function normalizeMoneyNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return Math.max(0, Number(parsed.toFixed(2)));
 }
 
-function formatRoundedInr(value) {
+function formatInr(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(normalizeRoundedNumber(value));
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(normalizeMoneyNumber(value));
 }
 
 function normalizeFinalPrice(price, finalPrice) {
-  const normalizedPrice = normalizeRoundedNumber(price);
-  return Math.min(normalizedPrice, normalizeRoundedNumber(finalPrice));
+  const normalizedPrice = normalizeMoneyNumber(price);
+  return Math.min(normalizedPrice, normalizeMoneyNumber(finalPrice));
 }
 
 function calculateExactDiscountPercentFromFinalPrice(price, finalPrice) {
-  const normalizedPrice = normalizeRoundedNumber(price);
+  const normalizedPrice = normalizeMoneyNumber(price);
   if (normalizedPrice <= 0) {
     return 0;
   }
@@ -46,9 +50,9 @@ function calculateRoundedDiscountPercentFromFinalPrice(price, finalPrice) {
 }
 
 function calculatePriceSummaryFromFinalPrice(price, finalPrice) {
-  const normalizedPrice = normalizeRoundedNumber(price);
+  const normalizedPrice = normalizeMoneyNumber(price);
   const normalizedFinal = normalizeFinalPrice(normalizedPrice, finalPrice);
-  const discountAmount = Math.max(0, normalizedPrice - normalizedFinal);
+  const discountAmount = Number(Math.max(0, normalizedPrice - normalizedFinal).toFixed(2));
   const discountPercentExact = calculateExactDiscountPercentFromFinalPrice(normalizedPrice, normalizedFinal);
   const discountPercentRounded = Math.round(discountPercentExact);
 
@@ -62,13 +66,16 @@ function calculatePriceSummaryFromFinalPrice(price, finalPrice) {
 }
 
 function deriveCourseFinalPrice(course) {
-  if (course?.discounted_price !== undefined && course?.discounted_price !== null) {
-    return normalizeRoundedNumber(course.discounted_price);
+  if (course?.final_price !== undefined && course?.final_price !== null) {
+    return normalizeMoneyNumber(course.final_price);
   }
-  const normalizedPrice = normalizeRoundedNumber(course?.price);
+  if (course?.discounted_price !== undefined && course?.discounted_price !== null) {
+    return normalizeMoneyNumber(course.discounted_price);
+  }
+  const normalizedPrice = normalizeMoneyNumber(course?.price);
   const discountPercent = Number(course?.discount_percent || 0);
-  const derivedFinal = Math.round(normalizedPrice - (normalizedPrice * discountPercent) / 100);
-  return Math.max(0, derivedFinal);
+  const derivedFinal = normalizedPrice - (normalizedPrice * discountPercent) / 100;
+  return Number(Math.max(0, derivedFinal).toFixed(2));
 }
 
 const EMPTY_FORM = {
@@ -88,7 +95,7 @@ const EMPTY_FORM = {
 };
 
 function toCourseForm(course) {
-  const price = normalizeRoundedNumber(course.price);
+  const price = normalizeMoneyNumber(course.price);
   const finalPrice = deriveCourseFinalPrice(course);
   const discountPercentExact = calculateExactDiscountPercentFromFinalPrice(price, finalPrice);
 
@@ -119,7 +126,7 @@ function firstApiError(error, fallback) {
 }
 
 function buildCoursePayload(form) {
-  const price = normalizeRoundedNumber(form.price);
+  const price = normalizeMoneyNumber(form.price);
   const finalPrice = normalizeFinalPrice(price, form.final_price);
   const discountPercent = calculateExactDiscountPercentFromFinalPrice(price, finalPrice);
 
@@ -132,6 +139,7 @@ function buildCoursePayload(form) {
   payload.append("mentor_bio", form.mentor_bio.trim());
   payload.append("duration_days", String(form.duration_days || "30").trim());
   payload.append("price", String(price));
+  payload.append("final_price", String(finalPrice));
   payload.append("discount_percent", discountPercent.toFixed(2));
   payload.append("category_id", String(form.category_id));
   payload.append("is_active", String(Boolean(form.is_active)));
@@ -242,7 +250,7 @@ function InlineCourseForm({
           aria-label="Price"
           type="number"
           min="0"
-          step="1"
+          step="0.01"
           placeholder="Price"
           value={form.price}
           onChange={(event) =>
@@ -262,7 +270,7 @@ function InlineCourseForm({
           aria-label="Final Price"
           type="number"
           min="0"
-          step="1"
+          step="0.01"
           placeholder="Final Price"
           value={form.final_price}
           onChange={(event) =>
@@ -288,8 +296,8 @@ function InlineCourseForm({
         />
       </InlineField>
 
-      <InlineField label="Final Price (Rounded)">
-        <input aria-label="Final Price Rounded" type="text" value={formatRoundedInr(priceSummary.finalPrice)} readOnly />
+      <InlineField label="Final Price">
+        <input aria-label="Final Price Display" type="text" value={formatInr(priceSummary.finalPrice)} readOnly />
       </InlineField>
 
       <InlineField label="Category">
@@ -538,8 +546,8 @@ export default function ManageCourses() {
           mentor_name: course.mentor_name || "-",
           mentor_title: course.mentor_title || "-",
           duration_days: Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-",
-          price: formatRoundedInr(course.price),
-          final_price: formatRoundedInr(deriveCourseFinalPrice(course)),
+          price: formatInr(course.price),
+          final_price: formatInr(deriveCourseFinalPrice(course)),
           discount_percent: `${calculateRoundedDiscountPercentFromFinalPrice(course.price, deriveCourseFinalPrice(course))}%`,
           is_active: course.is_active ? "Yes" : "No",
           created_at: formatDate(course.created_at),
@@ -643,8 +651,8 @@ export default function ManageCourses() {
                         <td>{course.category?.name}</td>
                         <td>{course.mentor_name || "-"}</td>
                         <td>{Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-"}</td>
-                        <td>{formatRoundedInr(course.price)}</td>
-                        <td>{formatRoundedInr(deriveCourseFinalPrice(course))}</td>
+                        <td>{formatInr(course.price)}</td>
+                        <td>{formatInr(deriveCourseFinalPrice(course))}</td>
                         <td>{`${calculateRoundedDiscountPercentFromFinalPrice(course.price, deriveCourseFinalPrice(course))}%`}</td>
                         <td>{course.is_active ? "Yes" : "No"}</td>
                         <td>
