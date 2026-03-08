@@ -1,8 +1,10 @@
 import logging
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -81,47 +83,57 @@ class SignupView(generics.CreateAPIView):
     throttle_scope = "auth"
 
     def create(self, request, *args, **kwargs):
-        username = request.data.get("username", "").strip()
-        email = request.data.get("email", "").strip()
-        phone = request.data.get("phone", "").strip()
-        password = request.data.get("password", "")
+        try:
+            username = request.data.get("username", "").strip()
+            email = request.data.get("email", "").strip()
+            phone = request.data.get("phone", "").strip()
+            password = request.data.get("password", "")
 
-        existing_user = User.objects.filter(
-            Q(username__iexact=username) | Q(email__iexact=email) | Q(phone=phone)
-        ).first()
-        if existing_user:
-            if existing_user.is_deleted or not existing_user.is_active:
-                return Response({"detail": "Account is inactive."}, status=status.HTTP_400_BAD_REQUEST)
-            if not password or not existing_user.check_password(password):
+            existing_user = User.objects.filter(
+                Q(username__iexact=username) | Q(email__iexact=email) | Q(phone=phone)
+            ).first()
+            if existing_user:
+                if existing_user.is_deleted or not existing_user.is_active:
+                    return Response({"detail": "Account is inactive."}, status=status.HTTP_400_BAD_REQUEST)
+                if not password or not existing_user.check_password(password):
+                    return Response(
+                        {"detail": "Account already exists. Use login with correct password."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                token = None
+                if not existing_user.is_email_verified:
+                    token = _send_email_verification_token(existing_user)
                 return Response(
-                    {"detail": "Account already exists. Use login with correct password."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    _attach_verification_meta(
+                        _issue_auth_payload(existing_user, "Account already exists. Logged in successfully."),
+                        existing_user,
+                        token,
+                    ),
+                    status=status.HTTP_200_OK,
                 )
-            token = None
-            if not existing_user.is_email_verified:
-                token = _send_email_verification_token(existing_user)
+
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            token = _send_email_verification_token(user)
+
             return Response(
                 _attach_verification_meta(
-                    _issue_auth_payload(existing_user, "Account already exists. Logged in successfully."),
-                    existing_user,
+                    _issue_auth_payload(user, "Signup successful. Logged in successfully."),
+                    user,
                     token,
                 ),
-                status=status.HTTP_200_OK,
+                status=status.HTTP_201_CREATED,
             )
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        token = _send_email_verification_token(user)
-
-        return Response(
-            _attach_verification_meta(
-                _issue_auth_payload(user, "Signup successful. Logged in successfully."),
-                user,
-                token,
-            ),
-            status=status.HTTP_201_CREATED,
-        )
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            logger.exception("Signup failed due to integrity constraint.")
+            return Response({"detail": "Account already exists. Try login."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.exception("Unexpected signup failure.")
+            detail = str(exc) if settings.DEBUG else "Signup failed on server."
+            return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class LoginView(TokenObtainPairView):
@@ -132,20 +144,25 @@ class LoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         username = request.data.get("username", "")
-        response = super().post(request, *args, **kwargs)
-        if response.status_code == status.HTTP_200_OK:
-            user_payload = response.data.get("user") if isinstance(response.data, dict) else {}
-            user_id = user_payload.get("id") if isinstance(user_payload, dict) else None
-            token = None
-            if user_id:
-                user = User.objects.filter(id=user_id, is_deleted=False).first()
-                if user:
-                    if not user.is_email_verified:
-                        token = _send_email_verification_token(user)
-                    response.data = _attach_verification_meta(response.data, user, token)
-        if settings.DEBUG:
-            logger.warning("Login attempt received for '%s' with status %s", username, response.status_code)
-        return response
+        try:
+            response = super().post(request, *args, **kwargs)
+            if response.status_code == status.HTTP_200_OK:
+                user_payload = response.data.get("user") if isinstance(response.data, dict) else {}
+                user_id = user_payload.get("id") if isinstance(user_payload, dict) else None
+                token = None
+                if user_id:
+                    user = User.objects.filter(id=user_id, is_deleted=False).first()
+                    if user:
+                        if not user.is_email_verified:
+                            token = _send_email_verification_token(user)
+                        response.data = _attach_verification_meta(response.data, user, token)
+            if settings.DEBUG:
+                logger.warning("Login attempt received for '%s' with status %s", username, response.status_code)
+            return response
+        except Exception as exc:
+            logger.exception("Unexpected login failure for '%s'.", username)
+            detail = str(exc) if settings.DEBUG else "Login failed on server."
+            return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class RefreshTokenView(TokenRefreshView):
