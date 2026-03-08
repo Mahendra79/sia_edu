@@ -61,3 +61,36 @@ class RazorpayOrderTests(APITestCase):
         transaction = PaymentTransaction.objects.get(id=tx_id)
         self.assertEqual(transaction.payment_status, "success")
         self.assertEqual(transaction.total, Decimal("90.00"))
+
+
+@override_settings(
+    DEV_PAYMENT_MODE=True,
+    RAZORPAY_KEY_ID="",
+    RAZORPAY_KEY_SECRET="",
+    RAZORPAY_CURRENCY="inr",
+)
+class RazorpayLiveModeValidationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="payment_live_user",
+            email="payment_live_user@example.com",
+            phone="7222222222",
+            name="Payment Live User",
+            password="StrongPass123!",
+        )
+        self.client.force_authenticate(self.user)
+        category = Category.objects.create(name="Payments Live", description="Payments Live Category")
+        self.course = Course.objects.create(
+            category=category,
+            title="Razorpay Live Course",
+            short_description="Checkout live course",
+            description="Checkout live course description",
+            price="100.00",
+            discount_percent="0.00",
+            is_active=True,
+        )
+
+    def test_create_order_returns_503_when_live_mode_missing_credentials(self):
+        response = self.client.post(reverse("create-razorpay-order"), {"course_id": self.course.id}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertIn("Razorpay is not configured", response.data["detail"])

@@ -196,15 +196,14 @@ class CreateRazorpayOrderView(APIView):
             metadata={"pricing": pricing_snapshot},
         )
 
-        # Local testing mode (DEV_PAYMENT_MODE=False) OR missing credentials:
-        # no real gateway call, always return mock order for local testing.
-        if (not _use_real_gateway()) or (not _has_razorpay_credentials()):
+        # Local testing mode only (DEV_PAYMENT_MODE=False): always return mock order.
+        if not _use_real_gateway():
             dev_order_id = f"dev_order_{transaction.id}_{uuid4().hex[:8]}"
             transaction.razorpay_order_id = dev_order_id
             transaction.metadata = {
                 **transaction.metadata,
                 "mode": "dev_payment",
-                "fallback_reason": "local_mode_or_missing_credentials",
+                "fallback_reason": "local_mode",
             }
             transaction.save(update_fields=["razorpay_order_id", "metadata", "updated_at"])
             return Response(
@@ -215,31 +214,38 @@ class CreateRazorpayOrderView(APIView):
                     "amount": int(total * Decimal("100")),
                     "currency": settings.RAZORPAY_CURRENCY,
                     "course_title": course.title,
+                    "fallback_reason": "local_mode",
                 },
                 status=status.HTTP_201_CREATED,
             )
 
-        client = _razorpay_client()
-        if not client:
-            # Defensive fallback (should already be handled above).
-            dev_order_id = f"dev_order_{transaction.id}_{uuid4().hex[:8]}"
-            transaction.razorpay_order_id = dev_order_id
+        if not _has_razorpay_credentials():
+            transaction.payment_status = "failed"
+            transaction.failure_reason = "Razorpay credentials are missing on server."
             transaction.metadata = {
                 **transaction.metadata,
-                "mode": "dev_payment",
+                "mode": "live_error",
+                "fallback_reason": "missing_credentials",
+            }
+            transaction.save(update_fields=["payment_status", "failure_reason", "metadata", "updated_at"])
+            return Response(
+                {"detail": "Razorpay is not configured on server. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        client = _razorpay_client()
+        if not client:
+            transaction.payment_status = "failed"
+            transaction.failure_reason = "Razorpay client could not be initialized."
+            transaction.metadata = {
+                **transaction.metadata,
+                "mode": "live_error",
                 "fallback_reason": "razorpay_client_unavailable",
             }
-            transaction.save(update_fields=["razorpay_order_id", "metadata", "updated_at"])
+            transaction.save(update_fields=["payment_status", "failure_reason", "metadata", "updated_at"])
             return Response(
-                {
-                    "mode": "dev",
-                    "transaction_id": transaction.id,
-                    "order_id": dev_order_id,
-                    "amount": int(total * Decimal("100")),
-                    "currency": settings.RAZORPAY_CURRENCY,
-                    "course_title": course.title,
-                },
-                status=status.HTTP_201_CREATED,
+                {"detail": "Razorpay client unavailable on server. Check python package and credentials."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         try:
