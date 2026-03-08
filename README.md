@@ -30,6 +30,8 @@ Notes:
   - `DJANGO_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:5173,http://127.0.0.1:5173,https://siasoftwareinnovationseducation.onrender.com` (frontend origins, not backend host)
   - `FRONTEND_BASE_URL=https://siasoftwareinnovationseducation.onrender.com`
   - Prefer `DATABASE_URL=postgresql://...` from Render Postgres connection string (if set, backend uses it directly).
+  - Use Render start command: `bash backend/render-start.sh`
+  - This ensures `python manage.py migrate --noinput` runs on every deploy, which is required for JWT login/signup tables (`token_blacklist_*`).
 
 Run migrations and server:
 

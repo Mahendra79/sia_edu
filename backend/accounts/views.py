@@ -145,9 +145,12 @@ class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         username = request.data.get("username", "")
         try:
-            response = super().post(request, *args, **kwargs)
-            if response.status_code == status.HTTP_200_OK:
-                user_payload = response.data.get("user") if isinstance(response.data, dict) else {}
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            response_data = serializer.validated_data
+
+            if isinstance(response_data, dict):
+                user_payload = response_data.get("user") if isinstance(response_data, dict) else {}
                 user_id = user_payload.get("id") if isinstance(user_payload, dict) else None
                 token = None
                 if user_id:
@@ -155,10 +158,12 @@ class LoginView(TokenObtainPairView):
                     if user:
                         if not user.is_email_verified:
                             token = _send_email_verification_token(user)
-                        response.data = _attach_verification_meta(response.data, user, token)
+                        response_data = _attach_verification_meta(response_data, user, token)
             if settings.DEBUG:
-                logger.warning("Login attempt received for '%s' with status %s", username, response.status_code)
-            return response
+                logger.warning("Login attempt received for '%s' with status %s", username, status.HTTP_200_OK)
+            return Response(response_data, status=status.HTTP_200_OK)
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as exc:
             logger.exception("Unexpected login failure for '%s'.", username)
             detail = str(exc) if settings.DEBUG else "Login failed on server."
