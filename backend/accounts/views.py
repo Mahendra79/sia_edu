@@ -49,7 +49,10 @@ def _log_admin_action(user, action: str, target_type: str, target_id: str, detai
 
 def _send_email_verification_token(user: User) -> EmailVerificationToken:
     token = EmailVerificationToken.issue_for_user(user)
-    send_verification_code_email(user=user, verification_code=token.otp_code)
+    try:
+        send_verification_code_email(user=user, verification_code=token.otp_code)
+    except Exception:
+        logger.exception("Failed to send verification email for user_id=%s", user.id)
     return token
 
 
@@ -198,7 +201,10 @@ class VerifyEmailView(APIView):
 
         verification.is_used = True
         verification.save(update_fields=["is_used"])
-        send_registration_success_email(user=user)
+        try:
+            send_registration_success_email(user=user)
+        except Exception:
+            logger.exception("Failed to send registration success email for user_id=%s", user.id)
         return Response({"message": "Email verified successfully."}, status=status.HTTP_200_OK)
 
 
@@ -234,7 +240,10 @@ class PasswordResetRequestView(APIView):
 
         if user:
             reset_token = PasswordResetToken.issue_for_user(user)
-            send_password_reset_verification_code_email(user=user, verification_code=reset_token.otp_code)
+            try:
+                send_password_reset_verification_code_email(user=user, verification_code=reset_token.otp_code)
+            except Exception:
+                logger.exception("Failed to send password reset email for user_id=%s", user.id)
             response_payload = {"message": "If the account exists, a reset verification code has been sent."}
             if settings.AUTH_DEBUG_TOKENS:
                 response_payload["debug_reset"] = {"otp_code": reset_token.otp_code}
