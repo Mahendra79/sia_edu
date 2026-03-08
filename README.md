@@ -5,7 +5,7 @@ Full stack education platform with:
 - Backend: Django + Django REST Framework
 - Database: PostgreSQL (`SIA_EDU`)
 - Auth: JWT access/refresh tokens
-- Payments: Stripe Checkout + webhook verification
+- Payments: Razorpay Checkout + webhook verification
 
 ## 1. Backend Setup
 
@@ -17,8 +17,9 @@ python -m pip install -r requirements.txt
 Create `backend/.env` from `backend/.env.example` and set:
 - `DJANGO_SECRET_KEY` (always required)
 - PostgreSQL credentials for `SIA_EDU`
-- Stripe secrets
-- `DEV_PAYMENT_MODE=True` only for local payment simulation when Stripe keys are not set
+- Razorpay secrets (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`)
+- `DEV_PAYMENT_MODE=False` for local mock payment simulation (auto success, no Razorpay popup)
+- `DEV_PAYMENT_MODE=True` for real Razorpay flow (requires Razorpay keys on server)
 - `AUTH_DEBUG_TOKENS=True` only if you want verification/reset tokens returned in API responses during local testing
 
 Notes:
