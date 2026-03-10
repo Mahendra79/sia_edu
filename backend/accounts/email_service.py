@@ -398,83 +398,146 @@ def _send_html_email(
     plain_body = strip_tags(html_body)
     attachments = attachments or []
 
-    # Prefer Resend API when key is configured (works on Render free plan where SMTP is blocked).
-    resend_api_key = str(getattr(settings, "RESEND_API_KEY", "")).strip()
-    resend_api_url = str(getattr(settings, "RESEND_API_URL", "https://api.resend.com/emails")).strip()
-    resend_from_email = str(getattr(settings, "RESEND_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL)).strip()
-    if resend_api_key and resend_api_url and resend_from_email:
+    # Prefer Brevo API when key is configured.
+    brevo_api_key = str(getattr(settings, "BREVO_API_KEY", "")).strip()
+    brevo_api_url = str(getattr(settings, "BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")).strip()
+    brevo_sender_email = str(getattr(settings, "BREVO_SENDER_EMAIL", settings.DEFAULT_FROM_EMAIL)).strip()
+    brevo_sender_name = str(getattr(settings, "BREVO_SENDER_NAME", "")).strip()
+    if brevo_api_key and brevo_api_url and brevo_sender_email:
         try:
-            resend_html = html_body
-            if f"cid:{LOGO_CID}" in resend_html:
-                resend_logo_url = str(
+            brevo_html = html_body
+            if f"cid:{LOGO_CID}" in brevo_html:
+                brevo_logo_url = str(
                     getattr(
                         settings,
                         "WEBSITE_LOGO_URL",
                         "https://dummyimage.com/96x96/0b1220/ffffff.png&text=SIA",
                     )
                 ).strip()
-                if resend_logo_url:
-                    resend_html = resend_html.replace(f"cid:{LOGO_CID}", resend_logo_url)
+                if brevo_logo_url:
+                    brevo_html = brevo_html.replace(f"cid:{LOGO_CID}", brevo_logo_url)
 
-            resend_payload: dict = {
-                "from": resend_from_email,
-                "to": [to_email],
+            sender_payload: dict[str, str] = {"email": brevo_sender_email}
+            if brevo_sender_name:
+                sender_payload["name"] = brevo_sender_name
+
+            brevo_payload: dict = {
+                "sender": sender_payload,
+                "to": [{"email": to_email}],
                 "subject": subject,
-                "html": resend_html,
-                "text": plain_body,
+                "htmlContent": brevo_html,
+                "textContent": plain_body,
             }
 
             if attachments:
-                resend_payload["attachments"] = [
+                brevo_payload["attachment"] = [
                     {
-                        "filename": filename,
+                        "name": filename,
                         "content": base64.b64encode(payload).decode("ascii"),
-                        "content_type": content_type,
                     }
                     for filename, payload, content_type in attachments
                 ]
 
             response = requests.post(
-                resend_api_url,
+                brevo_api_url,
                 headers={
-                    "Authorization": f"Bearer {resend_api_key}",
+                    "api-key": brevo_api_key,
                     "Content-Type": "application/json",
                 },
-                json=resend_payload,
+                json=brevo_payload,
                 timeout=int(getattr(settings, "EMAIL_TIMEOUT", 20)),
             )
             response.raise_for_status()
             return
         except Exception:
             logger.exception(
-                "Failed to send account email via Resend to %s with subject '%s'. Falling back to Django backend.",
+                "Failed to send account email via Brevo to %s with subject '%s'. Falling back to Resend/SMTP.",
                 to_email,
                 subject,
             )
 
-    message = EmailMultiAlternatives(
-        subject=subject,
-        body=plain_body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[to_email],
-    )
-    message.attach_alternative(html_body, "text/html")
-    if inline_logo_path:
-        logo_file = Path(inline_logo_path)
-        if logo_file.exists() and logo_file.is_file():
-            with logo_file.open("rb") as file_obj:
-                image = MIMEImage(file_obj.read(), _subtype=logo_file.suffix.lstrip(".").lower() or "png")
-            image.add_header("Content-ID", f"<{LOGO_CID}>")
-            image.add_header("Content-Disposition", "inline", filename=logo_file.name)
-            image.add_header("X-Attachment-Id", LOGO_CID)
-            message.attach(image)
-    for attachment in attachments:
-        filename, payload, content_type = attachment
-        message.attach(filename, payload, content_type)
-    try:
-        message.send(fail_silently=False)
-    except Exception:
-        logger.exception("Failed to send account email to %s with subject '%s'", to_email, subject)
+    # Fallbacks are intentionally disabled to force Brevo API usage.
+    # Uncomment the blocks below to re-enable Resend/SMTP in the future.
+
+    # # Prefer Resend API when key is configured (works on Render free plan where SMTP is blocked).
+    # resend_api_key = str(getattr(settings, "RESEND_API_KEY", "")).strip()
+    # resend_api_url = str(getattr(settings, "RESEND_API_URL", "https://api.resend.com/emails")).strip()
+    # resend_from_email = str(getattr(settings, "RESEND_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL)).strip()
+    # if resend_api_key and resend_api_url and resend_from_email:
+    #     try:
+    #         resend_html = html_body
+    #         if f"cid:{LOGO_CID}" in resend_html:
+    #             resend_logo_url = str(
+    #                 getattr(
+    #                     settings,
+    #                     "WEBSITE_LOGO_URL",
+    #                     "https://dummyimage.com/96x96/0b1220/ffffff.png&text=SIA",
+    #                 )
+    #             ).strip()
+    #             if resend_logo_url:
+    #                 resend_html = resend_html.replace(f"cid:{LOGO_CID}", resend_logo_url)
+    #
+    #         resend_payload: dict = {
+    #             "from": resend_from_email,
+    #             "to": [to_email],
+    #             "subject": subject,
+    #             "html": resend_html,
+    #             "text": plain_body,
+    #         }
+    #
+    #         if attachments:
+    #             resend_payload["attachments"] = [
+    #                 {
+    #                     "filename": filename,
+    #                     "content": base64.b64encode(payload).decode("ascii"),
+    #                     "content_type": content_type,
+    #                 }
+    #                 for filename, payload, content_type in attachments
+    #             ]
+    #
+    #         response = requests.post(
+    #             resend_api_url,
+    #             headers={
+    #                 "Authorization": f"Bearer {resend_api_key}",
+    #                 "Content-Type": "application/json",
+    #             },
+    #             json=resend_payload,
+    #             timeout=int(getattr(settings, "EMAIL_TIMEOUT", 20)),
+    #         )
+    #         response.raise_for_status()
+    #         return
+    #     except Exception:
+    #         logger.exception(
+    #             "Failed to send account email via Resend to %s with subject '%s'. Falling back to Django backend.",
+    #             to_email,
+    #             subject,
+    #         )
+    #
+    # message = EmailMultiAlternatives(
+    #     subject=subject,
+    #     body=plain_body,
+    #     from_email=settings.DEFAULT_FROM_EMAIL,
+    #     to=[to_email],
+    # )
+    # message.attach_alternative(html_body, "text/html")
+    # if inline_logo_path:
+    #     logo_file = Path(inline_logo_path)
+    #     if logo_file.exists() and logo_file.is_file():
+    #         with logo_file.open("rb") as file_obj:
+    #             image = MIMEImage(file_obj.read(), _subtype=logo_file.suffix.lstrip(".").lower() or "png")
+    #         image.add_header("Content-ID", f"<{LOGO_CID}>")
+    #         image.add_header("Content-Disposition", "inline", filename=logo_file.name)
+    #         image.add_header("X-Attachment-Id", LOGO_CID)
+    #         message.attach(image)
+    # for attachment in attachments:
+    #     filename, payload, content_type = attachment
+    #     message.attach(filename, payload, content_type)
+    # try:
+    #     message.send(fail_silently=False)
+    # except Exception:
+    #     logger.exception("Failed to send account email to %s with subject '%s'", to_email, subject)
+
+    raise RuntimeError("Email delivery failed or Brevo is not configured. Brevo-only mode is enabled.")
 
 
 def send_verification_code_email(user, verification_code: str) -> None:
