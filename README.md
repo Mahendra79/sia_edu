@@ -67,8 +67,12 @@ npm run dev
 - Analytics: `/api/analytics/...`
 - Deleted records: `/api/deleted-records/...`
 
-Stripe webhook endpoint:
+Razorpay webhook endpoint:
 - `/api/payments/webhook/`
+
+Notes:
+- `POST /api/payments/create-order/` requires a valid JWT (`Authorization: Bearer <access_token>`).
+- Order creation is server-side only; Razorpay keys remain in backend env vars.
 
 ## 5. Chatbot RAG + QA Pipeline
 
@@ -92,7 +96,7 @@ python manage.py export_chatbot_finetune --output chatbot_finetune_dataset.jsonl
 - Role-based protected routes + backend permission classes
 - Home live search, debounced course fetch, pagination, search highlighting
 - Course ratings/reviews, admin course CRUD with soft delete + confirm modal
-- Billing page with DB price/tax/total and Stripe checkout session
+- Billing page with DB price/tax/total and Razorpay checkout session
 - Success/failure payment flow with transaction persistence and enrollment updates
 - User dashboard/profile/my-courses/payment history with filters + pagination
 - Admin dashboard with revenue/users/courses + Chart.js graphs
@@ -102,7 +106,7 @@ python manage.py export_chatbot_finetune --output chatbot_finetune_dataset.jsonl
 - Global toasts, loading spinner, error boundary, 404 page, page transitions
 - API throttling, webhook signature verification, input validation, soft-delete audit table
 - OTP support for email verification and password reset (`email + otp_code`)
-- Dev payment mode that still stores transactions and enrollments without live Stripe
+- Dev payment mode that still stores transactions and enrollments without live Razorpay
 
 
 
