@@ -1,7 +1,7 @@
 import hashlib
 
 from django.core.cache import cache
-from django.db.models import Avg, CharField, Count, Exists, OuterRef, Q, Subquery, Value
+from django.db.models import Avg, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
@@ -71,8 +71,8 @@ def _annotated_course_queryset(user):
         Course.objects.filter(is_deleted=False)
         .select_related("category")
         .annotate(
-            avg_rating=Coalesce(Subquery(avg_rating_subquery), Value(0)),
-            reviews_count=Coalesce(Subquery(review_count_subquery), Value(0)),
+            avg_rating=Coalesce(Subquery(avg_rating_subquery, output_field=FloatField()), Value(0.0)),
+            reviews_count=Coalesce(Subquery(review_count_subquery, output_field=IntegerField()), Value(0)),
             **purchased_annotation,
         )
     )
