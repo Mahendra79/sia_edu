@@ -132,7 +132,7 @@ export default function Home() {
             <h1>Build Job-Ready AI and Quantum Engineering Skills</h1>
             <p>
               Explore professional programs in Data Science, Machine Learning, Deep Learning, Prompt Engineering, and
-              Quantum Computing. Learn with structured labs, mentor guidance, and measurable skill milestones.
+              Quantum Computing. Learn with structured labs, guided practice, and measurable skill milestones.
             </p>
             <div className="hero-track-row">
               {learningTracks.map((track) => (
@@ -173,8 +173,8 @@ export default function Home() {
             <div className="hero-stat-card">
               <HiOutlineBolt />
               <div>
-                <strong>24x7 SIA_Chat</strong>
-                <span>Education-trained AI assistant support</span>
+                <strong>Student Success</strong>
+                <span>Onboarding, progress, and completion guidance</span>
               </div>
             </div>
           </aside>

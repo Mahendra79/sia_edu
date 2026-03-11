@@ -96,7 +96,7 @@ export default function Login() {
               </div>
               <p className="auth-form-note">
                 <HiOutlineShieldCheck />
-                24x7 SIA_Chat support is available for education-only course guidance and roadmap questions.
+                24x7 support is available for education-only course guidance and roadmap questions.
               </p>
             </aside>
 

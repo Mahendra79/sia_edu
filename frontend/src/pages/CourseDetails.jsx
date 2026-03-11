@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineBookOpen,
+  HiOutlineCalendarDays,
   HiOutlineClock,
   HiOutlineDocumentText,
   HiOutlinePlayCircle,
@@ -15,6 +16,7 @@ import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
+import { getCourseStartLabel } from "../data/featuredCourse";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
@@ -101,6 +103,28 @@ function extractSectionBullets(description, headings, max = 8) {
   return uniqueItems(bullets, max);
 }
 
+function extractModuleLines(description, max = 12) {
+  const lines = String(description || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const modules = [];
+  for (const line of lines) {
+    if (/^module\s+\d+/i.test(line)) {
+      modules.push(line.replace(/\s+/g, " ").trim());
+      continue;
+    }
+    if (/^capstone project/i.test(line)) {
+      modules.push("Capstone Project");
+    }
+    if (modules.length >= max) {
+      break;
+    }
+  }
+  return uniqueItems(modules, max);
+}
+
 function parseDescriptionPreview(text, expanded) {
   const fullText = String(text || "").trim();
   if (!fullText) {
@@ -130,7 +154,8 @@ export default function CourseDetails() {
 
     try {
       const detailResponse = await courseService.getCourse(id);
-      setCourse(detailResponse.data);
+      const apiCourse = detailResponse.data;
+      setCourse(apiCourse);
     } catch (requestError) {
       const message = requestError?.response?.data?.detail || "Unable to load course details.";
       setError(message);
@@ -156,10 +181,27 @@ export default function CourseDetails() {
     return null;
   }, [course?.duration_days]);
   const durationLabel = courseDurationDays ? `${courseDurationDays} days` : "Duration not set";
+  const startLabel = getCourseStartLabel(course);
 
   const curriculum = useMemo(() => {
     const extracted = extractSectionBullets(description, ["Course content", "Curriculum"], 10);
-    return extracted.length > 0 ? extracted : DEFAULT_CURRICULUM;
+    if (extracted.length > 0) {
+      return extracted;
+    }
+    const moduleLines = extractModuleLines(description, 12);
+    return moduleLines.length > 0 ? moduleLines : DEFAULT_CURRICULUM;
+  }, [description]);
+
+  const learningOutcomes = useMemo(() => {
+    return extractSectionBullets(description, ["Learning Outcomes"], 12);
+  }, [description]);
+
+  const platformResources = useMemo(() => {
+    return extractSectionBullets(description, ["Platform Access and Academic Resources"], 12);
+  }, [description]);
+
+  const capstone = useMemo(() => {
+    return extractSectionBullets(description, ["Capstone Project"], 12);
   }, [description]);
 
   const imageUrl = resolveCourseImageUrl(course?.image);
@@ -227,6 +269,12 @@ export default function CourseDetails() {
                       <HiOutlineClock />
                       {durationLabel}
                     </span>
+                    {startLabel ? (
+                      <span className="meta-pill">
+                        <HiOutlineCalendarDays />
+                        {startLabel}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="course-hero-image-wrap">
                     {imageUrl ? (
@@ -242,7 +290,11 @@ export default function CourseDetails() {
 
                 <aside className="course-details-panel course-pricing-card">
                   {isPurchased ? <span className="pill pill-owned">Purchased</span> : null}
-                  <p className="price-note">Guided plan duration: {durationLabel}.</p>
+                  <div className="pricing-kpi">
+                    <strong>Program Start</strong>
+                    <span>{startLabel || "Start date will be announced soon."}</span>
+                  </div>
+                  <p className="price-note">Guided learning plan: {durationLabel} with HDQS platform access.</p>
                   <button
                     type="button"
                     className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
@@ -267,6 +319,48 @@ export default function CourseDetails() {
                       ))}
                     </ul>
                   </article>
+
+                  {learningOutcomes.length > 0 ? (
+                    <article className="course-details-panel">
+                      <h2>Learning outcomes</h2>
+                      <ul className="details-list">
+                        {learningOutcomes.map((item) => (
+                          <li key={item}>
+                            <HiOutlineDocumentText />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ) : null}
+
+                  {capstone.length > 0 ? (
+                    <article className="course-details-panel">
+                      <h2>Capstone project</h2>
+                      <ul className="details-list">
+                        {capstone.map((item) => (
+                          <li key={item}>
+                            <HiOutlineDocumentText />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ) : null}
+
+                  {platformResources.length > 0 ? (
+                    <article className="course-details-panel">
+                      <h2>Platform access and academic resources</h2>
+                      <ul className="details-list">
+                        {platformResources.map((item) => (
+                          <li key={item}>
+                            <HiOutlineDocumentText />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ) : null}
 
                   <article className="course-details-panel">
                     <h2>Full description</h2>

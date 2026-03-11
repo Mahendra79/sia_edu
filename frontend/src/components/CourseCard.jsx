@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 import { formatCurrency } from "../utils/format";
-import { HiOutlineBookOpen, HiOutlineShoppingBag } from "react-icons/hi2";
-import { FaStar } from "react-icons/fa";
+import { HiOutlineBookOpen, HiOutlineCalendarDays, HiOutlineShoppingBag } from "react-icons/hi2";
 import { API_BASE_URL } from "../services/api";
+import { getCourseStartLabel } from "../data/featuredCourse";
 
 function getHighlightedTitle(title, query) {
   const normalizedQuery = String(query || "").trim();
@@ -38,11 +38,10 @@ function resolveDurationDays(course) {
     return direct;
   }
   const match = String(course?.description || "").match(/(\d{1,3})\s*days?/i);
-  return match?.[1] ? Number(match[1]) : 30;
+  return match?.[1] ? Number(match[1]) : null;
 }
 
 export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
-  const rating = Number(course.average_rating || 0).toFixed(1);
   const imageUrl = resolveCourseImageUrl(course.image);
   const discountPercent = Number(course.discount_percent || 0);
   const hasDiscount = discountPercent > 0;
@@ -50,6 +49,7 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   const discountedPrice = Number(course.discounted_price ?? listPrice);
   const isPurchased = Boolean(course.is_purchased);
   const durationDays = resolveDurationDays(course);
+  const startLabel = getCourseStartLabel(course);
 
   const handleOpen = () => {
     if (typeof onOpen === "function") {
@@ -89,11 +89,13 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
       <div className="course-content">
         <div className="course-tags">
           <span className="pill">{course.category?.name || "General"}</span>
-          <span className="pill">
-            <FaStar />
-            {rating}
-          </span>
-          <span className="pill">{durationDays} days</span>
+          <span className="pill">{durationDays ? `${durationDays} days` : "TBD"}</span>
+          {startLabel ? (
+            <span className="pill">
+              <HiOutlineCalendarDays />
+              {startLabel}
+            </span>
+          ) : null}
           {hasDiscount && (
             <span className="pill pill-discount">
               {discountPercent.toFixed(0)}% OFF

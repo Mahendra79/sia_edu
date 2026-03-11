@@ -775,6 +775,29 @@
   gap: 0.7rem;
 }
 
+.billing-coupon {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.billing-coupon-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.billing-coupon-row input {
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 0;
+}
+
+.billing-coupon-row .btn {
+  white-space: nowrap;
+  min-width: 96px;
+}
+
 .billing-checklist {
   margin: 0;
   padding: 0;
@@ -805,6 +828,12 @@
   padding: 0.6rem 0.7rem;
   font-size: 0.88rem;
   line-height: 1.35;
+}
+
+.billing-status-banner.success {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--soft-border));
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: color-mix(in srgb, var(--success) 86%, white 14%);
 }
 
 .billing-legal {

@@ -115,7 +115,7 @@ export default function Chatbot() {
     {
       role: "bot",
       text: (
-        "**Welcome to SIA_Chat**\n"
+        "**Welcome to Support Chat**\n"
         + "- 24x7 student support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum courses.\n"
         + "- Ask your topic and I will answer step-by-step."
       ),
@@ -193,7 +193,7 @@ export default function Chatbot() {
             <div className="chatbot-title-wrap">
               <h4>
                 <FaRobot />
-                SIA_Chat
+                Support Chat
               </h4>
               <p>
                 24x7 student doubt support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum tracks.
@@ -210,7 +210,7 @@ export default function Chatbot() {
                 <div className="chat-msg-body">{renderMessageText(message.text)}</div>
               </div>
             ))}
-            {botTyping ? <div className="chat-msg bot">SIA_Chat is preparing your answer...</div> : null}
+            {botTyping ? <div className="chat-msg bot">Support chat is preparing your answer...</div> : null}
           </div>
           <div className="chatbot-suggestions">
             {QUICK_SUGGESTIONS.map((item) => (
@@ -240,7 +240,7 @@ export default function Chatbot() {
       )}
       <button type="button" className="chatbot-fab" onClick={() => setOpen((prev) => !prev)} aria-label="Open chatbot">
         <FaRobot />
-        <span>SIA_Chat</span>
+        <span>Support Chat</span>
         <HiOutlineSparkles />
       </button>
     </div>

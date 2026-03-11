@@ -61,7 +61,7 @@ export default function ChatbotQA() {
         <section className="page-top">
           <div>
             <h1>Chatbot Quality</h1>
-            <p>RAG quality checks, response structure scoring, and latency benchmark for SIA_Chat.</p>
+            <p>RAG quality checks, response structure scoring, and latency benchmark for support chat.</p>
           </div>
           <div className="inline-controls">
             <button

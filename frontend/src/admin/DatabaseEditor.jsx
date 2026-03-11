@@ -20,8 +20,8 @@ const TABS = [
   { key: "courses", label: "Courses" },
   { key: "categories", label: "Categories" },
   { key: "enrollments", label: "Enrollments" },
-  { key: "reviews", label: "Reviews" },
   { key: "payments", label: "Payments" },
+  { key: "coupons", label: "Coupons" },
   { key: "deleted", label: "Deleted Records" },
   { key: "logs", label: "Activity Logs" },
 ];
@@ -30,6 +30,17 @@ const EMPTY_EDIT = {
   type: "",
   id: null,
   payload: {},
+};
+
+const EMPTY_COUPON = {
+  code: "",
+  course: "",
+  discount_amount: "",
+  max_uses: "",
+  per_user_limit: "1",
+  valid_from: "",
+  valid_until: "",
+  is_active: true,
 };
 
 function getApiError(error, fallback) {
@@ -52,6 +63,21 @@ function InlineField({ label, className = "", children }) {
   );
 }
 
+function toInputDateTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toIsoFromInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+}
+
 export default function DatabaseEditor() {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
@@ -66,11 +92,12 @@ export default function DatabaseEditor() {
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [deletedRecords, setDeletedRecords] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [courseImage, setCourseImage] = useState(null);
+  const [couponDraft, setCouponDraft] = useState(EMPTY_COUPON);
 
   const loadData = useCallback(
     async ({ silent = false } = {}) => {
@@ -78,13 +105,13 @@ export default function DatabaseEditor() {
       else setLoading(true);
 
       try {
-        const [u, c, ca, e, r, p, d, l] = await Promise.all([
+        const [u, c, ca, e, p, co, d, l] = await Promise.all([
           fetchAllPaginated((params) => authService.getAdminUsers(params)),
           fetchAllPaginated((params) => courseService.getCourses(params)),
           fetchAllPaginated((params) => courseService.getCategories(params)),
           fetchAllPaginated((params) => courseService.getAdminEnrollments(params)),
-          fetchAllPaginated((params) => courseService.getAdminReviews(params)),
           fetchAllPaginated((params) => paymentService.getAdminPaymentHistory(params)),
+          fetchAllPaginated((params) => paymentService.getAdminCoupons(params)),
           fetchAllPaginated((params) => deletedRecordService.getDeletedRecords(params)),
           fetchAllPaginated((params) => analyticsService.getActivityLogs(params)),
         ]);
@@ -93,8 +120,8 @@ export default function DatabaseEditor() {
         setCourses(c);
         setCategories(ca);
         setEnrollments(e);
-        setReviews(r);
         setPayments(p);
+        setCoupons(co);
         setDeletedRecords(d);
         setActivityLogs(l);
         setLastUpdated(new Date());
@@ -122,6 +149,11 @@ export default function DatabaseEditor() {
     [categories],
   );
 
+  const courseOptions = useMemo(
+    () => courses.map((course) => ({ label: course.title, value: String(course.id) })),
+    [courses],
+  );
+
   const startEdit = (type, item) => {
     if (type === "users") {
       setEdit({
@@ -144,9 +176,6 @@ export default function DatabaseEditor() {
           title: item.title || "",
           short_description: item.short_description || "",
           description: item.description || "",
-          mentor_name: item.mentor_name || "",
-          mentor_title: item.mentor_title || "",
-          mentor_bio: item.mentor_bio || "",
           duration_days: String(item.duration_days ?? "30"),
           price: String(item.price || ""),
           discount_percent: String(item.discount_percent ?? "0"),
@@ -159,8 +188,6 @@ export default function DatabaseEditor() {
       setEdit({ type, id: item.id, payload: { name: item.name || "", description: item.description || "" } });
     } else if (type === "enrollments") {
       setEdit({ type, id: item.id, payload: { status: item.status, payment_status: item.payment_status } });
-    } else if (type === "reviews") {
-      setEdit({ type, id: item.id, payload: { rating: String(item.rating), comment: item.comment || "" } });
     } else if (type === "payments") {
       setEdit({
         type,
@@ -172,6 +199,22 @@ export default function DatabaseEditor() {
           total: String(item.total || ""),
           currency: item.currency || "usd",
           failure_reason: item.failure_reason || "",
+        },
+      });
+    } else if (type === "coupons") {
+      setEdit({
+        type,
+        id: item.id,
+        payload: {
+          code: item.code || "",
+          course: item.course ? String(item.course) : "",
+          discount_amount: String(item.discount_amount || ""),
+          max_uses: item.max_uses === null || item.max_uses === undefined ? "" : String(item.max_uses),
+          per_user_limit: String(item.per_user_limit ?? "1"),
+          used_count: String(item.used_count ?? "0"),
+          valid_from: item.valid_from || "",
+          valid_until: item.valid_until || "",
+          is_active: Boolean(item.is_active),
         },
       });
     }
@@ -195,9 +238,6 @@ export default function DatabaseEditor() {
         payload.append("title", edit.payload.title);
         payload.append("short_description", edit.payload.short_description);
         payload.append("description", edit.payload.description);
-        payload.append("mentor_name", edit.payload.mentor_name || "");
-        payload.append("mentor_title", edit.payload.mentor_title || "");
-        payload.append("mentor_bio", edit.payload.mentor_bio || "");
         payload.append("duration_days", edit.payload.duration_days || "30");
         payload.append("price", edit.payload.price);
         payload.append("discount_percent", edit.payload.discount_percent || "0");
@@ -209,13 +249,20 @@ export default function DatabaseEditor() {
         await courseService.updateCategory(edit.id, edit.payload);
       } else if (edit.type === "enrollments") {
         await courseService.updateAdminEnrollment(edit.id, edit.payload);
-      } else if (edit.type === "reviews") {
-        await courseService.updateAdminReview(edit.id, {
-          rating: Number(edit.payload.rating),
-          comment: edit.payload.comment,
-        });
       } else if (edit.type === "payments") {
         await paymentService.updateAdminPayment(edit.id, edit.payload);
+      } else if (edit.type === "coupons") {
+        const payload = {
+          code: edit.payload.code?.trim().toUpperCase(),
+          course: edit.payload.course ? Number(edit.payload.course) : null,
+          discount_amount: edit.payload.discount_amount,
+          max_uses: edit.payload.max_uses ? Number(edit.payload.max_uses) : null,
+          per_user_limit: edit.payload.per_user_limit ? Number(edit.payload.per_user_limit) : 1,
+          valid_from: edit.payload.valid_from || null,
+          valid_until: edit.payload.valid_until || null,
+          is_active: Boolean(edit.payload.is_active),
+        };
+        await paymentService.updateAdminCoupon(edit.id, payload);
       }
 
       addToast({ type: "success", message: "Record updated." });
@@ -223,6 +270,31 @@ export default function DatabaseEditor() {
       loadData({ silent: true });
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to update record.") });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateCoupon = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        code: couponDraft.code?.trim().toUpperCase(),
+        course: couponDraft.course ? Number(couponDraft.course) : null,
+        discount_amount: couponDraft.discount_amount,
+        max_uses: couponDraft.max_uses ? Number(couponDraft.max_uses) : null,
+        per_user_limit: couponDraft.per_user_limit ? Number(couponDraft.per_user_limit) : 1,
+        valid_from: couponDraft.valid_from || null,
+        valid_until: couponDraft.valid_until || null,
+        is_active: Boolean(couponDraft.is_active),
+      };
+      await paymentService.createAdminCoupon(payload);
+      addToast({ type: "success", message: "Coupon created." });
+      setCouponDraft(EMPTY_COUPON);
+      loadData({ silent: true });
+    } catch (error) {
+      addToast({ type: "error", message: getApiError(error, "Unable to create coupon.") });
     } finally {
       setSaving(false);
     }
@@ -240,10 +312,10 @@ export default function DatabaseEditor() {
         await courseService.deleteCategory(deleteTarget.id, { reason: "admin_database_editor_delete" });
       } else if (deleteTarget.type === "enrollments") {
         await courseService.deleteAdminEnrollment(deleteTarget.id, { reason: "admin_database_editor_delete" });
-      } else if (deleteTarget.type === "reviews") {
-        await courseService.deleteAdminReview(deleteTarget.id, { reason: "admin_database_editor_delete" });
       } else if (deleteTarget.type === "payments") {
         await paymentService.deleteAdminPayment(deleteTarget.id, { reason: "admin_database_editor_delete" });
+      } else if (deleteTarget.type === "coupons") {
+        await paymentService.deleteAdminCoupon(deleteTarget.id);
       }
       addToast({ type: "success", message: "Record deleted." });
       setDeleteTarget(null);
@@ -261,7 +333,6 @@ export default function DatabaseEditor() {
     courses: courses.map((item) => [
       item.title,
       item.category?.name || "-",
-      item.mentor_name || "-",
       Number(item.duration_days || 0) > 0 ? `${item.duration_days} days` : "-",
       formatCurrency(item.price, "INR"),
       Number(item.discount_percent || 0) > 0 ? `${Number(item.discount_percent).toFixed(2)}%` : "-",
@@ -270,32 +341,47 @@ export default function DatabaseEditor() {
     ]),
     categories: categories.map((item) => [item.name, item.description || "-", formatDate(item.created_at)]),
     enrollments: enrollments.map((item) => [item.user_email, item.course_title, item.status, item.payment_status, formatDate(item.enrolled_at)]),
-    reviews: reviews.map((item) => [item.user_email, item.course_title, item.rating, item.comment || "-", formatDate(item.created_at)]),
     payments: payments.map((item) => [item.user_email, item.course_title, item.payment_status, formatCurrency(item.total), formatDate(item.created_at)]),
+    coupons: coupons.map((item) => {
+      const maxUses = item.max_uses === null || item.max_uses === undefined ? "∞" : item.max_uses;
+      const used = item.used_count ?? 0;
+      const validFrom = item.valid_from ? formatDate(item.valid_from) : "-";
+      const validUntil = item.valid_until ? formatDate(item.valid_until) : "-";
+      return [
+        item.code,
+        item.course_title || "Global",
+        formatCurrency(item.discount_amount, "INR"),
+        `${used}/${maxUses}`,
+        item.per_user_limit ?? 1,
+        `${validFrom} → ${validUntil}`,
+        item.is_active ? "Yes" : "No",
+        formatDate(item.created_at),
+      ];
+    }),
     deleted: deletedRecords.map((item) => [item.model_name, item.record_id, item.reason || "-", item.deleted_by_email || "-", formatDate(item.deleted_at)]),
     logs: activityLogs.map((item) => [item.admin_email, item.action, `${item.target_type} #${item.target_id}`, item.details || "-", formatDate(item.created_at)]),
   };
 
   const headers = {
     users: ["Name", "Email", "Phone", "Active", "Date", "Actions"],
-    courses: ["Title", "Category", "Mentor", "Duration", "Price", "Discount", "Active", "Date", "Actions"],
+    courses: ["Title", "Category", "Duration", "Price", "Discount", "Active", "Date", "Actions"],
     categories: ["Name", "Description", "Date", "Actions"],
     enrollments: ["User", "Course", "Status", "Payment", "Date", "Actions"],
-    reviews: ["User", "Course", "Rating", "Comment", "Date", "Actions"],
     payments: ["User", "Course", "Status", "Total", "Date", "Actions"],
+    coupons: ["Code", "Course", "Discount", "Uses", "Per User", "Validity", "Active", "Created", "Actions"],
     deleted: ["Model", "Record ID", "Reason", "Deleted By", "Date"],
     logs: ["Admin", "Action", "Target", "Details", "Date"],
   };
 
-  const dataByType = { users, courses, categories, enrollments, reviews, payments };
+  const dataByType = { users, courses, categories, enrollments, payments, coupons };
 
   const editTypeLabel = {
     users: "User",
     courses: "Course",
     categories: "Category",
     enrollments: "Enrollment",
-    reviews: "Review",
     payments: "Payment",
+    coupons: "Coupon",
   };
 
   const renderInlineEditFields = () => {
@@ -344,15 +430,6 @@ export default function DatabaseEditor() {
           </InlineField>
           <InlineField label="Full Description" className="table-inline-field-wide">
             <textarea value={payload.description} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, description: e.target.value } }))} required />
-          </InlineField>
-          <InlineField label="Mentor Name">
-            <input value={payload.mentor_name} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, mentor_name: e.target.value } }))} />
-          </InlineField>
-          <InlineField label="Mentor Title">
-            <input value={payload.mentor_title} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, mentor_title: e.target.value } }))} />
-          </InlineField>
-          <InlineField label="Mentor Bio" className="table-inline-field-wide">
-            <textarea value={payload.mentor_bio} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, mentor_bio: e.target.value } }))} />
           </InlineField>
           <InlineField label="Duration (Days)">
             <input type="number" min="1" step="1" value={payload.duration_days} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, duration_days: e.target.value } }))} required />
@@ -424,19 +501,6 @@ export default function DatabaseEditor() {
       );
     }
 
-    if (edit.type === "reviews") {
-      return (
-        <>
-          <InlineField label="Rating">
-            <input type="number" min="1" max="5" step="1" value={payload.rating} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, rating: e.target.value } }))} required />
-          </InlineField>
-          <InlineField label="Comment" className="table-inline-field-wide">
-            <textarea value={payload.comment} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, comment: e.target.value } }))} />
-          </InlineField>
-        </>
-      );
-    }
-
     if (edit.type === "payments") {
       return (
         <>
@@ -461,6 +525,83 @@ export default function DatabaseEditor() {
           </InlineField>
           <InlineField label="Failure Reason" className="table-inline-field-wide">
             <textarea value={payload.failure_reason} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, failure_reason: e.target.value } }))} />
+          </InlineField>
+        </>
+      );
+    }
+
+    if (edit.type === "coupons") {
+      return (
+        <>
+          <InlineField label="Code">
+            <input
+              value={payload.code}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, code: e.target.value.toUpperCase() } }))}
+              required
+            />
+          </InlineField>
+          <InlineField label="Course">
+            <select value={payload.course} onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, course: e.target.value } }))}>
+              <option value="">Global</option>
+              {courseOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+          </InlineField>
+          <InlineField label="Discount Amount">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={payload.discount_amount}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, discount_amount: e.target.value } }))}
+              required
+            />
+          </InlineField>
+          <InlineField label="Max Uses">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={payload.max_uses}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, max_uses: e.target.value } }))}
+              placeholder="Unlimited"
+            />
+          </InlineField>
+          <InlineField label="Per User Limit">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={payload.per_user_limit}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, per_user_limit: e.target.value } }))}
+              required
+            />
+          </InlineField>
+          <InlineField label="Used Count">
+            <input value={payload.used_count} disabled />
+          </InlineField>
+          <InlineField label="Valid From">
+            <input
+              type="datetime-local"
+              value={toInputDateTime(payload.valid_from)}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, valid_from: toIsoFromInput(e.target.value) } }))}
+            />
+          </InlineField>
+          <InlineField label="Valid Until">
+            <input
+              type="datetime-local"
+              value={toInputDateTime(payload.valid_until)}
+              onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, valid_until: toIsoFromInput(e.target.value) } }))}
+            />
+          </InlineField>
+          <InlineField label="Status" className="table-inline-field-toggle">
+            <label className="toggle-row table-inline-toggle">
+              <input
+                type="checkbox"
+                checked={payload.is_active}
+                onChange={(e) => setEdit((p) => ({ ...p, payload: { ...p.payload, is_active: e.target.checked } }))}
+              />
+              Active
+            </label>
           </InlineField>
         </>
       );
@@ -501,6 +642,86 @@ export default function DatabaseEditor() {
             <h2>{TABS.find((item) => item.key === activeTab)?.label}</h2>
             {activeTab !== "deleted" && activeTab !== "logs" && (
               <p className="meta-note">Tip: double-click a row to edit inline.</p>
+            )}
+            {activeTab === "coupons" && (
+              <form className="table-inline-edit-wrap table-inline-edit-grid database-inline-edit-form coupon-create-form" onSubmit={handleCreateCoupon}>
+                <InlineField label="Code">
+                  <input
+                    value={couponDraft.code}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                    placeholder="SAVE10"
+                    required
+                  />
+                </InlineField>
+                <InlineField label="Course">
+                  <select value={couponDraft.course} onChange={(e) => setCouponDraft((p) => ({ ...p, course: e.target.value }))}>
+                    <option value="">Global</option>
+                    {courseOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  </select>
+                </InlineField>
+                <InlineField label="Discount Amount">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={couponDraft.discount_amount}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, discount_amount: e.target.value }))}
+                    required
+                  />
+                </InlineField>
+                <InlineField label="Max Uses">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={couponDraft.max_uses}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, max_uses: e.target.value }))}
+                    placeholder="Unlimited"
+                  />
+                </InlineField>
+                <InlineField label="Per User Limit">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={couponDraft.per_user_limit}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, per_user_limit: e.target.value }))}
+                    required
+                  />
+                </InlineField>
+                <InlineField label="Valid From">
+                  <input
+                    type="datetime-local"
+                    value={toInputDateTime(couponDraft.valid_from)}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, valid_from: toIsoFromInput(e.target.value) }))}
+                  />
+                </InlineField>
+                <InlineField label="Valid Until">
+                  <input
+                    type="datetime-local"
+                    value={toInputDateTime(couponDraft.valid_until)}
+                    onChange={(e) => setCouponDraft((p) => ({ ...p, valid_until: toIsoFromInput(e.target.value) }))}
+                  />
+                </InlineField>
+                <InlineField label="Status" className="table-inline-field-toggle">
+                  <label className="toggle-row table-inline-toggle">
+                    <input
+                      type="checkbox"
+                      checked={couponDraft.is_active}
+                      onChange={(e) => setCouponDraft((p) => ({ ...p, is_active: e.target.checked }))}
+                    />
+                    Active
+                  </label>
+                </InlineField>
+                <div className="table-inline-edit-actions">
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? "Creating..." : "Create Coupon"}
+                  </button>
+                  <button type="button" className="btn btn-muted" onClick={() => setCouponDraft(EMPTY_COUPON)} disabled={saving}>
+                    Reset
+                  </button>
+                </div>
+              </form>
             )}
             <div className="table-wrap">
               <table>
