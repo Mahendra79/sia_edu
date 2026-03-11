@@ -340,9 +340,6 @@ CREATE TABLE public.courses_course (
     updated_at timestamp with time zone NOT NULL,
     category_id bigint NOT NULL,
     discount_percent numeric(5,2) NOT NULL,
-    mentor_bio text NOT NULL,
-    mentor_name character varying(150) NOT NULL,
-    mentor_title character varying(180) NOT NULL,
     duration_days smallint NOT NULL,
     CONSTRAINT courses_course_duration_days_check CHECK ((duration_days >= 0))
 );
@@ -1358,34 +1355,13 @@ INSERT INTO public.auth_permission VALUES (72, 'Can view review vote', 18, 'view
 -- Data for Name: courses_category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.courses_category VALUES (11, 'Data Science & Analytics', 'Data exploration, statistics, visualization, and analytical reasoning.', false, '2026-02-23 16:21:48.321484+05:30');
-INSERT INTO public.courses_category VALUES (12, 'Machine Learning Engineering', 'Model training, feature engineering, validation, and applied ML systems.', false, '2026-02-23 16:21:48.325483+05:30');
-INSERT INTO public.courses_category VALUES (13, 'Deep Learning Systems', 'Neural networks, transformers, computer vision, and sequence models.', false, '2026-02-23 16:21:48.328481+05:30');
-INSERT INTO public.courses_category VALUES (14, 'Generative AI & LLMs', 'LLM applications, RAG architecture, safety practices, and business use cases.', false, '2026-02-23 16:21:48.3305+05:30');
-INSERT INTO public.courses_category VALUES (15, 'Prompt Engineering', 'Prompt design patterns, governance, and response quality optimization.', false, '2026-02-23 16:21:48.333833+05:30');
 INSERT INTO public.courses_category VALUES (16, 'Quantum Computing', 'Quantum information, circuits, algorithms, and implementation frameworks.', false, '2026-02-23 16:21:48.336399+05:30');
-INSERT INTO public.courses_category VALUES (17, 'Quantum AI Engineering', 'Hybrid quantum-classical modeling and quantum machine learning techniques.', false, '2026-02-23 16:21:48.338573+05:30');
-INSERT INTO public.courses_category VALUES (18, 'MLOps & AI Deployment', 'Deployment, monitoring, drift management, and reliable ML operations.', false, '2026-02-23 16:21:48.341015+05:30');
-INSERT INTO public.courses_category VALUES (1, 'Software Engineering', 'Software Engineering learning track.', true, '2026-02-21 17:38:53.430793+05:30');
-INSERT INTO public.courses_category VALUES (3, 'Productivity', 'Productivity learning track.', true, '2026-02-21 17:38:53.45566+05:30');
-INSERT INTO public.courses_category VALUES (4, 'Development', 'Application engineering, APIs, software design, and coding interview skills.', true, '2026-02-23 15:06:34.867004+05:30');
-INSERT INTO public.courses_category VALUES (2, 'Data Science', 'Analytics, visualization, machine learning, and data-driven decision making.', true, '2026-02-21 17:38:53.450432+05:30');
-INSERT INTO public.courses_category VALUES (5, 'Design', 'UX/UI design, design systems, accessibility, and prototyping.', true, '2026-02-23 15:06:34.875628+05:30');
-INSERT INTO public.courses_category VALUES (6, 'Career Growth', 'Communication, leadership, productivity, and workplace effectiveness.', true, '2026-02-23 15:06:34.876958+05:30');
-INSERT INTO public.courses_category VALUES (7, 'Cloud & DevOps', 'Cloud architecture, automation, observability, and release engineering.', true, '2026-02-23 15:06:34.879117+05:30');
-INSERT INTO public.courses_category VALUES (8, 'Product Management', 'Product strategy, roadmapping, stakeholder alignment, and delivery.', true, '2026-02-23 15:06:34.881821+05:30');
-INSERT INTO public.courses_category VALUES (9, 'Marketing', 'Digital marketing channels, campaigns, analytics, and customer growth.', true, '2026-02-23 15:06:34.885411+05:30');
-INSERT INTO public.courses_category VALUES (10, 'Cybersecurity', 'Security foundations, risk management, and secure development practices.', true, '2026-02-23 15:06:34.886693+05:30');
 
 
 --
 -- Data for Name: courses_course; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.courses_course VALUES (7, 'er', 'wer', 'wer', 12.00, '', false, true, '2026-02-23 14:33:44.691987+05:30', '2026-02-23 14:37:02.318712+05:30', 3, 0.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (6, 'Professional Git and Collaboration', 'Branch strategy, PR reviews and team workflows.', 'Level up collaboration with practical Git workflows, code review standards and release discipline.', 79.01, 'courses/images/ChatGPT_Image_Feb_18_2026_03_09_39_PM.png', false, true, '2026-02-21 17:38:53.459142+05:30', '2026-02-23 12:27:52.894032+05:30', 3, 10.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (2, 'Python for Backend Systems', 'Scalable API design, async patterns and testing fundamentals.', 'Master backend engineering with clean architecture, reliable API contracts, database optimization and observability.', 149.00, '', false, true, '2026-02-21 17:38:53.447446+05:30', '2026-02-21 18:04:04.920465+05:30', 1, 0.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (1, 'Full Stack Web Development Bootcamp', 'Build production-ready frontend and backend apps from scratch.', 'This course helps you design and deliver production-ready full stack products. It combines mentor guidance, structured practice, and project-focused outcomes.
 
 Estimated duration: 42 days of structured learning.
 
@@ -1413,8 +1389,7 @@ Explore related topics:
 - Deployment
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', false, true, '2026-02-21 17:38:53.440408+05:30', '2026-02-23 16:12:05.107345+05:30', 4, 35.00, 'Aarav has 11 years of engineering experience building scalable SaaS and learning platforms. He mentors developers on architecture, code quality, and release reliability.', 'Aarav Menon', 'Lead Full Stack Engineer', 42);
-INSERT INTO public.courses_course VALUES (27, 'Digital Marketing Strategy and Analytics', 'Design campaigns and measure channel performance with confidence.', 'This course helps you plan and optimize digital campaigns across key acquisition channels. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', false, true, '2026-02-21 17:38:53.440408+05:30', '2026-02-23 16:12:05.107345+05:30', 4, 35.00, 42);
 
 Estimated duration: 26 days of structured learning.
 
@@ -1442,8 +1417,7 @@ Explore related topics:
 - Dashboarding
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.983198+05:30', '2026-02-23 16:12:05.167121+05:30', 9, 25.00, 'Aarav has 11 years of engineering experience building scalable SaaS and learning platforms. He mentors developers on architecture, code quality, and release reliability.', 'Aarav Menon', 'Lead Full Stack Engineer', 26);
-INSERT INTO public.courses_course VALUES (8, 'React Frontend Engineering', 'Build scalable, maintainable React applications with confidence.', 'This course helps you structure frontend systems for maintainability and performance. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.983198+05:30', '2026-02-23 16:12:05.167121+05:30', 9, 25.00, 26);
 
 Estimated duration: 42 days of structured learning.
 
@@ -1471,8 +1445,7 @@ Explore related topics:
 - Forms
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', false, true, '2026-02-23 15:06:34.94913+05:30', '2026-02-23 16:12:05.110329+05:30', 4, 27.00, 'Priya has delivered analytics and machine learning programs for startups and enterprise teams. Her classes focus on practical modeling and clear insight communication.', 'Priya Raman', 'Data Science and AI Consultant', 42);
-INSERT INTO public.courses_course VALUES (9, 'Django REST API Engineering', 'Design secure, maintainable APIs using Django and DRF.', 'This course helps you build secure APIs with clear contracts and test coverage. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', false, true, '2026-02-23 15:06:34.94913+05:30', '2026-02-23 16:12:05.110329+05:30', 4, 27.00, 42);
 
 Estimated duration: 42 days of structured learning.
 
@@ -1500,8 +1473,7 @@ Explore related topics:
 - Pagination
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 134.00, '', false, true, '2026-02-23 15:06:34.951197+05:30', '2026-02-23 16:12:05.127362+05:30', 4, 29.00, 'Nikhil works with cross-functional teams on discovery, roadmap planning, and outcome-driven delivery. He teaches frameworks that connect strategy with execution.', 'Nikhil Sharma', 'Product and Growth Strategist', 42);
-INSERT INTO public.courses_course VALUES (10, 'JavaScript Algorithms and Interview Prep', 'Prepare for coding interviews with patterns and timed practice.', 'This course helps you solve algorithmic problems with speed and communication clarity. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 134.00, '', false, true, '2026-02-23 15:06:34.951197+05:30', '2026-02-23 16:12:05.127362+05:30', 4, 29.00, 42);
 
 Estimated duration: 42 days of structured learning.
 
@@ -1529,8 +1501,7 @@ Explore related topics:
 - Mock Interviews
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.953367+05:30', '2026-02-23 16:12:05.129363+05:30', 4, 34.00, 'Sara has led design systems and accessibility initiatives across web and mobile products. She coaches teams on user research, interaction clarity, and iterative design improvements.', 'Sara Johnson', 'UX Design Director', 42);
-INSERT INTO public.courses_course VALUES (11, 'Data Structures and Problem Solving with Python', 'Strengthen algorithmic thinking for interviews and real systems.', 'This course helps you apply core data structures to practical engineering scenarios. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.953367+05:30', '2026-02-23 16:12:05.129363+05:30', 4, 34.00, 42);
 
 Estimated duration: 42 days of structured learning.
 
@@ -1558,11 +1529,7 @@ Explore related topics:
 - Practice Systems
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', false, true, '2026-02-23 15:06:34.954843+05:30', '2026-02-23 16:12:05.131364+05:30', 4, 32.00, 'Ethan specializes in cloud infrastructure, CI/CD, observability, and secure deployment practices. He has trained engineering teams on modernization and incident readiness.', 'Ethan Brooks', 'Cloud and DevOps Architect', 42);
-INSERT INTO public.courses_course VALUES (3, 'Data Science with Python', 'Pandas, visualization, statistics and model evaluation.', 'A practical data science program covering preprocessing, analytics, experimentation and reporting for business impact.', 129.00, '', false, true, '2026-02-21 17:38:53.451652+05:30', '2026-02-21 18:04:04.923009+05:30', 2, 0.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (4, 'Machine Learning Foundations', 'Supervised learning, feature engineering and metrics.', 'Learn core machine learning concepts and build high-quality models with repeatable evaluation and tuning workflows.', 179.00, '', false, true, '2026-02-21 17:38:53.454144+05:30', '2026-02-21 18:04:04.925042+05:30', 2, 0.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (5, 'Technical Interview Preparation', 'Problem-solving, system design and communication drills.', 'Prepare for technical interviews with curated practice, structured mock sessions and decision-making frameworks.', 99.00, '', false, true, '2026-02-21 17:38:53.457669+05:30', '2026-02-21 18:04:04.927328+05:30', 3, 0.00, '', '', '', 30);
-INSERT INTO public.courses_course VALUES (12, 'Mobile App Development with React Native', 'Build cross-platform mobile apps with reusable React skills.', 'This course helps you ship mobile experiences with robust state and API integration. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', false, true, '2026-02-23 15:06:34.954843+05:30', '2026-02-23 16:12:05.131364+05:30', 4, 32.00, 42);
 
 Estimated duration: 42 days of structured learning.
 
@@ -1590,8 +1557,7 @@ Explore related topics:
 - Release Prep
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 144.00, '', false, true, '2026-02-23 15:06:34.958287+05:30', '2026-02-23 16:12:05.133362+05:30', 4, 30.00, 'Aarav has 11 years of engineering experience building scalable SaaS and learning platforms. He mentors developers on architecture, code quality, and release reliability.', 'Aarav Menon', 'Lead Full Stack Engineer', 42);
-INSERT INTO public.courses_course VALUES (13, 'Python for Data Analysis and Visualization', 'Transform raw datasets into insights with Python and dashboards.', 'This course helps you turn business data into clear insights and visual stories. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 144.00, '', false, true, '2026-02-23 15:06:34.958287+05:30', '2026-02-23 16:12:05.133362+05:30', 4, 30.00, 42);
 
 Estimated duration: 38 days of structured learning.
 
@@ -1619,8 +1585,7 @@ Explore related topics:
 - Reporting
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', false, true, '2026-02-23 15:06:34.958287+05:30', '2026-02-23 16:12:05.135362+05:30', 2, 30.00, 'Priya has delivered analytics and machine learning programs for startups and enterprise teams. Her classes focus on practical modeling and clear insight communication.', 'Priya Raman', 'Data Science and AI Consultant', 38);
-INSERT INTO public.courses_course VALUES (14, 'Machine Learning from Scratch', 'Learn practical ML concepts by building models step by step.', 'This course helps you train and evaluate machine learning models with strong fundamentals. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', false, true, '2026-02-23 15:06:34.958287+05:30', '2026-02-23 16:12:05.135362+05:30', 2, 30.00, 38);
 
 Estimated duration: 38 days of structured learning.
 
@@ -1648,8 +1613,7 @@ Explore related topics:
 - Experimentation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 139.00, '', false, true, '2026-02-23 15:06:34.961297+05:30', '2026-02-23 16:12:05.138363+05:30', 2, 31.00, 'Nikhil works with cross-functional teams on discovery, roadmap planning, and outcome-driven delivery. He teaches frameworks that connect strategy with execution.', 'Nikhil Sharma', 'Product and Growth Strategist', 38);
-INSERT INTO public.courses_course VALUES (15, 'SQL and Database Design Essentials', 'Design relational databases and write efficient SQL queries.', 'This course helps you build reliable schemas and optimize analytical SQL workflows. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 139.00, '', false, true, '2026-02-23 15:06:34.961297+05:30', '2026-02-23 16:12:05.138363+05:30', 2, 31.00, 38);
 
 Estimated duration: 38 days of structured learning.
 
@@ -1677,8 +1641,7 @@ Explore related topics:
 - Optimization
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 99.00, '', false, true, '2026-02-23 15:06:34.96257+05:30', '2026-02-23 16:12:05.140825+05:30', 2, 21.00, 'Sara has led design systems and accessibility initiatives across web and mobile products. She coaches teams on user research, interaction clarity, and iterative design improvements.', 'Sara Johnson', 'UX Design Director', 38);
-INSERT INTO public.courses_course VALUES (16, 'Generative AI Productivity for Teams', 'Use AI tools responsibly to speed up research and execution.', 'This course helps you integrate AI-assisted workflows without sacrificing quality controls. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 99.00, '', false, true, '2026-02-23 15:06:34.96257+05:30', '2026-02-23 16:12:05.140825+05:30', 2, 21.00, 38);
 
 Estimated duration: 38 days of structured learning.
 
@@ -1706,8 +1669,7 @@ Explore related topics:
 - Governance
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 109.00, '', false, true, '2026-02-23 15:06:34.964846+05:30', '2026-02-23 16:12:05.142817+05:30', 2, 23.00, 'Ethan specializes in cloud infrastructure, CI/CD, observability, and secure deployment practices. He has trained engineering teams on modernization and incident readiness.', 'Ethan Brooks', 'Cloud and DevOps Architect', 38);
-INSERT INTO public.courses_course VALUES (17, 'UI UX Design Fundamentals', 'Design intuitive digital products with research-backed UX methods.', 'This course helps you move from user research to polished interfaces and usability wins. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 109.00, '', false, true, '2026-02-23 15:06:34.964846+05:30', '2026-02-23 16:12:05.142817+05:30', 2, 23.00, 38);
 
 Estimated duration: 28 days of structured learning.
 
@@ -1735,8 +1697,7 @@ Explore related topics:
 - Usability Testing
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.966962+05:30', '2026-02-23 16:12:05.144837+05:30', 5, 28.00, 'Aarav has 11 years of engineering experience building scalable SaaS and learning platforms. He mentors developers on architecture, code quality, and release reliability.', 'Aarav Menon', 'Lead Full Stack Engineer', 28);
-INSERT INTO public.courses_course VALUES (18, 'Design Systems and Accessibility', 'Create consistent UI systems that are inclusive and scalable.', 'This course helps you build reusable UI foundations with accessibility by default. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', false, true, '2026-02-23 15:06:34.966962+05:30', '2026-02-23 16:12:05.144837+05:30', 5, 28.00, 28);
 
 Estimated duration: 28 days of structured learning.
 
@@ -1764,8 +1725,7 @@ Explore related topics:
 - Collaboration
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', false, true, '2026-02-23 15:06:34.968749+05:30', '2026-02-23 16:12:05.146819+05:30', 5, 29.00, 'Priya has delivered analytics and machine learning programs for startups and enterprise teams. Her classes focus on practical modeling and clear insight communication.', 'Priya Raman', 'Data Science and AI Consultant', 28);
-INSERT INTO public.courses_course VALUES (19, 'Business Communication for Professionals', 'Communicate clearly across meetings, emails, and stakeholder updates.', 'This course helps you improve workplace communication across async and live channels. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', false, true, '2026-02-23 15:06:34.968749+05:30', '2026-02-23 16:12:05.146819+05:30', 5, 29.00, 28);
 
 Estimated duration: 21 days of structured learning.
 
@@ -1793,8 +1753,7 @@ Explore related topics:
 - Storytelling
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 89.00, '', false, true, '2026-02-23 15:06:34.970602+05:30', '2026-02-23 16:12:05.148817+05:30', 6, 22.00, 'Nikhil works with cross-functional teams on discovery, roadmap planning, and outcome-driven delivery. He teaches frameworks that connect strategy with execution.', 'Nikhil Sharma', 'Product and Growth Strategist', 21);
-INSERT INTO public.courses_course VALUES (20, 'Public Speaking and Presentation Mastery', 'Deliver compelling presentations with confidence and structure.', 'This course helps you present ideas with confidence, clarity, and audience engagement. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 89.00, '', false, true, '2026-02-23 15:06:34.970602+05:30', '2026-02-23 16:12:05.148817+05:30', 6, 22.00, 21);
 
 Estimated duration: 21 days of structured learning.
 
@@ -1822,8 +1781,7 @@ Explore related topics:
 - Audience Engagement
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 94.00, '', false, true, '2026-02-23 15:06:34.971625+05:30', '2026-02-23 16:12:05.150828+05:30', 6, 20.00, 'Sara has led design systems and accessibility initiatives across web and mobile products. She coaches teams on user research, interaction clarity, and iterative design improvements.', 'Sara Johnson', 'UX Design Director', 21);
-INSERT INTO public.courses_course VALUES (21, 'Financial Literacy for Early Career Professionals', 'Build strong personal finance habits for long-term stability.', 'This course helps you build practical budgeting, savings, and planning habits. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 94.00, '', false, true, '2026-02-23 15:06:34.971625+05:30', '2026-02-23 16:12:05.150828+05:30', 6, 20.00, 21);
 
 Estimated duration: 21 days of structured learning.
 
@@ -1851,8 +1809,7 @@ Explore related topics:
 - Goal Setting
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 84.00, '', false, true, '2026-02-23 15:06:34.972625+05:30', '2026-02-23 16:12:05.152827+05:30', 6, 18.00, 'Ethan specializes in cloud infrastructure, CI/CD, observability, and secure deployment practices. He has trained engineering teams on modernization and incident readiness.', 'Ethan Brooks', 'Cloud and DevOps Architect', 21);
-INSERT INTO public.courses_course VALUES (22, 'Cloud and DevOps Foundations with AWS', 'Deploy resilient apps with cloud infrastructure and CI/CD practices.', 'This course helps you deploy and operate cloud applications using modern DevOps workflows. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 84.00, '', false, true, '2026-02-23 15:06:34.972625+05:30', '2026-02-23 16:12:05.152827+05:30', 6, 18.00, 21);
 
 Estimated duration: 35 days of structured learning.
 
@@ -1880,8 +1837,7 @@ Explore related topics:
 - Automation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 159.00, '', false, true, '2026-02-23 15:06:34.974625+05:30', '2026-02-23 16:12:05.155827+05:30', 7, 33.00, 'Aarav has 11 years of engineering experience building scalable SaaS and learning platforms. He mentors developers on architecture, code quality, and release reliability.', 'Aarav Menon', 'Lead Full Stack Engineer', 35);
-INSERT INTO public.courses_course VALUES (23, 'Backend Performance and Scalability Patterns', 'Improve API speed and reliability under production load.', 'This course helps you optimize backend performance and scale systems safely. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 159.00, '', false, true, '2026-02-23 15:06:34.974625+05:30', '2026-02-23 16:12:05.155827+05:30', 7, 33.00, 35);
 
 Estimated duration: 35 days of structured learning.
 
@@ -1909,8 +1865,7 @@ Explore related topics:
 - Scaling
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', false, true, '2026-02-23 15:06:34.97596+05:30', '2026-02-23 16:12:05.157827+05:30', 7, 31.00, 'Priya has delivered analytics and machine learning programs for startups and enterprise teams. Her classes focus on practical modeling and clear insight communication.', 'Priya Raman', 'Data Science and AI Consultant', 35);
-INSERT INTO public.courses_course VALUES (29, 'Python for Data Science Foundations', 'Build strong analytical foundations with Python, NumPy, and Pandas.', 'This course helps you analyze structured datasets and derive reliable data insights. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', false, true, '2026-02-23 15:06:34.97596+05:30', '2026-02-23 16:12:05.157827+05:30', 7, 31.00, 35);
 
 Estimated duration: 32 days of structured learning.
 
@@ -1938,8 +1893,7 @@ Explore related topics:
 - Notebook Workflows
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.480298+05:30', '2026-02-23 16:48:47.842297+05:30', 11, 30.00, 'Meera has led enterprise analytics and applied AI programs across healthcare and fintech. She mentors learners on statistical thinking, model quality, and business-impactful decisions.', 'Dr. Meera Iyer', 'Principal Data Scientist', 32);
-INSERT INTO public.courses_course VALUES (24, 'Cybersecurity Awareness and Best Practices', 'Protect systems and teams with security-first operating habits.', 'This course helps you identify and reduce security risk in everyday workflows. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.480298+05:30', '2026-02-23 16:48:47.842297+05:30', 11, 30.00, 32);
 
 Estimated duration: 30 days of structured learning.
 
@@ -1967,8 +1921,7 @@ Explore related topics:
 - Policy Basics
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 109.00, '', false, true, '2026-02-23 15:06:34.977961+05:30', '2026-02-23 16:12:05.159919+05:30', 10, 26.00, 'Nikhil works with cross-functional teams on discovery, roadmap planning, and outcome-driven delivery. He teaches frameworks that connect strategy with execution.', 'Nikhil Sharma', 'Product and Growth Strategist', 30);
-INSERT INTO public.courses_course VALUES (25, 'Product Management Essentials', 'Move from ideas to shipped features with product frameworks.', 'This course helps you align user needs, business goals, and delivery planning. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 109.00, '', false, true, '2026-02-23 15:06:34.977961+05:30', '2026-02-23 16:12:05.159919+05:30', 10, 26.00, 30);
 
 Estimated duration: 24 days of structured learning.
 
@@ -1996,8 +1949,7 @@ Explore related topics:
 - Launch Planning
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 114.00, '', false, true, '2026-02-23 15:06:34.97996+05:30', '2026-02-23 16:12:05.162355+05:30', 8, 24.00, 'Sara has led design systems and accessibility initiatives across web and mobile products. She coaches teams on user research, interaction clarity, and iterative design improvements.', 'Sara Johnson', 'UX Design Director', 24);
-INSERT INTO public.courses_course VALUES (26, 'Project Planning with Agile and Scrum', 'Plan and deliver projects using agile rituals and artifacts.', 'This course helps you run predictable project delivery through agile planning cycles. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 114.00, '', false, true, '2026-02-23 15:06:34.97996+05:30', '2026-02-23 16:12:05.162355+05:30', 8, 24.00, 24);
 
 Estimated duration: 24 days of structured learning.
 
@@ -2025,8 +1977,7 @@ Explore related topics:
 - Retrospectives
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 99.00, '', false, true, '2026-02-23 15:06:34.980958+05:30', '2026-02-23 16:12:05.164595+05:30', 8, 19.00, 'Ethan specializes in cloud infrastructure, CI/CD, observability, and secure deployment practices. He has trained engineering teams on modernization and incident readiness.', 'Ethan Brooks', 'Cloud and DevOps Architect', 24);
-INSERT INTO public.courses_course VALUES (28, 'Customer Research and Growth Experiments', 'Run structured experiments to improve retention and growth.', 'This course helps you design growth experiments based on customer behavior insights. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 99.00, '', false, true, '2026-02-23 15:06:34.980958+05:30', '2026-02-23 16:12:05.164595+05:30', 8, 19.00, 24);
 
 Estimated duration: 26 days of structured learning.
 
@@ -2054,8 +2005,7 @@ Explore related topics:
 - A/B Testing
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 112.00, '', false, true, '2026-02-23 15:06:34.984704+05:30', '2026-02-23 16:12:05.169245+05:30', 9, 22.00, 'Priya has delivered analytics and machine learning programs for startups and enterprise teams. Her classes focus on practical modeling and clear insight communication.', 'Priya Raman', 'Data Science and AI Consultant', 26);
-INSERT INTO public.courses_course VALUES (30, 'Statistics and Probability for AI Engineers', 'Master the statistical foundations required for ML and model evaluation.', 'This course helps you reason about uncertainty, distributions, and model confidence. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 112.00, '', false, true, '2026-02-23 15:06:34.984704+05:30', '2026-02-23 16:12:05.169245+05:30', 9, 22.00, 26);
 
 Estimated duration: 30 days of structured learning.
 
@@ -2083,8 +2033,7 @@ Explore related topics:
 - Bayesian Thinking
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 139.00, '', true, false, '2026-02-23 16:21:48.504211+05:30', '2026-02-23 16:48:47.858727+05:30', 11, 28.00, 'Arjun builds production ML systems and MLOps pipelines for high-scale products. His classes focus on reliable model delivery, observability, and deployment discipline.', 'Arjun Prakash', 'Machine Learning Engineering Lead', 30);
-INSERT INTO public.courses_course VALUES (31, 'Data Visualization and Storytelling for AI Teams', 'Translate complex model outputs into clear decisions and dashboards.', 'This course helps you communicate analytical findings with technical and business clarity. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 139.00, '', true, false, '2026-02-23 16:21:48.504211+05:30', '2026-02-23 16:48:47.858727+05:30', 11, 28.00, 30);
 
 Estimated duration: 26 days of structured learning.
 
@@ -2112,8 +2061,7 @@ Explore related topics:
 - Narrative Analytics
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 134.00, '', true, false, '2026-02-23 16:21:48.506498+05:30', '2026-02-23 16:48:47.861063+05:30', 11, 26.00, 'Sofia specializes in transformer architectures, retrieval systems, and evaluation protocols. She teaches practical deep learning with emphasis on reproducibility and model safety.', 'Dr. Sofia Khan', 'Deep Learning and NLP Researcher', 26);
-INSERT INTO public.courses_course VALUES (32, 'Applied Machine Learning with Scikit-learn', 'Train, validate, and compare ML models for real-world prediction tasks.', 'This course helps you build dependable machine learning baselines and optimization loops. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 134.00, '', true, false, '2026-02-23 16:21:48.506498+05:30', '2026-02-23 16:48:47.861063+05:30', 11, 26.00, 26);
 
 Estimated duration: 34 days of structured learning.
 
@@ -2141,8 +2089,7 @@ Explore related topics:
 - Evaluation Metrics
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 144.00, '', true, false, '2026-02-23 16:21:48.50925+05:30', '2026-02-23 16:48:47.863478+05:30', 12, 29.00, 'Kiran works on quantum algorithms, optimization, and NISQ-era experimentation. He mentors learners on quantum foundations, circuit design, and hybrid workflows.', 'Prof. Kiran Bose', 'Quantum Computing Scientist', 34);
-INSERT INTO public.courses_course VALUES (33, 'Feature Engineering and Model Selection', 'Design robust features and select models that generalize in production.', 'This course helps you engineer informative features and reduce overfitting risk. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 144.00, '', true, false, '2026-02-23 16:21:48.50925+05:30', '2026-02-23 16:48:47.863478+05:30', 12, 29.00, 34);
 
 Estimated duration: 29 days of structured learning.
 
@@ -2170,8 +2117,7 @@ Explore related topics:
 - Error Analysis
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 136.00, '', true, false, '2026-02-23 16:21:48.511248+05:30', '2026-02-23 16:48:47.865878+05:30', 12, 27.00, 'Nadia designs enterprise prompt systems with guardrails, policy controls, and quality assurance. Her courses focus on safe GenAI usage, traceable prompts, and human-in-the-loop review.', 'Nadia Verma', 'Prompt Engineering and AI Safety Specialist', 29);
-INSERT INTO public.courses_course VALUES (34, 'Time Series Forecasting for Business and AI', 'Build forecasting pipelines for demand, risk, and trend prediction.', 'This course helps you model temporal patterns with transparent forecasting methodology. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 136.00, '', true, false, '2026-02-23 16:21:48.511248+05:30', '2026-02-23 16:48:47.865878+05:30', 12, 27.00, 29);
 
 Estimated duration: 31 days of structured learning.
 
@@ -2199,8 +2145,7 @@ Explore related topics:
 - Forecast Validation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 142.00, '', true, false, '2026-02-23 16:21:48.513249+05:30', '2026-02-23 16:48:47.868883+05:30', 12, 25.00, 'Meera has led enterprise analytics and applied AI programs across healthcare and fintech. She mentors learners on statistical thinking, model quality, and business-impactful decisions.', 'Dr. Meera Iyer', 'Principal Data Scientist', 31);
-INSERT INTO public.courses_course VALUES (35, 'Deep Learning with PyTorch', 'Build and train neural networks for classification and sequence tasks.', 'This course helps you implement and optimize deep neural networks with reproducible experiments. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 142.00, '', true, false, '2026-02-23 16:21:48.513249+05:30', '2026-02-23 16:48:47.868883+05:30', 12, 25.00, 31);
 
 Estimated duration: 36 days of structured learning.
 
@@ -2228,8 +2173,7 @@ Explore related topics:
 - Experiment Tracking
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 159.00, '', true, false, '2026-02-23 16:21:48.515249+05:30', '2026-02-23 16:48:47.871117+05:30', 13, 31.00, 'Arjun builds production ML systems and MLOps pipelines for high-scale products. His classes focus on reliable model delivery, observability, and deployment discipline.', 'Arjun Prakash', 'Machine Learning Engineering Lead', 36);
-INSERT INTO public.courses_course VALUES (36, 'Computer Vision Engineering with CNNs', 'Design vision pipelines for detection, classification, and segmentation.', 'This course helps you build computer vision systems with reliable performance evaluation. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 159.00, '', true, false, '2026-02-23 16:21:48.515249+05:30', '2026-02-23 16:48:47.871117+05:30', 13, 31.00, 36);
 
 Estimated duration: 35 days of structured learning.
 
@@ -2257,8 +2201,7 @@ Explore related topics:
 - Vision Metrics
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 164.00, '', true, false, '2026-02-23 16:21:48.517249+05:30', '2026-02-23 16:48:47.873501+05:30', 13, 30.00, 'Sofia specializes in transformer architectures, retrieval systems, and evaluation protocols. She teaches practical deep learning with emphasis on reproducibility and model safety.', 'Dr. Sofia Khan', 'Deep Learning and NLP Researcher', 35);
-INSERT INTO public.courses_course VALUES (37, 'NLP with Transformers and Attention', 'Create modern NLP systems with transformer-based architectures.', 'This course helps you implement robust NLP pipelines using transformer modeling strategies. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 164.00, '', true, false, '2026-02-23 16:21:48.517249+05:30', '2026-02-23 16:48:47.873501+05:30', 13, 30.00, 35);
 
 Estimated duration: 37 days of structured learning.
 
@@ -2286,8 +2229,7 @@ Explore related topics:
 - NLP Evaluation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 169.00, '', true, false, '2026-02-23 16:21:48.519857+05:30', '2026-02-23 16:48:47.875792+05:30', 13, 29.00, 'Kiran works on quantum algorithms, optimization, and NISQ-era experimentation. He mentors learners on quantum foundations, circuit design, and hybrid workflows.', 'Prof. Kiran Bose', 'Quantum Computing Scientist', 37);
-INSERT INTO public.courses_course VALUES (38, 'Generative AI Product Development', 'Design practical GenAI product flows from prototype to production.', 'This course helps you translate LLM capabilities into usable and reliable product workflows. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 169.00, '', true, false, '2026-02-23 16:21:48.519857+05:30', '2026-02-23 16:48:47.875792+05:30', 13, 29.00, 37);
 
 Estimated duration: 30 days of structured learning.
 
@@ -2315,8 +2257,7 @@ Explore related topics:
 - Guardrails
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 154.00, '', true, false, '2026-02-23 16:21:48.521876+05:30', '2026-02-23 16:48:47.87797+05:30', 14, 28.00, 'Nadia designs enterprise prompt systems with guardrails, policy controls, and quality assurance. Her courses focus on safe GenAI usage, traceable prompts, and human-in-the-loop review.', 'Nadia Verma', 'Prompt Engineering and AI Safety Specialist', 30);
-INSERT INTO public.courses_course VALUES (39, 'LLM Fine-Tuning and RAG Architectures', 'Build domain-specific assistants with retrieval and fine-tuning pipelines.', 'This course helps you adapt language models for high-accuracy domain-specific assistance. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 154.00, '', true, false, '2026-02-23 16:21:48.521876+05:30', '2026-02-23 16:48:47.87797+05:30', 14, 28.00, 30);
 
 Estimated duration: 38 days of structured learning.
 
@@ -2344,8 +2285,7 @@ Explore related topics:
 - Model Evaluation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 174.00, '', true, false, '2026-02-23 16:21:48.524493+05:30', '2026-02-23 16:48:47.880239+05:30', 14, 30.00, 'Meera has led enterprise analytics and applied AI programs across healthcare and fintech. She mentors learners on statistical thinking, model quality, and business-impactful decisions.', 'Dr. Meera Iyer', 'Principal Data Scientist', 38);
-INSERT INTO public.courses_course VALUES (40, 'Responsible AI and Model Governance', 'Apply fairness, risk, and compliance controls to AI lifecycles.', 'This course helps you deploy AI systems with measurable safety and governance checks. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 174.00, '', true, false, '2026-02-23 16:21:48.524493+05:30', '2026-02-23 16:48:47.880239+05:30', 14, 30.00, 38);
 
 Estimated duration: 24 days of structured learning.
 
@@ -2373,8 +2313,7 @@ Explore related topics:
 - Policy Design
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', true, false, '2026-02-23 16:21:48.526532+05:30', '2026-02-23 16:48:47.882473+05:30', 14, 22.00, 'Arjun builds production ML systems and MLOps pipelines for high-scale products. His classes focus on reliable model delivery, observability, and deployment discipline.', 'Arjun Prakash', 'Machine Learning Engineering Lead', 24);
-INSERT INTO public.courses_course VALUES (41, 'Enterprise Prompt Engineering Masterclass', 'Design robust prompt systems for consistent enterprise outputs.', 'This course helps you craft reliable prompt templates and scoring loops for enterprise quality. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 129.00, '', true, false, '2026-02-23 16:21:48.526532+05:30', '2026-02-23 16:48:47.882473+05:30', 14, 22.00, 24);
 
 Estimated duration: 22 days of structured learning.
 
@@ -2402,8 +2341,7 @@ Explore related topics:
 - Reliability
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', true, false, '2026-02-23 16:21:48.528681+05:30', '2026-02-23 16:48:47.885476+05:30', 15, 24.00, 'Sofia specializes in transformer architectures, retrieval systems, and evaluation protocols. She teaches practical deep learning with emphasis on reproducibility and model safety.', 'Dr. Sofia Khan', 'Deep Learning and NLP Researcher', 22);
-INSERT INTO public.courses_course VALUES (42, 'Prompt Safety and Guardrails', 'Implement safeguards to reduce hallucinations and unsafe responses.', 'This course helps you improve LLM response safety through layered prompt and policy controls. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 124.00, '', true, false, '2026-02-23 16:21:48.528681+05:30', '2026-02-23 16:48:47.885476+05:30', 15, 24.00, 22);
 
 Estimated duration: 20 days of structured learning.
 
@@ -2431,8 +2369,7 @@ Explore related topics:
 - Output Validation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', true, false, '2026-02-23 16:21:48.530943+05:30', '2026-02-23 16:48:47.887476+05:30', 15, 23.00, 'Kiran works on quantum algorithms, optimization, and NISQ-era experimentation. He mentors learners on quantum foundations, circuit design, and hybrid workflows.', 'Prof. Kiran Bose', 'Quantum Computing Scientist', 20);
-INSERT INTO public.courses_course VALUES (43, 'Agentic Workflows with Tool-Using LLMs', 'Build multi-step AI assistants that use tools and APIs reliably.', 'This course helps you orchestrate agentic LLM workflows with deterministic control points. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 119.00, '', true, false, '2026-02-23 16:21:48.530943+05:30', '2026-02-23 16:48:47.887476+05:30', 15, 23.00, 20);
 
 Estimated duration: 27 days of structured learning.
 
@@ -2460,8 +2397,7 @@ Explore related topics:
 - Traceability
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 146.00, '', true, false, '2026-02-23 16:21:48.533369+05:30', '2026-02-23 16:48:47.889475+05:30', 15, 26.00, 'Nadia designs enterprise prompt systems with guardrails, policy controls, and quality assurance. Her courses focus on safe GenAI usage, traceable prompts, and human-in-the-loop review.', 'Nadia Verma', 'Prompt Engineering and AI Safety Specialist', 27);
-INSERT INTO public.courses_course VALUES (44, 'Quantum Computing Foundations', 'Understand qubits, circuits, and computation principles beyond classical limits.', 'This course helps you understand the mathematical and conceptual basis of quantum computation. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 146.00, '', true, false, '2026-02-23 16:21:48.533369+05:30', '2026-02-23 16:48:47.889475+05:30', 15, 26.00, 27);
 
 Estimated duration: 33 days of structured learning.
 
@@ -2489,8 +2425,7 @@ Explore related topics:
 - Bloch Sphere
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.535368+05:30', '2026-02-23 16:48:47.891476+05:30', 16, 24.00, 'Meera has led enterprise analytics and applied AI programs across healthcare and fintech. She mentors learners on statistical thinking, model quality, and business-impactful decisions.', 'Dr. Meera Iyer', 'Principal Data Scientist', 33);
-INSERT INTO public.courses_course VALUES (45, 'Quantum Algorithms with Qiskit', 'Implement core quantum algorithms and benchmark performance experimentally.', 'This course helps you translate quantum algorithm theory into executable experiments. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.535368+05:30', '2026-02-23 16:48:47.891476+05:30', 16, 24.00, 33);
 
 Estimated duration: 36 days of structured learning.
 
@@ -2518,8 +2453,7 @@ Explore related topics:
 - Simulation
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 164.00, '', true, false, '2026-02-23 16:21:48.538159+05:30', '2026-02-23 16:48:47.893476+05:30', 16, 27.00, 'Arjun builds production ML systems and MLOps pipelines for high-scale products. His classes focus on reliable model delivery, observability, and deployment discipline.', 'Arjun Prakash', 'Machine Learning Engineering Lead', 36);
-INSERT INTO public.courses_course VALUES (46, 'Quantum Hardware and Error Mitigation', 'Learn practical constraints of quantum hardware and mitigation strategies.', 'This course helps you analyze hardware noise and improve circuit reliability with mitigation techniques. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 164.00, '', true, false, '2026-02-23 16:21:48.538159+05:30', '2026-02-23 16:48:47.893476+05:30', 16, 27.00, 36);
 
 Estimated duration: 29 days of structured learning.
 
@@ -2547,8 +2481,7 @@ Explore related topics:
 - Execution Strategy
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 154.00, '', true, false, '2026-02-23 16:21:48.540159+05:30', '2026-02-23 16:48:47.895869+05:30', 16, 25.00, 'Sofia specializes in transformer architectures, retrieval systems, and evaluation protocols. She teaches practical deep learning with emphasis on reproducibility and model safety.', 'Dr. Sofia Khan', 'Deep Learning and NLP Researcher', 29);
-INSERT INTO public.courses_course VALUES (47, 'Quantum Machine Learning Fundamentals', 'Explore quantum-inspired and hybrid methods for ML tasks.', 'This course helps you evaluate quantum machine learning opportunities and practical limitations. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 154.00, '', true, false, '2026-02-23 16:21:48.540159+05:30', '2026-02-23 16:48:47.895869+05:30', 16, 25.00, 29);
 
 Estimated duration: 34 days of structured learning.
 
@@ -2576,8 +2509,7 @@ Explore related topics:
 - Benchmarking
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 169.00, '', true, false, '2026-02-23 16:21:48.542592+05:30', '2026-02-23 16:48:47.897883+05:30', 17, 26.00, 'Kiran works on quantum algorithms, optimization, and NISQ-era experimentation. He mentors learners on quantum foundations, circuit design, and hybrid workflows.', 'Prof. Kiran Bose', 'Quantum Computing Scientist', 34);
-INSERT INTO public.courses_course VALUES (48, 'Hybrid Quantum-Classical Optimization', 'Design optimization pipelines combining classical and quantum components.', 'This course helps you solve constrained optimization problems with hybrid quantum-classical workflows. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 169.00, '', true, false, '2026-02-23 16:21:48.542592+05:30', '2026-02-23 16:48:47.897883+05:30', 17, 26.00, 34);
 
 Estimated duration: 35 days of structured learning.
 
@@ -2605,8 +2537,7 @@ Explore related topics:
 - Result Analysis
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 171.00, '', true, false, '2026-02-23 16:21:48.544957+05:30', '2026-02-23 16:48:47.89987+05:30', 17, 27.00, 'Nadia designs enterprise prompt systems with guardrails, policy controls, and quality assurance. Her courses focus on safe GenAI usage, traceable prompts, and human-in-the-loop review.', 'Nadia Verma', 'Prompt Engineering and AI Safety Specialist', 35);
-INSERT INTO public.courses_course VALUES (49, 'MLOps with Kubernetes and MLflow', 'Operationalize ML pipelines with reproducibility, tracking, and scaling.', 'This course helps you deploy and manage machine learning pipelines with operational reliability. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 171.00, '', true, false, '2026-02-23 16:21:48.544957+05:30', '2026-02-23 16:48:47.89987+05:30', 17, 27.00, 35);
 
 Estimated duration: 33 days of structured learning.
 
@@ -2634,8 +2565,7 @@ Explore related topics:
 - Model Registry
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 162.00, '', true, false, '2026-02-23 16:21:48.54595+05:30', '2026-02-23 16:48:47.90201+05:30', 18, 28.00, 'Meera has led enterprise analytics and applied AI programs across healthcare and fintech. She mentors learners on statistical thinking, model quality, and business-impactful decisions.', 'Dr. Meera Iyer', 'Principal Data Scientist', 33);
-INSERT INTO public.courses_course VALUES (50, 'AI Model Monitoring and Drift Detection', 'Track model performance and drift with robust production observability.', 'This course helps you monitor model health and prevent silent production regressions. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 162.00, '', true, false, '2026-02-23 16:21:48.54595+05:30', '2026-02-23 16:48:47.90201+05:30', 18, 28.00, 33);
 
 Estimated duration: 28 days of structured learning.
 
@@ -2663,8 +2593,82 @@ Explore related topics:
 - Root Cause Analysis
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.548422+05:30', '2026-02-23 16:48:47.904249+05:30', 18, 25.00, 'Arjun builds production ML systems and MLOps pipelines for high-scale products. His classes focus on reliable model delivery, observability, and deployment discipline.', 'Arjun Prakash', 'Machine Learning Engineering Lead', 28);
-INSERT INTO public.courses_course VALUES (51, 'LLM Evaluation and Benchmarking Lab', 'Establish repeatable quality metrics for generative AI applications.', 'This course helps you design rigorous evaluation pipelines for LLM quality and reliability. It combines mentor guidance, structured practice, and project-focused outcomes.
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 149.00, '', true, false, '2026-02-23 16:21:48.548422+05:30', '2026-02-23 16:48:47.904249+05:30', 18, 25.00, 28);
+INSERT INTO public.courses_course VALUES (52, 'Certificate Program in Quantum Computing', 'Delivered on the Hyper Dimensional Quantum System (HDQS) platform. Programming-intensive curriculum covering foundations, circuits, algorithms, and hybrid optimization.', 'Certificate Program in Quantum Computing
+Delivered on the Hyper Dimensional Quantum System (HDQS) Platform
+
+Offered by SIA Software Innovations Private Limited
+
+Program Overview
+The Certificate Program in Quantum Computing is a structured, programming-intensive academic offering designed to provide foundational knowledge, algorithmic competence, and applied implementation skills in quantum computation.
+
+Delivered on the proprietary Hyper Dimensional Quantum System (HDQS) platform, the program integrates theoretical constructs with executable quantum circuits, hybrid optimization frameworks, and system-level quantum architecture modeling.
+
+The curriculum is designed to:
+- Establish mathematical and computational foundations
+- Develop circuit-level design capability
+- Implement canonical quantum algorithms
+- Introduce hybrid quantum-classical optimization methods
+- Enable applied quantum modeling
+- Provide exposure to hyper-dimensional system architectures
+
+Learning Outcomes
+- Mathematically represent and manipulate quantum states.
+- Construct and execute multi-qubit quantum circuits.
+- Analyze quantum measurement distributions and expectation values.
+- Implement and interpret standard quantum algorithms.
+- Develop parameterized quantum circuits for optimization problems.
+- Apply hybrid quantum-classical computational models.
+- Utilize the HDQS platform for structured experimentation and project development.
+
+Module 1: Mathematical Foundations of Quantum Computing
+Objective: Develop conceptual clarity and formal understanding of quantum state representation and probabilistic measurement theory.
+Topics: Classical vs Quantum paradigms, qubit representation in Hilbert space, Dirac notation, superposition, measurement postulate, expectation values and observables.
+Practicals: Single-qubit state prep, superposition experiments, expectation value computation with rotation gates.
+
+Module 2: Quantum Gates and Circuit Design
+Objective: Design, execute, and analyze quantum circuits using universal gate sets.
+Topics: Single-qubit gates (X, Y, Z, H, Phase), parameterized rotations (RX, RY, RZ), multi-qubit systems, controlled operations, circuit depth and execution flow.
+Practicals: Two-qubit superposition, Bell state generation, multi-qubit entanglement.
+
+Module 3: Entanglement, Correlation, and State Analysis
+Objective: Examine non-classical correlations and quantify quantum system properties.
+Topics: Entanglement theory, GHZ state construction, phase kickback, quantum interference, density matrices, purity and entropy.
+Practicals: GHZ implementation, phase kickback analysis, swap test for fidelity, state purity and entropy computation.
+
+Module 4: Fundamental Quantum Algorithms
+Objective: Demonstrate algorithmic quantum advantage through formal implementation.
+Topics: Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Grover''s search, Quantum Fourier Transform.
+Practicals: Oracle construction, amplitude amplification, phase encoding, structured QFT circuits.
+
+Module 5: Variational and Hybrid Quantum Algorithms
+Objective: Introduce quantum-classical hybrid optimization frameworks for computational modeling.
+Topics: Variational principles, parameterized circuits, Hamiltonian construction, expectation estimation, classical optimization loops.
+Practicals: Mini VQE, two-qubit VQE, Heisenberg model minimization, QAOA for MaxCut, hybrid QAOA-VQE.
+
+Module 6: Applied Quantum Modeling and Optimization
+Objective: Connect quantum circuits with real-world optimization and modeling problems.
+Topics: Cost function engineering, portfolio optimization Hamiltonians, ground state estimation, parameter sweeping, energy landscape analysis.
+Practicals: Quantum portfolio optimization, H2 ground state approximation, parameter sweeps and convergence analysis.
+
+Module 7: Hyper Dimensional Quantum System Architecture
+Objective: Expose students to advanced quantum system architecture beyond standard circuit simulation.
+Topics: Hyper qubit configuration, chunk-based system modeling, hyper-dimensional architecture, entanglement routing mechanisms, system metrics.
+Practicals: Hyper system initialization, architecture metrics, hyper teleportation validation, fidelity and trace distance analysis.
+
+Capstone Project
+- Design and implement a structured quantum circuit.
+- Define a Hamiltonian or optimization objective.
+- Execute parameter optimization.
+- Analyze results using measurement statistics.
+- Submit a formal technical project report.
+
+Platform Access and Academic Resources
+- Individual Student API token for HDQS platform access.
+- Two structured quantum datasets for experimentation.
+- Guided coding templates.
+- Capstone project framework.
+- Certificate of completion.', 0.00, '', true, false, '2026-03-11 10:00:00+05:30', '2026-03-11 10:00:00+05:30', 16, 0.00, 30);
 
 Estimated duration: 23 days of structured learning.
 
@@ -2692,7 +2696,7 @@ Explore related topics:
 - Prompt Scoring
 
 Video section:
-- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 138.00, '', true, false, '2026-02-23 16:21:48.550489+05:30', '2026-02-23 16:48:47.906555+05:30', 14, 24.00, 'Sofia specializes in transformer architectures, retrieval systems, and evaluation protocols. She teaches practical deep learning with emphasis on reproducibility and model safety.', 'Dr. Sofia Khan', 'Deep Learning and NLP Researcher', 23);
+- Video preview is intentionally a text placeholder for now. No player is enabled yet.', 138.00, '', true, false, '2026-02-23 16:21:48.550489+05:30', '2026-02-23 16:48:47.906555+05:30', 14, 24.00, 23);
 
 
 --
@@ -2713,298 +2717,6 @@ INSERT INTO public.courses_enrollment VALUES (10, 'enrolled', 'success', '2026-0
 -- Data for Name: courses_review; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.courses_review VALUES (144, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Python for Data Science Foundations)', false, '2026-02-23 16:21:48.594691+05:30', '2026-02-23 16:48:47.919012+05:30', 29, 16);
-INSERT INTO public.courses_review VALUES (145, 4, 'Good balance of theory and implementation details. (Python for Data Science Foundations)', false, '2026-02-23 16:21:48.599523+05:30', '2026-02-23 16:48:47.934778+05:30', 29, 17);
-INSERT INTO public.courses_review VALUES (153, 3, 'Content is good, though some modules felt dense for beginners. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.626542+05:30', '2026-02-23 16:48:47.955494+05:30', 30, 23);
-INSERT INTO public.courses_review VALUES (154, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.629539+05:30', '2026-02-23 16:48:47.957702+05:30', 30, 24);
-INSERT INTO public.courses_review VALUES (155, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.63255+05:30', '2026-02-23 16:48:47.960689+05:30', 31, 22);
-INSERT INTO public.courses_review VALUES (156, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.635539+05:30', '2026-02-23 16:48:47.963704+05:30', 31, 23);
-INSERT INTO public.courses_review VALUES (157, 4, 'Helpful examples overall, and the templates are reusable. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.638541+05:30', '2026-02-23 16:48:47.966688+05:30', 31, 24);
-INSERT INTO public.courses_review VALUES (158, 5, 'I used these techniques immediately in my current project. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.641743+05:30', '2026-02-23 16:48:47.969686+05:30', 31, 25);
-INSERT INTO public.courses_review VALUES (159, 4, 'Strong content and solid delivery, with useful assignments. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.644828+05:30', '2026-02-23 16:48:47.97169+05:30', 31, 26);
-INSERT INTO public.courses_review VALUES (292, 5, 'Good', false, '2026-02-23 17:38:31.860563+05:30', '2026-02-23 17:38:31.860563+05:30', 49, 15);
-INSERT INTO public.courses_review VALUES (51, 4, 'Helpful examples overall, and the templates are reusable. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.178091+05:30', '2026-02-23 16:12:05.319926+05:30', 14, 25);
-INSERT INTO public.courses_review VALUES (52, 5, 'I used these techniques immediately in my current project. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.180086+05:30', '2026-02-23 16:12:05.322962+05:30', 14, 26);
-INSERT INTO public.courses_review VALUES (60, 4, 'Helpful examples overall, and the templates are reusable. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.199425+05:30', '2026-02-23 16:12:05.345634+05:30', 16, 27);
-INSERT INTO public.courses_review VALUES (22, 5, 'I used these techniques immediately in my current project. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.04344+05:30', '2026-02-23 16:12:05.242952+05:30', 10, 28);
-INSERT INTO public.courses_review VALUES (59, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.196394+05:30', '2026-02-23 16:12:05.343407+05:30', 16, 26);
-INSERT INTO public.courses_review VALUES (135, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Digital Marketing Strategy and Analytics)', true, '2026-02-23 15:06:35.375686+05:30', '2026-02-23 16:12:05.553875+05:30', 27, 26);
-INSERT INTO public.courses_review VALUES (65, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.210708+05:30', '2026-02-23 16:12:05.360249+05:30', 17, 29);
-INSERT INTO public.courses_review VALUES (127, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.35792+05:30', '2026-02-23 16:12:05.53407+05:30', 26, 23);
-INSERT INTO public.courses_review VALUES (124, 4, 'Good balance of theory and implementation details. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.351674+05:30', '2026-02-23 16:12:05.525904+05:30', 26, 20);
-INSERT INTO public.courses_review VALUES (98, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.288669+05:30', '2026-02-23 16:12:05.459246+05:30', 22, 26);
-INSERT INTO public.courses_review VALUES (73, 3, 'Decent structure with room for more advanced examples. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.229429+05:30', '2026-02-23 16:12:05.387159+05:30', 18, 33);
-INSERT INTO public.courses_review VALUES (103, 4, 'Helpful examples overall, and the templates are reusable. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.300371+05:30', '2026-02-23 16:12:05.471948+05:30', 22, 31);
-INSERT INTO public.courses_review VALUES (11, 3, 'Decent structure with room for more advanced examples. (React Frontend Engineering)', true, '2026-02-23 15:06:35.018472+05:30', '2026-02-23 16:12:05.214299+05:30', 8, 24);
-INSERT INTO public.courses_review VALUES (44, 4, 'Helpful examples overall, and the templates are reusable. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.161013+05:30', '2026-02-23 16:12:05.299518+05:30', 13, 22);
-INSERT INTO public.courses_review VALUES (42, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.092248+05:30', '2026-02-23 16:12:05.293913+05:30', 13, 20);
-INSERT INTO public.courses_review VALUES (121, 4, 'Good balance of theory and implementation details. (Product Management Essentials)', true, '2026-02-23 15:06:35.343856+05:30', '2026-02-23 16:12:05.518656+05:30', 25, 21);
-INSERT INTO public.courses_review VALUES (117, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Product Management Essentials)', true, '2026-02-23 15:06:35.331323+05:30', '2026-02-23 16:12:05.508029+05:30', 25, 17);
-INSERT INTO public.courses_review VALUES (88, 4, 'Strong content and solid delivery, with useful assignments. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.264083+05:30', '2026-02-23 16:12:05.43169+05:30', 20, 23);
-INSERT INTO public.courses_review VALUES (82, 5, 'I used these techniques immediately in my current project. (Business Communication for Professionals)', true, '2026-02-23 15:06:35.250751+05:30', '2026-02-23 16:12:05.414069+05:30', 19, 19);
-INSERT INTO public.courses_review VALUES (125, 5, 'Excellent pacing, realistic examples, and strong project structure. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.3529+05:30', '2026-02-23 16:12:05.528162+05:30', 26, 21);
-INSERT INTO public.courses_review VALUES (119, 5, 'I used these techniques immediately in my current project. (Product Management Essentials)', true, '2026-02-23 15:06:35.339378+05:30', '2026-02-23 16:12:05.513007+05:30', 25, 19);
-INSERT INTO public.courses_review VALUES (113, 5, 'I used these techniques immediately in my current project. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.322652+05:30', '2026-02-23 16:12:05.497855+05:30', 24, 16);
-INSERT INTO public.courses_review VALUES (40, 5, 'Excellent pacing, realistic examples, and strong project structure. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.087673+05:30', '2026-02-23 16:12:05.288215+05:30', 13, 18);
-INSERT INTO public.courses_review VALUES (43, 4, 'Good balance of theory and implementation details. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.094272+05:30', '2026-02-23 16:12:05.296927+05:30', 13, 21);
-INSERT INTO public.courses_review VALUES (9, 4, 'Great value for the topics covered in this course. (React Frontend Engineering)', true, '2026-02-23 15:06:35.011803+05:30', '2026-02-23 16:12:05.210028+05:30', 8, 22);
-INSERT INTO public.courses_review VALUES (120, 4, 'Strong content and solid delivery, with useful assignments. (Product Management Essentials)', true, '2026-02-23 15:06:35.341466+05:30', '2026-02-23 16:12:05.515997+05:30', 25, 20);
-INSERT INTO public.courses_review VALUES (15, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Django REST API Engineering)', true, '2026-02-23 15:06:35.028056+05:30', '2026-02-23 16:12:05.224703+05:30', 9, 25);
-INSERT INTO public.courses_review VALUES (79, 4, 'Strong content and solid delivery, with useful assignments. (Business Communication for Professionals)', true, '2026-02-23 15:06:35.243086+05:30', '2026-02-23 16:12:05.404149+05:30', 19, 16);
-INSERT INTO public.courses_review VALUES (48, 4, 'Great value for the topics covered in this course. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.171175+05:30', '2026-02-23 16:12:05.311499+05:30', 14, 22);
-INSERT INTO public.courses_review VALUES (26, 4, 'Great value for the topics covered in this course. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.052734+05:30', '2026-02-23 16:12:05.252205+05:30', 10, 32);
-INSERT INTO public.courses_review VALUES (85, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.257158+05:30', '2026-02-23 16:12:05.422845+05:30', 20, 20);
-INSERT INTO public.courses_review VALUES (72, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.227397+05:30', '2026-02-23 16:12:05.384038+05:30', 18, 32);
-INSERT INTO public.courses_review VALUES (57, 5, 'Clear explanations and practical exercises made this easy to apply at work. (SQL and Database Design Essentials)', true, '2026-02-23 15:06:35.191788+05:30', '2026-02-23 16:12:05.338357+05:30', 15, 26);
-INSERT INTO public.courses_review VALUES (81, 5, 'Excellent pacing, realistic examples, and strong project structure. (Business Communication for Professionals)', true, '2026-02-23 15:06:35.248656+05:30', '2026-02-23 16:12:05.41192+05:30', 19, 18);
-INSERT INTO public.courses_review VALUES (61, 4, 'Great value for the topics covered in this course. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.20142+05:30', '2026-02-23 16:12:05.348668+05:30', 16, 28);
-INSERT INTO public.courses_review VALUES (19, 4, 'Strong content and solid delivery, with useful assignments. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.037701+05:30', '2026-02-23 16:12:05.231812+05:30', 10, 25);
-INSERT INTO public.courses_review VALUES (143, 5, 'nice', true, '2026-02-23 15:59:01.297796+05:30', '2026-02-23 15:59:01.297796+05:30', 5, 15);
-INSERT INTO public.courses_review VALUES (160, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.648593+05:30', '2026-02-23 16:48:47.973685+05:30', 31, 27);
-INSERT INTO public.courses_review VALUES (161, 5, 'Excellent pacing, realistic examples, and strong project structure. (Data Visualization and Storytelling for AI Teams)', false, '2026-02-23 16:21:48.652022+05:30', '2026-02-23 16:48:47.976685+05:30', 31, 28);
-INSERT INTO public.courses_review VALUES (162, 4, 'Strong content and solid delivery, with useful assignments. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.655521+05:30', '2026-02-23 16:48:47.978686+05:30', 32, 25);
-INSERT INTO public.courses_review VALUES (163, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.658719+05:30', '2026-02-23 16:48:47.98171+05:30', 32, 26);
-INSERT INTO public.courses_review VALUES (164, 4, 'Helpful examples overall, and the templates are reusable. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.662864+05:30', '2026-02-23 16:48:47.983898+05:30', 32, 27);
-INSERT INTO public.courses_review VALUES (165, 4, 'Great value for the topics covered in this course. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.665737+05:30', '2026-02-23 16:48:47.986947+05:30', 32, 28);
-INSERT INTO public.courses_review VALUES (166, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.669201+05:30', '2026-02-23 16:48:47.98896+05:30', 32, 29);
-INSERT INTO public.courses_review VALUES (167, 4, 'Good balance of theory and implementation details. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.672319+05:30', '2026-02-23 16:48:47.996785+05:30', 32, 30);
-INSERT INTO public.courses_review VALUES (168, 5, 'Excellent pacing, realistic examples, and strong project structure. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.675692+05:30', '2026-02-23 16:48:47.998797+05:30', 32, 31);
-INSERT INTO public.courses_review VALUES (169, 5, 'I used these techniques immediately in my current project. (Applied Machine Learning with Scikit-learn)', false, '2026-02-23 16:21:48.678196+05:30', '2026-02-23 16:48:48.00165+05:30', 32, 32);
-INSERT INTO public.courses_review VALUES (170, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Feature Engineering and Model Selection)', false, '2026-02-23 16:21:48.68199+05:30', '2026-02-23 16:48:48.003846+05:30', 33, 28);
-INSERT INTO public.courses_review VALUES (171, 4, 'Good balance of theory and implementation details. (Feature Engineering and Model Selection)', false, '2026-02-23 16:21:48.686262+05:30', '2026-02-23 16:48:48.007258+05:30', 33, 29);
-INSERT INTO public.courses_review VALUES (172, 5, 'Excellent pacing, realistic examples, and strong project structure. (Feature Engineering and Model Selection)', false, '2026-02-23 16:21:48.689363+05:30', '2026-02-23 16:48:48.009255+05:30', 33, 30);
-INSERT INTO public.courses_review VALUES (173, 4, 'Great value for the topics covered in this course. (Feature Engineering and Model Selection)', false, '2026-02-23 16:21:48.691362+05:30', '2026-02-23 16:48:48.011975+05:30', 33, 31);
-INSERT INTO public.courses_review VALUES (174, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Feature Engineering and Model Selection)', false, '2026-02-23 16:21:48.696219+05:30', '2026-02-23 16:48:48.014566+05:30', 33, 32);
-INSERT INTO public.courses_review VALUES (175, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.69892+05:30', '2026-02-23 16:48:48.016739+05:30', 34, 31);
-INSERT INTO public.courses_review VALUES (176, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.702303+05:30', '2026-02-23 16:48:48.019314+05:30', 34, 32);
-INSERT INTO public.courses_review VALUES (177, 4, 'Helpful examples overall, and the templates are reusable. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.705553+05:30', '2026-02-23 16:48:48.021727+05:30', 34, 33);
-INSERT INTO public.courses_review VALUES (178, 4, 'Great value for the topics covered in this course. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.710226+05:30', '2026-02-23 16:48:48.024099+05:30', 34, 16);
-INSERT INTO public.courses_review VALUES (179, 3, 'Content is good, though some modules felt dense for beginners. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.713415+05:30', '2026-02-23 16:48:48.026104+05:30', 34, 17);
-INSERT INTO public.courses_review VALUES (180, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Time Series Forecasting for Business and AI)', false, '2026-02-23 16:21:48.7177+05:30', '2026-02-23 16:48:48.028565+05:30', 34, 18);
-INSERT INTO public.courses_review VALUES (181, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.72219+05:30', '2026-02-23 16:48:48.031574+05:30', 35, 16);
-INSERT INTO public.courses_review VALUES (182, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.72666+05:30', '2026-02-23 16:48:48.033858+05:30', 35, 17);
-INSERT INTO public.courses_review VALUES (183, 5, 'Excellent pacing, realistic examples, and strong project structure. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.732002+05:30', '2026-02-23 16:48:48.036951+05:30', 35, 18);
-INSERT INTO public.courses_review VALUES (184, 4, 'Great value for the topics covered in this course. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.737005+05:30', '2026-02-23 16:48:48.040454+05:30', 35, 19);
-INSERT INTO public.courses_review VALUES (185, 4, 'Strong content and solid delivery, with useful assignments. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.74092+05:30', '2026-02-23 16:48:48.042455+05:30', 35, 20);
-INSERT INTO public.courses_review VALUES (186, 4, 'Good balance of theory and implementation details. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.745174+05:30', '2026-02-23 16:48:48.047254+05:30', 35, 21);
-INSERT INTO public.courses_review VALUES (187, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Deep Learning with PyTorch)', false, '2026-02-23 16:21:48.747449+05:30', '2026-02-23 16:48:48.051439+05:30', 35, 22);
-INSERT INTO public.courses_review VALUES (188, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.752065+05:30', '2026-02-23 16:48:48.055438+05:30', 36, 19);
-INSERT INTO public.courses_review VALUES (189, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.755371+05:30', '2026-02-23 16:48:48.058083+05:30', 36, 20);
-INSERT INTO public.courses_review VALUES (190, 5, 'Excellent pacing, realistic examples, and strong project structure. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.758853+05:30', '2026-02-23 16:48:48.060771+05:30', 36, 21);
-INSERT INTO public.courses_review VALUES (191, 5, 'I used these techniques immediately in my current project. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.762679+05:30', '2026-02-23 16:48:48.063053+05:30', 36, 22);
-INSERT INTO public.courses_review VALUES (192, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.765815+05:30', '2026-02-23 16:48:48.06602+05:30', 36, 23);
-INSERT INTO public.courses_review VALUES (193, 4, 'Good balance of theory and implementation details. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.76855+05:30', '2026-02-23 16:48:48.069157+05:30', 36, 24);
-INSERT INTO public.courses_review VALUES (194, 4, 'Helpful examples overall, and the templates are reusable. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.771559+05:30', '2026-02-23 16:48:48.072003+05:30', 36, 25);
-INSERT INTO public.courses_review VALUES (195, 4, 'Great value for the topics covered in this course. (Computer Vision Engineering with CNNs)', false, '2026-02-23 16:21:48.775296+05:30', '2026-02-23 16:48:48.075085+05:30', 36, 26);
-INSERT INTO public.courses_review VALUES (196, 4, 'Strong content and solid delivery, with useful assignments. (NLP with Transformers and Attention)', false, '2026-02-23 16:21:48.778928+05:30', '2026-02-23 16:48:48.077258+05:30', 37, 22);
-INSERT INTO public.courses_review VALUES (197, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (NLP with Transformers and Attention)', false, '2026-02-23 16:21:48.781947+05:30', '2026-02-23 16:48:48.080281+05:30', 37, 23);
-INSERT INTO public.courses_review VALUES (198, 5, 'Excellent pacing, realistic examples, and strong project structure. (NLP with Transformers and Attention)', false, '2026-02-23 16:21:48.784859+05:30', '2026-02-23 16:48:48.082364+05:30', 37, 24);
-INSERT INTO public.courses_review VALUES (199, 5, 'I used these techniques immediately in my current project. (NLP with Transformers and Attention)', false, '2026-02-23 16:21:48.787918+05:30', '2026-02-23 16:48:48.084365+05:30', 37, 25);
-INSERT INTO public.courses_review VALUES (200, 3, 'Content is good, though some modules felt dense for beginners. (NLP with Transformers and Attention)', false, '2026-02-23 16:21:48.790914+05:30', '2026-02-23 16:48:48.087709+05:30', 37, 26);
-INSERT INTO public.courses_review VALUES (201, 4, 'Strong content and solid delivery, with useful assignments. (Generative AI Product Development)', false, '2026-02-23 16:21:48.794857+05:30', '2026-02-23 16:48:48.089693+05:30', 38, 25);
-INSERT INTO public.courses_review VALUES (202, 4, 'Good balance of theory and implementation details. (Generative AI Product Development)', false, '2026-02-23 16:21:48.798391+05:30', '2026-02-23 16:48:48.092535+05:30', 38, 26);
-INSERT INTO public.courses_review VALUES (203, 3, 'Decent structure with room for more advanced examples. (Generative AI Product Development)', false, '2026-02-23 16:21:48.800911+05:30', '2026-02-23 16:48:48.095529+05:30', 38, 27);
-INSERT INTO public.courses_review VALUES (204, 5, 'I used these techniques immediately in my current project. (Generative AI Product Development)', false, '2026-02-23 16:21:48.803911+05:30', '2026-02-23 16:48:48.098003+05:30', 38, 28);
-INSERT INTO public.courses_review VALUES (205, 3, 'Content is good, though some modules felt dense for beginners. (Generative AI Product Development)', false, '2026-02-23 16:21:48.80735+05:30', '2026-02-23 16:48:48.100008+05:30', 38, 29);
-INSERT INTO public.courses_review VALUES (206, 4, 'Good balance of theory and implementation details. (Generative AI Product Development)', false, '2026-02-23 16:21:48.809542+05:30', '2026-02-23 16:48:48.103289+05:30', 38, 30);
-INSERT INTO public.courses_review VALUES (207, 3, 'Useful course, but I had to rewatch a few parts to keep up. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.812843+05:30', '2026-02-23 16:48:48.105492+05:30', 39, 28);
-INSERT INTO public.courses_review VALUES (208, 4, 'Good balance of theory and implementation details. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.8165+05:30', '2026-02-23 16:48:48.108501+05:30', 39, 29);
-INSERT INTO public.courses_review VALUES (209, 3, 'Decent structure with room for more advanced examples. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.819501+05:30', '2026-02-23 16:48:48.110683+05:30', 39, 30);
-INSERT INTO public.courses_review VALUES (210, 5, 'I used these techniques immediately in my current project. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.822501+05:30', '2026-02-23 16:48:48.113698+05:30', 39, 31);
-INSERT INTO public.courses_review VALUES (211, 3, 'Content is good, though some modules felt dense for beginners. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.825502+05:30', '2026-02-23 16:48:48.116718+05:30', 39, 32);
-INSERT INTO public.courses_review VALUES (212, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.828508+05:30', '2026-02-23 16:48:48.118714+05:30', 39, 33);
-INSERT INTO public.courses_review VALUES (213, 4, 'Helpful examples overall, and the templates are reusable. (LLM Fine-Tuning and RAG Architectures)', false, '2026-02-23 16:21:48.831834+05:30', '2026-02-23 16:48:48.121788+05:30', 39, 16);
-INSERT INTO public.courses_review VALUES (214, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.834298+05:30', '2026-02-23 16:48:48.124003+05:30', 40, 31);
-INSERT INTO public.courses_review VALUES (215, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.837629+05:30', '2026-02-23 16:48:48.127638+05:30', 40, 32);
-INSERT INTO public.courses_review VALUES (216, 4, 'Helpful examples overall, and the templates are reusable. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.840158+05:30', '2026-02-23 16:48:48.130653+05:30', 40, 33);
-INSERT INTO public.courses_review VALUES (217, 5, 'I used these techniques immediately in my current project. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.843522+05:30', '2026-02-23 16:48:48.132093+05:30', 40, 16);
-INSERT INTO public.courses_review VALUES (218, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.846886+05:30', '2026-02-23 16:48:48.134923+05:30', 40, 17);
-INSERT INTO public.courses_review VALUES (219, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.849884+05:30', '2026-02-23 16:48:48.137424+05:30', 40, 18);
-INSERT INTO public.courses_review VALUES (220, 4, 'Helpful examples overall, and the templates are reusable. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.853656+05:30', '2026-02-23 16:48:48.13943+05:30', 40, 19);
-INSERT INTO public.courses_review VALUES (221, 3, 'Content is good, though some modules felt dense for beginners. (Responsible AI and Model Governance)', false, '2026-02-23 16:21:48.85721+05:30', '2026-02-23 16:48:48.141444+05:30', 40, 20);
-INSERT INTO public.courses_review VALUES (222, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Enterprise Prompt Engineering Masterclass)', false, '2026-02-23 16:21:48.859332+05:30', '2026-02-23 16:48:48.143432+05:30', 41, 16);
-INSERT INTO public.courses_review VALUES (223, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Enterprise Prompt Engineering Masterclass)', false, '2026-02-23 16:21:48.862903+05:30', '2026-02-23 16:48:48.145785+05:30', 41, 17);
-INSERT INTO public.courses_review VALUES (224, 4, 'Helpful examples overall, and the templates are reusable. (Enterprise Prompt Engineering Masterclass)', false, '2026-02-23 16:21:48.865772+05:30', '2026-02-23 16:48:48.147862+05:30', 41, 18);
-INSERT INTO public.courses_review VALUES (225, 5, 'I used these techniques immediately in my current project. (Enterprise Prompt Engineering Masterclass)', false, '2026-02-23 16:21:48.869289+05:30', '2026-02-23 16:48:48.149199+05:30', 41, 19);
-INSERT INTO public.courses_review VALUES (226, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Enterprise Prompt Engineering Masterclass)', false, '2026-02-23 16:21:48.872181+05:30', '2026-02-23 16:48:48.151613+05:30', 41, 20);
-INSERT INTO public.courses_review VALUES (227, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.87534+05:30', '2026-02-23 16:48:48.152948+05:30', 42, 19);
-INSERT INTO public.courses_review VALUES (228, 4, 'Good balance of theory and implementation details. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.87854+05:30', '2026-02-23 16:48:48.155263+05:30', 42, 20);
-INSERT INTO public.courses_review VALUES (229, 4, 'Helpful examples overall, and the templates are reusable. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.881827+05:30', '2026-02-23 16:48:48.15653+05:30', 42, 21);
-INSERT INTO public.courses_review VALUES (230, 4, 'Great value for the topics covered in this course. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.883955+05:30', '2026-02-23 16:48:48.15899+05:30', 42, 22);
-INSERT INTO public.courses_review VALUES (231, 4, 'Strong content and solid delivery, with useful assignments. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.887319+05:30', '2026-02-23 16:48:48.161309+05:30', 42, 23);
-INSERT INTO public.courses_review VALUES (232, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Prompt Safety and Guardrails)', false, '2026-02-23 16:21:48.890315+05:30', '2026-02-23 16:48:48.162298+05:30', 42, 24);
-INSERT INTO public.courses_review VALUES (233, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.893317+05:30', '2026-02-23 16:48:48.165617+05:30', 43, 22);
-INSERT INTO public.courses_review VALUES (234, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.896318+05:30', '2026-02-23 16:48:48.167725+05:30', 43, 23);
-INSERT INTO public.courses_review VALUES (235, 4, 'Helpful examples overall, and the templates are reusable. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.899317+05:30', '2026-02-23 16:48:48.170265+05:30', 43, 24);
-INSERT INTO public.courses_review VALUES (236, 5, 'I used these techniques immediately in my current project. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.902318+05:30', '2026-02-23 16:48:48.172577+05:30', 43, 25);
-INSERT INTO public.courses_review VALUES (237, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.90532+05:30', '2026-02-23 16:48:48.176033+05:30', 43, 26);
-INSERT INTO public.courses_review VALUES (238, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.907375+05:30', '2026-02-23 16:48:48.179037+05:30', 43, 27);
-INSERT INTO public.courses_review VALUES (239, 5, 'Excellent pacing, realistic examples, and strong project structure. (Agentic Workflows with Tool-Using LLMs)', false, '2026-02-23 16:21:48.911201+05:30', '2026-02-23 16:48:48.181241+05:30', 43, 28);
-INSERT INTO public.courses_review VALUES (240, 4, 'Strong content and solid delivery, with useful assignments. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.914424+05:30', '2026-02-23 16:48:48.1841+05:30', 44, 25);
-INSERT INTO public.courses_review VALUES (241, 3, 'Content is good, though some modules felt dense for beginners. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.918353+05:30', '2026-02-23 16:48:48.186627+05:30', 44, 26);
-INSERT INTO public.courses_review VALUES (242, 4, 'Helpful examples overall, and the templates are reusable. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.920749+05:30', '2026-02-23 16:48:48.190084+05:30', 44, 27);
-INSERT INTO public.courses_review VALUES (243, 5, 'I used these techniques immediately in my current project. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.924747+05:30', '2026-02-23 16:48:48.192086+05:30', 44, 28);
-INSERT INTO public.courses_review VALUES (244, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.92775+05:30', '2026-02-23 16:48:48.194364+05:30', 44, 29);
-INSERT INTO public.courses_review VALUES (87, 4, 'Great value for the topics covered in this course. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.261774+05:30', '2026-02-23 16:12:05.428276+05:30', 20, 22);
-INSERT INTO public.courses_review VALUES (71, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.224826+05:30', '2026-02-23 16:12:05.380554+05:30', 18, 31);
-INSERT INTO public.courses_review VALUES (68, 4, 'Strong content and solid delivery, with useful assignments. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.219297+05:30', '2026-02-23 16:12:05.370473+05:30', 17, 32);
-INSERT INTO public.courses_review VALUES (80, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Business Communication for Professionals)', true, '2026-02-23 15:06:35.246138+05:30', '2026-02-23 16:12:05.408225+05:30', 19, 17);
-INSERT INTO public.courses_review VALUES (70, 4, 'Helpful examples overall, and the templates are reusable. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.223641+05:30', '2026-02-23 16:12:05.377087+05:30', 17, 16);
-INSERT INTO public.courses_review VALUES (84, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.255105+05:30', '2026-02-23 16:12:05.420831+05:30', 20, 19);
-INSERT INTO public.courses_review VALUES (69, 4, 'Good balance of theory and implementation details. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.221332+05:30', '2026-02-23 16:12:05.373882+05:30', 17, 33);
-INSERT INTO public.courses_review VALUES (77, 4, 'Helpful examples overall, and the templates are reusable. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.239103+05:30', '2026-02-23 16:12:05.398068+05:30', 18, 19);
-INSERT INTO public.courses_review VALUES (245, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.930404+05:30', '2026-02-23 16:48:48.197237+05:30', 44, 30);
-INSERT INTO public.courses_review VALUES (246, 5, 'Excellent pacing, realistic examples, and strong project structure. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.933758+05:30', '2026-02-23 16:48:48.19977+05:30', 44, 31);
-INSERT INTO public.courses_review VALUES (247, 5, 'I used these techniques immediately in my current project. (Quantum Computing Foundations)', false, '2026-02-23 16:21:48.937086+05:30', '2026-02-23 16:48:48.202086+05:30', 44, 32);
-INSERT INTO public.courses_review VALUES (248, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Quantum Algorithms with Qiskit)', false, '2026-02-23 16:21:48.940312+05:30', '2026-02-23 16:48:48.204579+05:30', 45, 28);
-INSERT INTO public.courses_review VALUES (30, 4, 'Great value for the topics covered in this course. (Data Structures and Problem Solving with Python)', true, '2026-02-23 15:06:35.061975+05:30', '2026-02-23 16:12:05.262664+05:30', 11, 31);
-INSERT INTO public.courses_review VALUES (21, 4, 'Helpful examples overall, and the templates are reusable. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.040907+05:30', '2026-02-23 16:12:05.239952+05:30', 10, 27);
-INSERT INTO public.courses_review VALUES (131, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Digital Marketing Strategy and Analytics)', true, '2026-02-23 15:06:35.366403+05:30', '2026-02-23 16:12:05.54393+05:30', 27, 22);
-INSERT INTO public.courses_review VALUES (3, 5, 'Excellent pacing, realistic examples, and strong project structure. (Full Stack Web Development Bootcamp)', true, '2026-02-23 15:06:34.996551+05:30', '2026-02-23 16:12:05.194593+05:30', 1, 18);
-INSERT INTO public.courses_review VALUES (17, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Django REST API Engineering)', true, '2026-02-23 15:06:35.032805+05:30', '2026-02-23 16:12:05.229777+05:30', 9, 27);
-INSERT INTO public.courses_review VALUES (37, 4, 'Good balance of theory and implementation details. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.080512+05:30', '2026-02-23 16:12:05.28074+05:30', 12, 18);
-INSERT INTO public.courses_review VALUES (28, 3, 'Content is good, though some modules felt dense for beginners. (Data Structures and Problem Solving with Python)', true, '2026-02-23 15:06:35.053818+05:30', '2026-02-23 16:12:05.25724+05:30', 11, 29);
-INSERT INTO public.courses_review VALUES (104, 4, 'Great value for the topics covered in this course. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.302525+05:30', '2026-02-23 16:12:05.475336+05:30', 22, 32);
-INSERT INTO public.courses_review VALUES (5, 4, 'Strong content and solid delivery, with useful assignments. (Full Stack Web Development Bootcamp)', true, '2026-02-23 15:06:35.003546+05:30', '2026-02-23 16:12:05.200027+05:30', 1, 20);
-INSERT INTO public.courses_review VALUES (56, 4, 'Great value for the topics covered in this course. (SQL and Database Design Essentials)', true, '2026-02-23 15:06:35.189788+05:30', '2026-02-23 16:12:05.334614+05:30', 15, 25);
-INSERT INTO public.courses_review VALUES (74, 4, 'Great value for the topics covered in this course. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.23142+05:30', '2026-02-23 16:12:05.390159+05:30', 18, 16);
-INSERT INTO public.courses_review VALUES (54, 4, 'Good balance of theory and implementation details. (SQL and Database Design Essentials)', true, '2026-02-23 15:06:35.184747+05:30', '2026-02-23 16:12:05.328975+05:30', 15, 23);
-INSERT INTO public.courses_review VALUES (29, 5, 'Excellent pacing, realistic examples, and strong project structure. (Data Structures and Problem Solving with Python)', true, '2026-02-23 15:06:35.059639+05:30', '2026-02-23 16:12:05.259998+05:30', 11, 30);
-INSERT INTO public.courses_review VALUES (4, 4, 'Great value for the topics covered in this course. (Full Stack Web Development Bootcamp)', true, '2026-02-23 15:06:34.999689+05:30', '2026-02-23 16:12:05.197027+05:30', 1, 19);
-INSERT INTO public.courses_review VALUES (34, 5, 'Excellent pacing, realistic examples, and strong project structure. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.073683+05:30', '2026-02-23 16:12:05.273202+05:30', 12, 33);
-INSERT INTO public.courses_review VALUES (138, 3, 'Decent structure with room for more advanced examples. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.383522+05:30', '2026-02-23 16:12:05.562369+05:30', 28, 27);
-INSERT INTO public.courses_review VALUES (96, 5, 'Excellent pacing, realistic examples, and strong project structure. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.281973+05:30', '2026-02-23 16:12:05.453781+05:30', 21, 28);
-INSERT INTO public.courses_review VALUES (83, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Business Communication for Professionals)', true, '2026-02-23 15:06:35.253108+05:30', '2026-02-23 16:12:05.417072+05:30', 19, 20);
-INSERT INTO public.courses_review VALUES (67, 5, 'I used these techniques immediately in my current project. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.217066+05:30', '2026-02-23 16:12:05.367097+05:30', 17, 31);
-INSERT INTO public.courses_review VALUES (63, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.207461+05:30', '2026-02-23 16:12:05.355131+05:30', 16, 30);
-INSERT INTO public.courses_review VALUES (10, 4, 'Strong content and solid delivery, with useful assignments. (React Frontend Engineering)', true, '2026-02-23 15:06:35.014333+05:30', '2026-02-23 16:12:05.212287+05:30', 8, 23);
-INSERT INTO public.courses_review VALUES (105, 4, 'Strong content and solid delivery, with useful assignments. (Backend Performance and Scalability Patterns)', true, '2026-02-23 15:06:35.304867+05:30', '2026-02-23 16:12:05.477325+05:30', 23, 28);
-INSERT INTO public.courses_review VALUES (35, 5, 'I used these techniques immediately in my current project. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.075923+05:30', '2026-02-23 16:12:05.276248+05:30', 12, 16);
-INSERT INTO public.courses_review VALUES (45, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.16252+05:30', '2026-02-23 16:12:05.302964+05:30', 14, 19);
-INSERT INTO public.courses_review VALUES (107, 3, 'Decent structure with room for more advanced examples. (Backend Performance and Scalability Patterns)', true, '2026-02-23 15:06:35.308566+05:30', '2026-02-23 16:12:05.482308+05:30', 23, 30);
-INSERT INTO public.courses_review VALUES (6, 4, 'Strong content and solid delivery, with useful assignments. (React Frontend Engineering)', true, '2026-02-23 15:06:35.004814+05:30', '2026-02-23 16:12:05.202031+05:30', 8, 19);
-INSERT INTO public.courses_review VALUES (134, 4, 'Great value for the topics covered in this course. (Digital Marketing Strategy and Analytics)', true, '2026-02-23 15:06:35.374181+05:30', '2026-02-23 16:12:05.551875+05:30', 27, 25);
-INSERT INTO public.courses_review VALUES (86, 5, 'Excellent pacing, realistic examples, and strong project structure. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.259702+05:30', '2026-02-23 16:12:05.426307+05:30', 20, 21);
-INSERT INTO public.courses_review VALUES (39, 4, 'Good balance of theory and implementation details. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.086159+05:30', '2026-02-23 16:12:05.286105+05:30', 13, 17);
-INSERT INTO public.courses_review VALUES (36, 4, 'Strong content and solid delivery, with useful assignments. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.078479+05:30', '2026-02-23 16:12:05.278216+05:30', 12, 17);
-INSERT INTO public.courses_review VALUES (31, 3, 'Content is good, though some modules felt dense for beginners. (Data Structures and Problem Solving with Python)', true, '2026-02-23 15:06:35.064102+05:30', '2026-02-23 16:12:05.266188+05:30', 11, 32);
-INSERT INTO public.courses_review VALUES (50, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.17582+05:30', '2026-02-23 16:12:05.317596+05:30', 14, 24);
-INSERT INTO public.courses_review VALUES (102, 4, 'Good balance of theory and implementation details. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.298373+05:30', '2026-02-23 16:12:05.46996+05:30', 22, 30);
-INSERT INTO public.courses_review VALUES (14, 5, 'Excellent pacing, realistic examples, and strong project structure. (Django REST API Engineering)', true, '2026-02-23 15:06:35.025706+05:30', '2026-02-23 16:12:05.222686+05:30', 9, 24);
-INSERT INTO public.courses_review VALUES (66, 4, 'Helpful examples overall, and the templates are reusable. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.213742+05:30', '2026-02-23 16:12:05.36341+05:30', 17, 30);
-INSERT INTO public.courses_review VALUES (109, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Backend Performance and Scalability Patterns)', true, '2026-02-23 15:06:35.31411+05:30', '2026-02-23 16:12:05.488324+05:30', 23, 32);
-INSERT INTO public.courses_review VALUES (13, 4, 'Good balance of theory and implementation details. (Django REST API Engineering)', true, '2026-02-23 15:06:35.023653+05:30', '2026-02-23 16:12:05.219417+05:30', 9, 23);
-INSERT INTO public.courses_review VALUES (118, 4, 'Helpful examples overall, and the templates are reusable. (Product Management Essentials)', true, '2026-02-23 15:06:35.336383+05:30', '2026-02-23 16:12:05.510733+05:30', 25, 18);
-INSERT INTO public.courses_review VALUES (133, 3, 'Decent structure with room for more advanced examples. (Digital Marketing Strategy and Analytics)', true, '2026-02-23 15:06:35.372681+05:30', '2026-02-23 16:12:05.549682+05:30', 27, 24);
-INSERT INTO public.courses_review VALUES (111, 4, 'Good balance of theory and implementation details. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.318464+05:30', '2026-02-23 16:12:05.493324+05:30', 24, 32);
-INSERT INTO public.courses_review VALUES (2, 4, 'Good balance of theory and implementation details. (Full Stack Web Development Bootcamp)', true, '2026-02-23 15:06:34.994044+05:30', '2026-02-23 16:12:05.192288+05:30', 1, 17);
-INSERT INTO public.courses_review VALUES (16, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Django REST API Engineering)', true, '2026-02-23 15:06:35.030548+05:30', '2026-02-23 16:12:05.22775+05:30', 9, 26);
-INSERT INTO public.courses_review VALUES (62, 4, 'Strong content and solid delivery, with useful assignments. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.205259+05:30', '2026-02-23 16:12:05.352097+05:30', 16, 29);
-INSERT INTO public.courses_review VALUES (123, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.349043+05:30', '2026-02-23 16:12:05.523175+05:30', 26, 19);
-INSERT INTO public.courses_review VALUES (75, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.233773+05:30', '2026-02-23 16:12:05.392762+05:30', 18, 17);
-INSERT INTO public.courses_review VALUES (128, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.360335+05:30', '2026-02-23 16:12:05.53605+05:30', 26, 24);
-INSERT INTO public.courses_review VALUES (126, 4, 'Great value for the topics covered in this course. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.355651+05:30', '2026-02-23 16:12:05.531431+05:30', 26, 22);
-INSERT INTO public.courses_review VALUES (99, 5, 'Excellent pacing, realistic examples, and strong project structure. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.291655+05:30', '2026-02-23 16:12:05.462225+05:30', 22, 27);
-INSERT INTO public.courses_review VALUES (142, 5, 'good', true, '2026-02-23 15:43:51.814259+05:30', '2026-02-23 15:43:51.814259+05:30', 26, 15);
-INSERT INTO public.courses_review VALUES (41, 5, 'I used these techniques immediately in my current project. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.089874+05:30', '2026-02-23 16:12:05.291563+05:30', 13, 19);
-INSERT INTO public.courses_review VALUES (46, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.165138+05:30', '2026-02-23 16:12:05.305966+05:30', 14, 20);
-INSERT INTO public.courses_review VALUES (53, 5, 'Clear explanations and practical exercises made this easy to apply at work. (SQL and Database Design Essentials)', true, '2026-02-23 15:06:35.183738+05:30', '2026-02-23 16:12:05.32699+05:30', 15, 22);
-INSERT INTO public.courses_review VALUES (32, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.06661+05:30', '2026-02-23 16:12:05.269201+05:30', 12, 31);
-INSERT INTO public.courses_review VALUES (7, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (React Frontend Engineering)', true, '2026-02-23 15:06:35.007143+05:30', '2026-02-23 16:12:05.205031+05:30', 8, 20);
-INSERT INTO public.courses_review VALUES (100, 5, 'I used these techniques immediately in my current project. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.293089+05:30', '2026-02-23 16:12:05.464245+05:30', 22, 28);
-INSERT INTO public.courses_review VALUES (38, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Python for Data Analysis and Visualization)', true, '2026-02-23 15:06:35.082512+05:30', '2026-02-23 16:12:05.28312+05:30', 13, 16);
-INSERT INTO public.courses_review VALUES (136, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.379452+05:30', '2026-02-23 16:12:05.556857+05:30', 28, 25);
-INSERT INTO public.courses_review VALUES (140, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.389095+05:30', '2026-02-23 16:12:05.56765+05:30', 28, 29);
-INSERT INTO public.courses_review VALUES (139, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.386784+05:30', '2026-02-23 16:12:05.564808+05:30', 28, 28);
-INSERT INTO public.courses_review VALUES (12, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Django REST API Engineering)', true, '2026-02-23 15:06:35.020988+05:30', '2026-02-23 16:12:05.21661+05:30', 9, 22);
-INSERT INTO public.courses_review VALUES (137, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.380901+05:30', '2026-02-23 16:12:05.558868+05:30', 28, 26);
-INSERT INTO public.courses_review VALUES (78, 5, 'I used these techniques immediately in my current project. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.241606+05:30', '2026-02-23 16:12:05.401673+05:30', 18, 20);
-INSERT INTO public.courses_review VALUES (24, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.048416+05:30', '2026-02-23 16:12:05.247642+05:30', 10, 30);
-INSERT INTO public.courses_review VALUES (25, 4, 'Helpful examples overall, and the templates are reusable. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.050612+05:30', '2026-02-23 16:12:05.250009+05:30', 10, 31);
-INSERT INTO public.courses_review VALUES (122, 4, 'Helpful examples overall, and the templates are reusable. (Product Management Essentials)', true, '2026-02-23 15:06:35.345989+05:30', '2026-02-23 16:12:05.520968+05:30', 25, 22);
-INSERT INTO public.courses_review VALUES (94, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.277667+05:30', '2026-02-23 16:12:05.447776+05:30', 21, 26);
-INSERT INTO public.courses_review VALUES (141, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Customer Research and Growth Experiments)', true, '2026-02-23 15:06:35.391119+05:30', '2026-02-23 16:12:05.569806+05:30', 28, 30);
-INSERT INTO public.courses_review VALUES (49, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.173249+05:30', '2026-02-23 16:12:05.314498+05:30', 14, 23);
-INSERT INTO public.courses_review VALUES (47, 5, 'Excellent pacing, realistic examples, and strong project structure. (Machine Learning from Scratch)', true, '2026-02-23 15:06:35.167483+05:30', '2026-02-23 16:12:05.308028+05:30', 14, 21);
-INSERT INTO public.courses_review VALUES (20, 4, 'Good balance of theory and implementation details. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.039885+05:30', '2026-02-23 16:12:05.237816+05:30', 10, 26);
-INSERT INTO public.courses_review VALUES (33, 3, 'Content is good, though some modules felt dense for beginners. (Mobile App Development with React Native)', true, '2026-02-23 15:06:35.068618+05:30', '2026-02-23 16:12:05.271201+05:30', 12, 32);
-INSERT INTO public.courses_review VALUES (1, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Full Stack Web Development Bootcamp)', true, '2026-02-23 15:06:34.99043+05:30', '2026-02-23 16:12:05.18928+05:30', 1, 16);
-INSERT INTO public.courses_review VALUES (76, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Design Systems and Accessibility)', true, '2026-02-23 15:06:35.236275+05:30', '2026-02-23 16:12:05.395781+05:30', 18, 18);
-INSERT INTO public.courses_review VALUES (106, 4, 'Good balance of theory and implementation details. (Backend Performance and Scalability Patterns)', true, '2026-02-23 15:06:35.307142+05:30', '2026-02-23 16:12:05.480403+05:30', 23, 29);
-INSERT INTO public.courses_review VALUES (18, 5, 'Excellent pacing, realistic examples, and strong project structure. (Django REST API Engineering)', true, '2026-02-23 15:06:35.035466+05:30', '2026-02-23 16:12:05.231812+05:30', 9, 28);
-INSERT INTO public.courses_review VALUES (64, 5, 'Clear explanations and practical exercises made this easy to apply at work. (UI UX Design Fundamentals)', true, '2026-02-23 15:06:35.209548+05:30', '2026-02-23 16:12:05.358026+05:30', 17, 28);
-INSERT INTO public.courses_review VALUES (110, 4, 'Strong content and solid delivery, with useful assignments. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.316303+05:30', '2026-02-23 16:12:05.490324+05:30', 24, 31);
-INSERT INTO public.courses_review VALUES (55, 5, 'Excellent pacing, realistic examples, and strong project structure. (SQL and Database Design Essentials)', true, '2026-02-23 15:06:35.187789+05:30', '2026-02-23 16:12:05.332426+05:30', 15, 24);
-INSERT INTO public.courses_review VALUES (130, 4, 'Great value for the topics covered in this course. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.363708+05:30', '2026-02-23 16:12:05.540959+05:30', 26, 26);
-INSERT INTO public.courses_review VALUES (129, 4, 'Helpful examples overall, and the templates are reusable. (Project Planning with Agile and Scrum)', true, '2026-02-23 15:06:35.362685+05:30', '2026-02-23 16:12:05.538809+05:30', 26, 25);
-INSERT INTO public.courses_review VALUES (27, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Data Structures and Problem Solving with Python)', true, '2026-02-23 15:06:35.053818+05:30', '2026-02-23 16:12:05.254979+05:30', 11, 28);
-INSERT INTO public.courses_review VALUES (23, 5, 'Clear explanations and practical exercises made this easy to apply at work. (JavaScript Algorithms and Interview Prep)', true, '2026-02-23 15:06:35.046347+05:30', '2026-02-23 16:12:05.244957+05:30', 10, 29);
-INSERT INTO public.courses_review VALUES (58, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Generative AI Productivity for Teams)', true, '2026-02-23 15:06:35.194324+05:30', '2026-02-23 16:12:05.340746+05:30', 16, 25);
-INSERT INTO public.courses_review VALUES (8, 5, 'Excellent pacing, realistic examples, and strong project structure. (React Frontend Engineering)', true, '2026-02-23 15:06:35.00958+05:30', '2026-02-23 16:12:05.207029+05:30', 8, 21);
-INSERT INTO public.courses_review VALUES (146, 5, 'Excellent pacing, realistic examples, and strong project structure. (Python for Data Science Foundations)', false, '2026-02-23 16:21:48.602629+05:30', '2026-02-23 16:48:47.937134+05:30', 29, 18);
-INSERT INTO public.courses_review VALUES (92, 4, 'Helpful examples overall, and the templates are reusable. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.273697+05:30', '2026-02-23 16:12:05.442267+05:30', 21, 24);
-INSERT INTO public.courses_review VALUES (95, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.279765+05:30', '2026-02-23 16:12:05.450775+05:30', 21, 27);
-INSERT INTO public.courses_review VALUES (91, 4, 'Good balance of theory and implementation details. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.271533+05:30', '2026-02-23 16:12:05.43977+05:30', 21, 23);
-INSERT INTO public.courses_review VALUES (90, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.269254+05:30', '2026-02-23 16:12:05.437234+05:30', 21, 22);
-INSERT INTO public.courses_review VALUES (93, 5, 'I used these techniques immediately in my current project. (Financial Literacy for Early Career Professionals)', true, '2026-02-23 15:06:35.275585+05:30', '2026-02-23 16:12:05.444772+05:30', 21, 25);
-INSERT INTO public.courses_review VALUES (89, 3, 'Decent structure with room for more advanced examples. (Public Speaking and Presentation Mastery)', true, '2026-02-23 15:06:35.266447+05:30', '2026-02-23 16:12:05.433922+05:30', 20, 24);
-INSERT INTO public.courses_review VALUES (147, 5, 'I used these techniques immediately in my current project. (Python for Data Science Foundations)', false, '2026-02-23 16:21:48.606668+05:30', '2026-02-23 16:48:47.939427+05:30', 29, 19);
-INSERT INTO public.courses_review VALUES (148, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Python for Data Science Foundations)', false, '2026-02-23 16:21:48.610179+05:30', '2026-02-23 16:48:47.942553+05:30', 29, 20);
-INSERT INTO public.courses_review VALUES (149, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.613557+05:30', '2026-02-23 16:48:47.944547+05:30', 30, 19);
-INSERT INTO public.courses_review VALUES (150, 4, 'Good balance of theory and implementation details. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.617107+05:30', '2026-02-23 16:48:47.94805+05:30', 30, 20);
-INSERT INTO public.courses_review VALUES (151, 4, 'Helpful examples overall, and the templates are reusable. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.620538+05:30', '2026-02-23 16:48:47.95057+05:30', 30, 21);
-INSERT INTO public.courses_review VALUES (152, 5, 'I used these techniques immediately in my current project. (Statistics and Probability for AI Engineers)', false, '2026-02-23 16:21:48.623543+05:30', '2026-02-23 16:48:47.95196+05:30', 30, 22);
-INSERT INTO public.courses_review VALUES (116, 4, 'Strong content and solid delivery, with useful assignments. (Product Management Essentials)', true, '2026-02-23 15:06:35.329256+05:30', '2026-02-23 16:12:05.505772+05:30', 25, 16);
-INSERT INTO public.courses_review VALUES (132, 4, 'Good balance of theory and implementation details. (Digital Marketing Strategy and Analytics)', true, '2026-02-23 15:06:35.369474+05:30', '2026-02-23 16:12:05.547378+05:30', 27, 23);
-INSERT INTO public.courses_review VALUES (101, 4, 'Strong content and solid delivery, with useful assignments. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.295363+05:30', '2026-02-23 16:12:05.466918+05:30', 22, 29);
-INSERT INTO public.courses_review VALUES (115, 4, 'Good balance of theory and implementation details. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.32705+05:30', '2026-02-23 16:12:05.503022+05:30', 24, 18);
-INSERT INTO public.courses_review VALUES (114, 3, 'Content is good, though some modules felt dense for beginners. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.324777+05:30', '2026-02-23 16:12:05.500493+05:30', 24, 17);
-INSERT INTO public.courses_review VALUES (97, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Cloud and DevOps Foundations with AWS)', true, '2026-02-23 15:06:35.284631+05:30', '2026-02-23 16:12:05.456168+05:30', 22, 25);
-INSERT INTO public.courses_review VALUES (112, 5, 'Excellent pacing, realistic examples, and strong project structure. (Cybersecurity Awareness and Best Practices)', true, '2026-02-23 15:06:35.320653+05:30', '2026-02-23 16:12:05.495612+05:30', 24, 33);
-INSERT INTO public.courses_review VALUES (249, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Quantum Algorithms with Qiskit)', false, '2026-02-23 16:21:48.942469+05:30', '2026-02-23 16:48:48.207211+05:30', 45, 29);
-INSERT INTO public.courses_review VALUES (250, 5, 'Excellent pacing, realistic examples, and strong project structure. (Quantum Algorithms with Qiskit)', false, '2026-02-23 16:21:48.946849+05:30', '2026-02-23 16:48:48.209807+05:30', 45, 30);
-INSERT INTO public.courses_review VALUES (251, 5, 'I used these techniques immediately in my current project. (Quantum Algorithms with Qiskit)', false, '2026-02-23 16:21:48.95057+05:30', '2026-02-23 16:48:48.212275+05:30', 45, 31);
-INSERT INTO public.courses_review VALUES (252, 4, 'Strong content and solid delivery, with useful assignments. (Quantum Algorithms with Qiskit)', false, '2026-02-23 16:21:48.953139+05:30', '2026-02-23 16:48:48.215806+05:30', 45, 32);
-INSERT INTO public.courses_review VALUES (253, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.956238+05:30', '2026-02-23 16:48:48.218459+05:30', 46, 31);
-INSERT INTO public.courses_review VALUES (254, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.95927+05:30', '2026-02-23 16:48:48.220458+05:30', 46, 32);
-INSERT INTO public.courses_review VALUES (255, 5, 'Excellent pacing, realistic examples, and strong project structure. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.961308+05:30', '2026-02-23 16:48:48.222728+05:30', 46, 33);
-INSERT INTO public.courses_review VALUES (108, 5, 'I used these techniques immediately in my current project. (Backend Performance and Scalability Patterns)', true, '2026-02-23 15:06:35.311975+05:30', '2026-02-23 16:12:05.485324+05:30', 23, 31);
-INSERT INTO public.courses_review VALUES (256, 5, 'I used these techniques immediately in my current project. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.966085+05:30', '2026-02-23 16:48:48.225844+05:30', 46, 16);
-INSERT INTO public.courses_review VALUES (257, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.968412+05:30', '2026-02-23 16:48:48.228135+05:30', 46, 17);
-INSERT INTO public.courses_review VALUES (258, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Quantum Hardware and Error Mitigation)', false, '2026-02-23 16:21:48.971934+05:30', '2026-02-23 16:48:48.231154+05:30', 46, 18);
-INSERT INTO public.courses_review VALUES (259, 4, 'Strong content and solid delivery, with useful assignments. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.975211+05:30', '2026-02-23 16:48:48.233652+05:30', 47, 16);
-INSERT INTO public.courses_review VALUES (260, 4, 'Good balance of theory and implementation details. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.978373+05:30', '2026-02-23 16:48:48.236078+05:30', 47, 17);
-INSERT INTO public.courses_review VALUES (261, 5, 'Excellent pacing, realistic examples, and strong project structure. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.981057+05:30', '2026-02-23 16:48:48.238089+05:30', 47, 18);
-INSERT INTO public.courses_review VALUES (262, 4, 'Great value for the topics covered in this course. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.983573+05:30', '2026-02-23 16:48:48.241113+05:30', 47, 19);
-INSERT INTO public.courses_review VALUES (263, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.986864+05:30', '2026-02-23 16:48:48.243196+05:30', 47, 20);
-INSERT INTO public.courses_review VALUES (264, 4, 'Good balance of theory and implementation details. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.991471+05:30', '2026-02-23 16:48:48.246718+05:30', 47, 21);
-INSERT INTO public.courses_review VALUES (265, 5, 'Excellent pacing, realistic examples, and strong project structure. (Quantum Machine Learning Fundamentals)', false, '2026-02-23 16:21:48.994677+05:30', '2026-02-23 16:48:48.248743+05:30', 47, 22);
-INSERT INTO public.courses_review VALUES (266, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:48.998511+05:30', '2026-02-23 16:48:48.251731+05:30', 48, 19);
-INSERT INTO public.courses_review VALUES (267, 4, 'Good balance of theory and implementation details. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.001931+05:30', '2026-02-23 16:48:48.253178+05:30', 48, 20);
-INSERT INTO public.courses_review VALUES (268, 3, 'Decent structure with room for more advanced examples. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.004307+05:30', '2026-02-23 16:48:48.25678+05:30', 48, 21);
-INSERT INTO public.courses_review VALUES (291, 5, 'Excellent pacing, realistic examples, and strong project structure. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.083824+05:30', '2026-02-23 16:48:48.313987+05:30', 51, 16);
-INSERT INTO public.courses_review VALUES (269, 3, 'Useful course, but I had to rewatch a few parts to keep up. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.008011+05:30', '2026-02-23 16:48:48.259354+05:30', 48, 22);
-INSERT INTO public.courses_review VALUES (270, 5, 'Clear explanations and practical exercises made this easy to apply at work. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.011456+05:30', '2026-02-23 16:48:48.26164+05:30', 48, 23);
-INSERT INTO public.courses_review VALUES (271, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.014938+05:30', '2026-02-23 16:48:48.263649+05:30', 48, 24);
-INSERT INTO public.courses_review VALUES (272, 5, 'Excellent pacing, realistic examples, and strong project structure. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.016933+05:30', '2026-02-23 16:48:48.266872+05:30', 48, 25);
-INSERT INTO public.courses_review VALUES (273, 4, 'Great value for the topics covered in this course. (Hybrid Quantum-Classical Optimization)', false, '2026-02-23 16:21:49.020357+05:30', '2026-02-23 16:48:48.268865+05:30', 48, 26);
-INSERT INTO public.courses_review VALUES (274, 5, 'Clear explanations and practical exercises made this easy to apply at work. (MLOps with Kubernetes and MLflow)', false, '2026-02-23 16:21:49.023901+05:30', '2026-02-23 16:48:48.271771+05:30', 49, 22);
-INSERT INTO public.courses_review VALUES (275, 4, 'Good balance of theory and implementation details. (MLOps with Kubernetes and MLflow)', false, '2026-02-23 16:21:49.026295+05:30', '2026-02-23 16:48:48.273905+05:30', 49, 23);
-INSERT INTO public.courses_review VALUES (276, 5, 'Excellent pacing, realistic examples, and strong project structure. (MLOps with Kubernetes and MLflow)', false, '2026-02-23 16:21:49.030528+05:30', '2026-02-23 16:48:48.27683+05:30', 49, 24);
-INSERT INTO public.courses_review VALUES (277, 4, 'Great value for the topics covered in this course. (MLOps with Kubernetes and MLflow)', false, '2026-02-23 16:21:49.033626+05:30', '2026-02-23 16:48:48.279826+05:30', 49, 25);
-INSERT INTO public.courses_review VALUES (278, 5, 'Clear explanations and practical exercises made this easy to apply at work. (MLOps with Kubernetes and MLflow)', false, '2026-02-23 16:21:49.036993+05:30', '2026-02-23 16:48:48.282327+05:30', 49, 26);
-INSERT INTO public.courses_review VALUES (279, 5, 'Clear explanations and practical exercises made this easy to apply at work. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.041036+05:30', '2026-02-23 16:48:48.28447+05:30', 50, 25);
-INSERT INTO public.courses_review VALUES (280, 4, 'Good balance of theory and implementation details. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.047037+05:30', '2026-02-23 16:48:48.287677+05:30', 50, 26);
-INSERT INTO public.courses_review VALUES (281, 3, 'Decent structure with room for more advanced examples. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.052048+05:30', '2026-02-23 16:48:48.290087+05:30', 50, 27);
-INSERT INTO public.courses_review VALUES (282, 5, 'I used these techniques immediately in my current project. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.055049+05:30', '2026-02-23 16:48:48.292387+05:30', 50, 28);
-INSERT INTO public.courses_review VALUES (283, 4, 'Strong content and solid delivery, with useful assignments. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.058046+05:30', '2026-02-23 16:48:48.294387+05:30', 50, 29);
-INSERT INTO public.courses_review VALUES (284, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (AI Model Monitoring and Drift Detection)', false, '2026-02-23 16:21:49.062049+05:30', '2026-02-23 16:48:48.297062+05:30', 50, 30);
-INSERT INTO public.courses_review VALUES (285, 3, 'Useful course, but I had to rewatch a few parts to keep up. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.064552+05:30', '2026-02-23 16:48:48.300277+05:30', 51, 28);
-INSERT INTO public.courses_review VALUES (286, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.067559+05:30', '2026-02-23 16:48:48.302954+05:30', 51, 29);
-INSERT INTO public.courses_review VALUES (287, 5, 'Excellent pacing, realistic examples, and strong project structure. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.070564+05:30', '2026-02-23 16:48:48.305313+05:30', 51, 30);
-INSERT INTO public.courses_review VALUES (288, 4, 'Great value for the topics covered in this course. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.07437+05:30', '2026-02-23 16:48:48.307313+05:30', 51, 31);
-INSERT INTO public.courses_review VALUES (289, 5, 'Clear explanations and practical exercises made this easy to apply at work. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.077752+05:30', '2026-02-23 16:48:48.309318+05:30', 51, 32);
-INSERT INTO public.courses_review VALUES (290, 5, 'The mentor breaks complex concepts into steps that are easy to follow. (LLM Evaluation and Benchmarking Lab)', false, '2026-02-23 16:21:49.080751+05:30', '2026-02-23 16:48:48.311802+05:30', 51, 33);
 
 
 --
@@ -4386,4 +4098,3 @@ ALTER TABLE ONLY public.token_blacklist_outstandingtoken
 --
 
 \unrestrict KIhcADLXNBzzO6pxUBnpiuRRtWMRByx0GK3EypsgeNSKLB7X9srnpqlntUbV8b8
-

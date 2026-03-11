@@ -195,6 +195,33 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.coupon-create-form {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: end;
+}
+
+.coupon-create-form .table-inline-edit-actions {
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.coupon-create-form .table-inline-edit-actions .btn {
+  min-width: 140px;
+}
+
+.coupon-create-form .table-inline-field-toggle {
+  align-content: center;
+}
+
+.coupon-create-form input[type="datetime-local"] {
+  min-height: 46px;
+}
+
+.coupon-create-form select,
+.coupon-create-form input {
+  min-width: 0;
+}
+
 .table-inline-field-toggle {
   align-content: end;
 }

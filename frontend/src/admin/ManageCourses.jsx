@@ -82,9 +82,6 @@ const EMPTY_FORM = {
   title: "",
   short_description: "",
   description: "",
-  mentor_name: "",
-  mentor_title: "",
-  mentor_bio: "",
   duration_days: "30",
   price: "",
   final_price: "",
@@ -103,9 +100,6 @@ function toCourseForm(course) {
     title: course.title || "",
     short_description: course.short_description || "",
     description: course.description || "",
-    mentor_name: course.mentor_name || "",
-    mentor_title: course.mentor_title || "",
-    mentor_bio: course.mentor_bio || "",
     duration_days: String(course.duration_days ?? "30"),
     price: String(price),
     final_price: String(finalPrice),
@@ -134,9 +128,6 @@ function buildCoursePayload(form) {
   payload.append("title", form.title.trim());
   payload.append("short_description", form.short_description.trim());
   payload.append("description", form.description.trim());
-  payload.append("mentor_name", form.mentor_name.trim());
-  payload.append("mentor_title", form.mentor_title.trim());
-  payload.append("mentor_bio", form.mentor_bio.trim());
   payload.append("duration_days", String(form.duration_days || "30").trim());
   payload.append("price", String(price));
   payload.append("final_price", String(finalPrice));
@@ -202,33 +193,6 @@ function InlineCourseForm({
           value={form.description}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
           required
-        />
-      </InlineField>
-
-      <InlineField label="Mentor Name">
-        <input
-          aria-label="Mentor Name"
-          placeholder="Mentor Name"
-          value={form.mentor_name}
-          onChange={(event) => setForm((prev) => ({ ...prev, mentor_name: event.target.value }))}
-        />
-      </InlineField>
-
-      <InlineField label="Mentor Title">
-        <input
-          aria-label="Mentor Title"
-          placeholder="Mentor Title"
-          value={form.mentor_title}
-          onChange={(event) => setForm((prev) => ({ ...prev, mentor_title: event.target.value }))}
-        />
-      </InlineField>
-
-      <InlineField label="Mentor Bio" className="table-inline-field-wide">
-        <input
-          aria-label="Mentor Bio"
-          placeholder="Mentor Bio"
-          value={form.mentor_bio}
-          onChange={(event) => setForm((prev) => ({ ...prev, mentor_bio: event.target.value }))}
         />
       </InlineField>
 
@@ -530,8 +494,6 @@ export default function ManageCourses() {
           { key: "id", label: "Course ID" },
           { key: "title", label: "Title" },
           { key: "category", label: "Category" },
-          { key: "mentor_name", label: "Mentor Name" },
-          { key: "mentor_title", label: "Mentor Title" },
           { key: "duration_days", label: "Duration (Days)" },
           { key: "price", label: "Price" },
           { key: "final_price", label: "Final Price" },
@@ -543,8 +505,6 @@ export default function ManageCourses() {
           id: course.id,
           title: course.title || "",
           category: course.category?.name || "",
-          mentor_name: course.mentor_name || "-",
-          mentor_title: course.mentor_title || "-",
           duration_days: Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-",
           price: formatInr(course.price),
           final_price: formatInr(deriveCourseFinalPrice(course)),
@@ -614,7 +574,6 @@ export default function ManageCourses() {
                   <tr>
                     <th>Title</th>
                     <th>Category</th>
-                    <th>Mentor</th>
                     <th>Duration</th>
                     <th>Price</th>
                     <th>Final Price</th>
@@ -626,7 +585,7 @@ export default function ManageCourses() {
                 <tbody>
                   {showCreateRow && (
                     <tr className="table-inline-edit-row">
-                      <td colSpan={9}>
+                      <td colSpan={8}>
                         <InlineCourseForm
                           form={createForm}
                           setForm={setCreateForm}
@@ -649,7 +608,6 @@ export default function ManageCourses() {
                       >
                         <td>{course.title}</td>
                         <td>{course.category?.name}</td>
-                        <td>{course.mentor_name || "-"}</td>
                         <td>{Number(course.duration_days || 0) > 0 ? `${course.duration_days} days` : "-"}</td>
                         <td>{formatInr(course.price)}</td>
                         <td>{formatInr(deriveCourseFinalPrice(course))}</td>
@@ -669,7 +627,7 @@ export default function ManageCourses() {
 
                       {editingCourseId === course.id && (
                         <tr className="table-inline-edit-row">
-                          <td colSpan={9}>
+                          <td colSpan={8}>
                             <InlineCourseForm
                               form={editForm}
                               setForm={setEditForm}

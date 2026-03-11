@@ -85,8 +85,9 @@
   border: 1px solid var(--soft-border);
   border-radius: 14px;
   overflow: hidden;
-  min-height: 210px;
+  min-height: 200px;
   background: var(--bg-elevated);
+  max-height: 320px;
 }
 
 .course-hero-image {
@@ -94,10 +95,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
 .course-hero-image-placeholder {
-  min-height: 210px;
+  min-height: 200px;
   display: grid;
   place-content: center;
   gap: 0.35rem;
@@ -115,7 +117,7 @@
   position: sticky;
   top: 92px;
   display: grid;
-  gap: 0.72rem;
+  gap: 0.75rem;
 }
 
 .price-row {
@@ -138,6 +140,25 @@
 .price-note {
   color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.pricing-kpi {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: 1px solid var(--soft-border);
+  background: color-mix(in srgb, var(--surface-muted-soft) 72%, transparent);
+}
+
+.pricing-kpi strong {
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 1.25rem;
+}
+
+.pricing-kpi span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
 }
 
 .price-breakdown {
@@ -237,36 +258,6 @@
   margin-bottom: 0.7rem;
   white-space: pre-line;
   overflow-wrap: anywhere;
-}
-
-.mentor-box {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.72rem;
-  align-items: start;
-}
-
-.mentor-avatar {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--soft-border);
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: var(--surface-muted-soft);
-  color: var(--accent-strong);
-  font-size: 1.36rem;
-}
-
-.mentor-title {
-  color: var(--accent-strong);
-  font-size: 0.86rem;
-  margin-bottom: 0.35rem;
-}
-
-.mentor-bio {
-  color: var(--text-secondary);
-  line-height: 1.5;
 }
 
 .review-form {

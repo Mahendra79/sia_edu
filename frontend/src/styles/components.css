@@ -69,6 +69,27 @@ button:disabled,
   gap: 0.42rem;
 }
 
+.coming-soon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.48rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--success) 55%, var(--soft-border));
+  color: color-mix(in srgb, var(--success) 82%, white 18%);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.coming-soon-box-lg {
+  padding: 0.6rem 1.05rem;
+  font-size: 0.92rem;
+}
+
 .panel-card,
 .stat-card,
 .chart-card,

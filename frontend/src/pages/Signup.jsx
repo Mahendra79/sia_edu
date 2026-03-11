@@ -122,14 +122,14 @@ export default function Signup() {
                 </li>
                 <li className="auth-list-item">
                   <HiOutlineShieldCheck />
-                  24x7 SIA_Chat support trained only for education course assistance.
+                  24x7 support trained only for education course assistance.
                 </li>
               </ul>
 
               <div className="signup-trust-strip">
                 <span>
                   <strong>24x7</strong>
-                  <small>SIA_Chat Support</small>
+                  <small>Support</small>
                 </span>
                 <span>
                   <strong>Skill</strong>
