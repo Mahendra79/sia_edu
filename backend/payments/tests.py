@@ -7,7 +7,10 @@ from rest_framework.test import APITestCase
 
 from accounts.models import User
 from courses.models import Category, Course
-from payments.models import PaymentTransaction
+from datetime import timedelta
+from django.utils import timezone
+
+from payments.models import Coupon, CouponRedemption, PaymentTransaction
 
 
 @override_settings(
@@ -94,3 +97,136 @@ class RazorpayLiveModeValidationTests(APITestCase):
         response = self.client.post(reverse("create-razorpay-order"), {"course_id": self.course.id}, format="json")
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertIn("Razorpay is not configured", response.data["detail"])
+
+
+@override_settings(
+    DEV_PAYMENT_MODE=False,
+    RAZORPAY_CURRENCY="inr",
+    DEFAULT_TAX_RATE="0.18",
+)
+class CouponFlowTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="coupon_user",
+            email="coupon_user@example.com",
+            phone="7333333333",
+            name="Coupon User",
+            password="StrongPass123!",
+        )
+        self.client.force_authenticate(self.user)
+        category = Category.objects.create(name="Coupons", description="Coupons Category")
+        self.course = Course.objects.create(
+            category=category,
+            title="Coupon Course",
+            short_description="Coupon checkout course",
+            description="Coupon checkout course description",
+            price="100.00",
+            discount_percent="0.00",
+            is_active=True,
+        )
+        self.other_course = Course.objects.create(
+            category=category,
+            title="Other Course",
+            short_description="Other course",
+            description="Other course description",
+            price="80.00",
+            discount_percent="0.00",
+            is_active=True,
+        )
+
+    def test_validate_coupon_success(self):
+        coupon = Coupon.objects.create(
+            code="SAVE10",
+            course=self.course,
+            discount_amount="10.00",
+            max_uses=10,
+            per_user_limit=1,
+            valid_from=timezone.now() - timedelta(days=1),
+            valid_until=timezone.now() + timedelta(days=1),
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse("coupon-validate"),
+            {"course_id": self.course.id, "code": coupon.code},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["valid"])
+        self.assertEqual(response.data["final_total"], "90.00")
+
+    def test_validate_coupon_expired(self):
+        coupon = Coupon.objects.create(
+            code="OLD10",
+            course=self.course,
+            discount_amount="10.00",
+            max_uses=10,
+            per_user_limit=1,
+            valid_until=timezone.now() - timedelta(days=1),
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse("coupon-validate"),
+            {"course_id": self.course.id, "code": coupon.code},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("expired", response.data["message"].lower())
+
+    def test_validate_coupon_wrong_course(self):
+        coupon = Coupon.objects.create(
+            code="COURSE10",
+            course=self.other_course,
+            discount_amount="10.00",
+            max_uses=10,
+            per_user_limit=1,
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse("coupon-validate"),
+            {"course_id": self.course.id, "code": coupon.code},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("course", response.data["message"].lower())
+
+    def test_validate_coupon_per_user_limit_exceeded(self):
+        coupon = Coupon.objects.create(
+            code="ONCE10",
+            course=self.course,
+            discount_amount="10.00",
+            max_uses=10,
+            per_user_limit=1,
+            is_active=True,
+        )
+        CouponRedemption.objects.create(coupon=coupon, user=self.user, course=self.course)
+        response = self.client.post(
+            reverse("coupon-validate"),
+            {"course_id": self.course.id, "code": coupon.code},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("limit", response.data["message"].lower())
+
+    def test_free_checkout_skips_razorpay(self):
+        coupon = Coupon.objects.create(
+            code="FREE100",
+            course=self.course,
+            discount_amount="100.00",
+            max_uses=10,
+            per_user_limit=1,
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse("create-razorpay-order"),
+            {"course_id": self.course.id, "coupon_code": coupon.code},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["mode"], "free")
+
+        transaction = PaymentTransaction.objects.get(id=response.data["transaction_id"])
+        self.assertEqual(transaction.payment_status, "success")
+        self.assertEqual(transaction.total, Decimal("0.00"))
+        self.assertTrue(CouponRedemption.objects.filter(coupon=coupon, user=self.user, course=self.course).exists())
+        coupon.refresh_from_db()
+        self.assertEqual(coupon.used_count, 1)

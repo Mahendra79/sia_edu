@@ -11,7 +11,7 @@ from courses.models import Course
 
 
 SYSTEM_PROMPT = (
-    "You are SIA_Bot, an education-only assistant for SIA EDU. "
+    "You are an education-only assistant for SIA EDU. "
     "Answer only course-related questions for AI, ML, DL, Data Science, Prompt Engineering, and Quantum tracks. "
     "Use concise markdown headings and bullet points."
 )
@@ -30,26 +30,12 @@ def _discounted_price(price: Decimal, discount_percent: Decimal) -> Decimal:
 
 
 def _course_examples(course: Course) -> list[dict]:
-    mentor_name = (course.mentor_name or "").strip() or "SIA Faculty Mentor"
-    mentor_title = (course.mentor_title or "").strip() or "Course Mentor"
-    mentor_bio = (course.mentor_bio or "").strip()
     price = Decimal(str(course.price or 0))
     discount = Decimal(str(course.discount_percent or 0))
     discounted = _discounted_price(price, discount)
     category_name = course.category.name
     summary = (course.short_description or "").strip()
     description = (course.description or "").strip()
-
-    common_info = (
-        f"Course: {course.title}\n"
-        f"Category: {category_name}\n"
-        f"Duration: {course.duration_days} days\n"
-        f"Mentor: {mentor_name} ({mentor_title})\n"
-        f"Price: {_format_money(price)}\n"
-        f"Discount: {discount}%\n"
-        f"Discounted Price: {_format_money(discounted)}\n"
-        f"Summary: {summary}"
-    )
 
     examples = [
         {
@@ -60,16 +46,6 @@ def _course_examples(course: Course) -> list[dict]:
                 f"- Duration: {course.duration_days} days of guided study.\n"
                 f"- Category focus: {category_name}.\n"
                 f"- Outcome: practical project-oriented skills for real-world execution."
-            ),
-        },
-        {
-            "user": f"Who is the mentor for {course.title} and why should I learn from them?",
-            "assistant": (
-                f"**Mentor Details**\n"
-                f"- Mentor: **{mentor_name}**\n"
-                f"- Role: {mentor_title}\n"
-                f"- Background: {mentor_bio[:260] if mentor_bio else 'Experienced mentor with industry-focused teaching style.'}\n"
-                f"- Why this helps: you learn with practical implementation and project discipline."
             ),
         },
         {

@@ -40,7 +40,7 @@ class ChatbotMessageView(APIView):
 
         if is_greeting_query(message):
             greeting = (
-                "Hi, I am SIA_Bot. I support only education questions for AI, ML, DL, Data Science, "
+                "Hi, I support only education questions for AI, ML, DL, Data Science, "
                 "Prompt Engineering, and Quantum courses. Ask your doubt with topic name and I will guide step-by-step."
             )
             return Response(

@@ -6,6 +6,8 @@ from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
 from django.conf import settings
+from django.db import transaction as db_transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
@@ -20,14 +22,17 @@ from analytics.models import AdminActivityLog
 from courses.models import Course, Enrollment
 from deleted_records.services import record_soft_delete
 from payments.invoice import build_invoice_pdf
-from payments.models import PaymentTransaction
+from payments.models import Coupon, CouponRedemption, PaymentTransaction
 from payments.serializers import (
     AdminPaymentUpdateSerializer,
     BillingPreviewSerializer,
+    CouponSerializer,
+    CouponValidateSerializer,
     ConfirmPaymentSerializer,
     CreateRazorpayOrderSerializer,
     PaymentTransactionSerializer,
     calculate_totals,
+    normalize_coupon_code,
 )
 
 logger = logging.getLogger(__name__)
@@ -82,6 +87,107 @@ def _tax_rate_percent() -> Decimal:
     return (_tax_rate() * Decimal("100")).quantize(Decimal("0.01"))
 
 
+def _extract_tax_from_total(total: Decimal, tax_rate: Decimal) -> tuple[Decimal, Decimal]:
+    if tax_rate > Decimal("0.00") and total > Decimal("0.00"):
+        subtotal = (total / (Decimal("1.00") + tax_rate)).quantize(Decimal("0.01"))
+        tax = (total - subtotal).quantize(Decimal("0.01"))
+    else:
+        subtotal = total
+        tax = Decimal("0.00")
+    return subtotal, tax
+
+
+def _validate_coupon_for_course(
+    *,
+    code: str,
+    course: Course,
+    user,
+) -> tuple[Coupon | None, str]:
+    normalized_code = normalize_coupon_code(code)
+    if not normalized_code:
+        return None, "Coupon code is required."
+
+    coupon = Coupon.objects.select_related("course").filter(code=normalized_code).first()
+    if not coupon or not coupon.is_active:
+        return None, "Invalid coupon code."
+
+    now = timezone.now()
+    if coupon.valid_from and coupon.valid_from > now:
+        return None, "Coupon is not active yet."
+    if coupon.valid_until and coupon.valid_until < now:
+        return None, "Coupon has expired."
+    if coupon.course_id and coupon.course_id != course.id:
+        return None, "Coupon is not valid for this course."
+    if coupon.max_uses is not None and coupon.used_count >= coupon.max_uses:
+        return None, "Coupon usage limit reached."
+    if coupon.per_user_limit:
+        user_usage = CouponRedemption.objects.filter(coupon=coupon, user=user).count()
+        if user_usage >= coupon.per_user_limit:
+            return None, "Coupon usage limit reached."
+
+    return coupon, ""
+
+
+def _apply_coupon_discount(total: Decimal, coupon: Coupon | None) -> tuple[Decimal, Decimal]:
+    if not coupon:
+        return total, Decimal("0.00")
+    discount = Decimal(str(coupon.discount_amount or 0)).quantize(Decimal("0.01"))
+    final_total = (total - discount).quantize(Decimal("0.01"))
+    if final_total < Decimal("0.00"):
+        final_total = Decimal("0.00")
+    return final_total, min(discount, total)
+
+
+def _redeem_coupon_for_transaction(payment_tx: PaymentTransaction) -> None:
+    metadata = payment_tx.metadata or {}
+    coupon_id = metadata.get("coupon_id")
+    if not coupon_id or metadata.get("coupon_redemption_id"):
+        return
+
+    try:
+        with db_transaction.atomic():
+            coupon = Coupon.objects.select_for_update().filter(id=coupon_id).first()
+            if not coupon or not coupon.is_active:
+                raise ValueError("Coupon is invalid.")
+
+            now = timezone.now()
+            if coupon.valid_from and coupon.valid_from > now:
+                raise ValueError("Coupon is not active yet.")
+            if coupon.valid_until and coupon.valid_until < now:
+                raise ValueError("Coupon has expired.")
+            if coupon.course_id and coupon.course_id != payment_tx.course_id:
+                raise ValueError("Coupon is not valid for this course.")
+            if coupon.max_uses is not None and coupon.used_count >= coupon.max_uses:
+                raise ValueError("Coupon usage limit reached.")
+
+            if coupon.per_user_limit:
+                user_usage = CouponRedemption.objects.filter(coupon=coupon, user=payment_tx.user).count()
+                if user_usage >= coupon.per_user_limit:
+                    raise ValueError("Coupon usage limit reached.")
+
+            redemption = CouponRedemption.objects.create(
+                coupon=coupon,
+                user=payment_tx.user,
+                course=payment_tx.course,
+            )
+            coupon.used_count = coupon.used_count + 1
+            coupon.save(update_fields=["used_count", "updated_at"])
+    except Exception as exc:
+        logger.warning("Coupon redemption failed for transaction %s: %s", payment_tx.id, exc)
+        payment_tx.metadata = {
+            **metadata,
+            "coupon_redemption_error": str(exc),
+        }
+        payment_tx.save(update_fields=["metadata", "updated_at"])
+        return
+
+    payment_tx.metadata = {
+        **metadata,
+        "coupon_redemption_id": redemption.id,
+    }
+    payment_tx.save(update_fields=["metadata", "updated_at"])
+
+
 def _create_or_update_enrollment(transaction: PaymentTransaction):
     enrollment, _ = Enrollment.objects.get_or_create(
         user=transaction.user,
@@ -120,12 +226,23 @@ class BillingPreviewView(APIView):
         if not course:
             return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        coupon_code = request.query_params.get("coupon_code", "")
+        coupon = None
+        coupon_discount = Decimal("0.00")
+
+        if coupon_code:
+            coupon, error = _validate_coupon_for_course(code=coupon_code, course=course, user=request.user)
+            if error:
+                return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+
         amount, discount_amount, subtotal, tax, total = calculate_totals(
             course.price,
             _tax_rate(),
             course.discount_percent,
             course.final_price,
         )
+        final_total, coupon_discount = _apply_coupon_discount(total, coupon)
+        subtotal, tax = _extract_tax_from_total(final_total, _tax_rate())
         if amount > Decimal("0.00"):
             discount_percent = ((discount_amount * Decimal("100")) / amount).quantize(Decimal("0.01"))
         else:
@@ -134,16 +251,92 @@ class BillingPreviewView(APIView):
             "course_id": course.id,
             "course_title": course.title,
             "amount": amount,
-            "final_price": total,
+            "final_price": final_total,
             "discount_percent": discount_percent,
             "discount_amount": discount_amount,
+            "coupon_code": coupon.code if coupon else "",
+            "coupon_discount": coupon_discount,
             "subtotal": subtotal,
             "tax_rate_percent": _tax_rate_percent(),
             "tax": tax,
-            "total": total,
+            "total": final_total,
             "currency": settings.RAZORPAY_CURRENCY,
         }
         return Response(BillingPreviewSerializer(data).data)
+
+
+class CouponValidateView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def post(self, request):
+        serializer = CouponValidateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        course = Course.objects.filter(
+            id=serializer.validated_data["course_id"], is_deleted=False, is_active=True
+        ).first()
+        if not course:
+            return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        coupon, error = _validate_coupon_for_course(
+            code=serializer.validated_data["code"],
+            course=course,
+            user=request.user,
+        )
+        if error:
+            return Response({"valid": False, "message": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        amount, discount_amount, subtotal, tax, total = calculate_totals(
+            course.price,
+            _tax_rate(),
+            course.discount_percent,
+            course.final_price,
+        )
+        final_total, coupon_discount = _apply_coupon_discount(total, coupon)
+
+        return Response(
+            {
+                "valid": True,
+                "discount_amount": str(coupon_discount),
+                "final_total": str(final_total),
+                "message": "Coupon applied successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminCouponsView(generics.ListCreateAPIView):
+    serializer_class = CouponSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def get_queryset(self):
+        return Coupon.objects.select_related("course").all().order_by("-created_at")
+
+    def perform_create(self, serializer):
+        coupon = serializer.save()
+        _log_admin_action(self.request.user, "create_coupon", "Coupon", str(coupon.id), coupon.code)
+
+
+class AdminCouponDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CouponSerializer
+    permission_classes = [IsAdminUserRole]
+    lookup_url_kwarg = "coupon_id"
+
+    def get_queryset(self):
+        return Coupon.objects.select_related("course").all()
+
+    def perform_update(self, serializer):
+        coupon = serializer.save()
+        _log_admin_action(self.request.user, "update_coupon", "Coupon", str(coupon.id), coupon.code)
+
+    def destroy(self, request, *args, **kwargs):
+        coupon = self.get_object()
+        coupon.is_active = False
+        coupon.save(update_fields=["is_active", "updated_at"])
+        _log_admin_action(request.user, "deactivate_coupon", "Coupon", str(coupon.id), coupon.code)
+        return Response({"message": "Coupon deactivated."}, status=status.HTTP_200_OK)
 
 
 class CreateRazorpayOrderView(APIView):
@@ -162,12 +355,21 @@ class CreateRazorpayOrderView(APIView):
         if Enrollment.objects.filter(user=request.user, course=course, payment_status="success", is_deleted=False).exists():
             return Response({"detail": "You are already enrolled in this course."}, status=status.HTTP_400_BAD_REQUEST)
 
+        coupon_code = serializer.validated_data.get("coupon_code") or ""
+        coupon = None
+        if coupon_code:
+            coupon, error = _validate_coupon_for_course(code=coupon_code, course=course, user=request.user)
+            if error:
+                return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+
         amount, discount_amount, subtotal, tax, total = calculate_totals(
             course.price,
             _tax_rate(),
             course.discount_percent,
             course.final_price,
         )
+        final_total, coupon_discount = _apply_coupon_discount(total, coupon)
+        subtotal, tax = _extract_tax_from_total(final_total, _tax_rate())
         if amount > Decimal("0.00"):
             discount_percent = ((discount_amount * Decimal("100")) / amount).quantize(Decimal("0.01"))
         else:
@@ -175,25 +377,63 @@ class CreateRazorpayOrderView(APIView):
 
         pricing_snapshot = {
             "amount": str(amount),
-            "final_price": str(total),
+            "final_price": str(final_total),
             "discount_percent": str(discount_percent),
             "discount_amount": str(discount_amount),
+            "coupon_code": coupon.code if coupon else "",
+            "coupon_discount": str(coupon_discount),
+            "pre_coupon_total": str(total),
             "subtotal": str(subtotal),
             "tax_rate_percent": str(_tax_rate_percent()),
             "tax": str(tax),
-            "total": str(total),
+            "total": str(final_total),
             "currency": settings.RAZORPAY_CURRENCY,
         }
+
+        metadata = {
+            "pricing": pricing_snapshot,
+            "coupon_code": coupon.code if coupon else "",
+            "coupon_id": coupon.id if coupon else None,
+            "coupon_discount": str(coupon_discount),
+        }
+
+        if final_total == Decimal("0.00"):
+            with db_transaction.atomic():
+                transaction_obj = PaymentTransaction.objects.create(
+                    user=request.user,
+                    course=course,
+                    amount=amount,
+                    tax=tax,
+                    total=final_total,
+                    currency=settings.RAZORPAY_CURRENCY,
+                    payment_status="success",
+                    metadata={
+                        **metadata,
+                        "method": "coupon" if coupon else "free",
+                    },
+                )
+                _create_or_update_enrollment(transaction_obj)
+                _redeem_coupon_for_transaction(transaction_obj)
+            _send_payment_success_email_once(transaction_obj)
+            return Response(
+                {
+                    "mode": "free",
+                    "transaction_id": transaction_obj.id,
+                    "total": "0.00",
+                    "currency": settings.RAZORPAY_CURRENCY,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         transaction = PaymentTransaction.objects.create(
             user=request.user,
             course=course,
             amount=amount,
             tax=tax,
-            total=total,
+            total=final_total,
             currency=settings.RAZORPAY_CURRENCY,
             payment_status="pending",
-            metadata={"pricing": pricing_snapshot},
+            metadata=metadata,
         )
 
         # Local testing mode only (DEV_PAYMENT_MODE=False): always return mock order.
@@ -211,7 +451,7 @@ class CreateRazorpayOrderView(APIView):
                     "mode": "dev",
                     "transaction_id": transaction.id,
                     "order_id": dev_order_id,
-                    "amount": int(total * Decimal("100")),
+                    "amount": int(final_total * Decimal("100")),
                     "currency": settings.RAZORPAY_CURRENCY,
                     "course_title": course.title,
                     "fallback_reason": "local_mode",
@@ -251,7 +491,7 @@ class CreateRazorpayOrderView(APIView):
         try:
             order = client.order.create(
                 {
-                    "amount": int(total * Decimal("100")),
+                    "amount": int(final_total * Decimal("100")),
                     "currency": settings.RAZORPAY_CURRENCY.upper(),
                     "receipt": f"sia_txn_{transaction.id}",
                     "notes": {
@@ -337,6 +577,7 @@ class ConfirmPaymentView(APIView):
             return Response({"detail": "Transaction not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if transaction.payment_status == "success":
+            _redeem_coupon_for_transaction(transaction)
             _send_payment_success_email_once(transaction)
             return Response({"status": "success"}, status=status.HTTP_200_OK)
 
@@ -350,6 +591,7 @@ class ConfirmPaymentView(APIView):
             transaction.failure_reason = ""
             transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
             _create_or_update_enrollment(transaction)
+            _redeem_coupon_for_transaction(transaction)
             _send_payment_success_email_once(transaction)
             return Response({"status": "success", "mode": "dev-fallback"}, status=status.HTTP_200_OK)
 
@@ -359,6 +601,7 @@ class ConfirmPaymentView(APIView):
             transaction.failure_reason = ""
             transaction.save(update_fields=["payment_status", "failure_reason", "updated_at"])
             _create_or_update_enrollment(transaction)
+            _redeem_coupon_for_transaction(transaction)
             _send_payment_success_email_once(transaction)
             return Response({"status": "success", "mode": "dev"}, status=status.HTTP_200_OK)
 
@@ -404,6 +647,7 @@ class ConfirmPaymentView(APIView):
             ]
         )
         _create_or_update_enrollment(transaction)
+        _redeem_coupon_for_transaction(transaction)
         _send_payment_success_email_once(transaction)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
@@ -473,6 +717,7 @@ class RazorpayWebhookView(APIView):
             transaction.failure_reason = ""
             transaction.save(update_fields=["payment_status", "razorpay_payment_id", "failure_reason", "updated_at"])
             _create_or_update_enrollment(transaction)
+            _redeem_coupon_for_transaction(transaction)
             _send_payment_success_email_once(transaction)
 
         if event_type in {"payment.failed", "order.paid"} and payment_entity.get("status") == "failed":
@@ -557,6 +802,7 @@ class AdminPaymentDetailView(APIView):
         new_status = serializer.validated_data.get("payment_status")
         if new_status == "success":
             _create_or_update_enrollment(transaction)
+            _redeem_coupon_for_transaction(transaction)
             _send_payment_success_email_once(transaction)
         elif new_status == "failed":
             Enrollment.objects.update_or_create(
