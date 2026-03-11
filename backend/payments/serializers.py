@@ -1,11 +1,40 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
 from rest_framework import serializers
 
 from courses.models import Course
-from payments.models import PaymentTransaction
+from payments.models import Coupon, PaymentTransaction
+
+COUPON_CODE_PATTERN = re.compile(r"^[A-Z0-9-]{2,50}$")
+
+
+def normalize_coupon_code(value: str) -> str:
+    if value is None:
+        return ""
+    return str(value).strip().upper()
+
+
+def validate_coupon_code_format(value: str) -> str:
+    normalized = normalize_coupon_code(value)
+    if not normalized:
+        raise serializers.ValidationError("Coupon code is required.")
+    if not COUPON_CODE_PATTERN.match(normalized):
+        raise serializers.ValidationError("Coupon code format is invalid.")
+    return normalized
+
+
+def validate_decimal_precision(value: Decimal, field_name: str = "amount") -> Decimal:
+    try:
+        normalized = Decimal(str(value))
+    except (InvalidOperation, TypeError):
+        raise serializers.ValidationError(f"{field_name} must be a valid decimal.")
+    quantized = normalized.quantize(Decimal("0.01"))
+    if quantized != normalized:
+        raise serializers.ValidationError(f"{field_name} must have at most 2 decimal places.")
+    return quantized
 
 
 def _normalize_origin(url: str) -> str:
@@ -36,6 +65,8 @@ class BillingPreviewSerializer(serializers.Serializer):
     final_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     discount_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    coupon_code = serializers.CharField(read_only=True)
+    coupon_discount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     tax_rate_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     tax = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -45,11 +76,80 @@ class BillingPreviewSerializer(serializers.Serializer):
 
 class CreateRazorpayOrderSerializer(serializers.Serializer):
     course_id = serializers.IntegerField()
+    coupon_code = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate_course_id(self, value):
         if not Course.objects.filter(id=value, is_deleted=False, is_active=True).exists():
             raise serializers.ValidationError("Course not found.")
         return value
+
+    def validate_coupon_code(self, value):
+        if value in (None, ""):
+            return ""
+        return validate_coupon_code_format(value)
+
+
+class CouponValidateSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+    code = serializers.CharField()
+
+    def validate_course_id(self, value):
+        if not Course.objects.filter(id=value, is_deleted=False, is_active=True).exists():
+            raise serializers.ValidationError("Course not found.")
+        return value
+
+    def validate_code(self, value):
+        return validate_coupon_code_format(value)
+
+
+class CouponSerializer(serializers.ModelSerializer):
+    code = serializers.CharField()
+    discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    course_title = serializers.CharField(source="course.title", read_only=True)
+
+    class Meta:
+        model = Coupon
+        fields = (
+            "id",
+            "code",
+            "course",
+            "course_title",
+            "discount_amount",
+            "max_uses",
+            "per_user_limit",
+            "used_count",
+            "valid_from",
+            "valid_until",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("used_count", "created_at", "updated_at")
+        extra_kwargs = {
+            "course": {"required": False, "allow_null": True},
+        }
+
+    def validate_code(self, value):
+        return validate_coupon_code_format(value)
+
+    def validate_discount_amount(self, value):
+        normalized = validate_decimal_precision(value, field_name="discount_amount")
+        if normalized <= Decimal("0.00"):
+            raise serializers.ValidationError("discount_amount must be greater than 0.")
+        return normalized
+
+    def validate(self, attrs):
+        valid_from = attrs.get("valid_from")
+        valid_until = attrs.get("valid_until")
+        if self.instance:
+            if valid_from is None:
+                valid_from = self.instance.valid_from
+            if valid_until is None:
+                valid_until = self.instance.valid_until
+        if valid_from and valid_until and valid_until < valid_from:
+            raise serializers.ValidationError("valid_until must be after valid_from.")
+        return attrs
+
 
 class ConfirmPaymentSerializer(serializers.Serializer):
     transaction_id = serializers.IntegerField(required=False)

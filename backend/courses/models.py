@@ -21,9 +21,6 @@ class Course(models.Model):
     title = models.CharField(max_length=255, db_index=True)
     short_description = models.CharField(max_length=255)
     description = models.TextField()
-    mentor_name = models.CharField(max_length=150, blank=True, default="")
-    mentor_title = models.CharField(max_length=180, blank=True, default="")
-    mentor_bio = models.TextField(blank=True, default="")
     duration_days = models.PositiveSmallIntegerField(
         default=30,
         help_text="Estimated learning plan duration in days.",

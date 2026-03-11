@@ -30,9 +30,6 @@ class ChatbotApiTests(APITestCase):
             title="Applied Machine Learning",
             short_description="Learn practical ML for production systems.",
             description="Detailed curriculum for supervised and unsupervised workflows.",
-            mentor_name="Dr. Alice Rao",
-            mentor_title="Lead AI Mentor",
-            mentor_bio="Works on MLOps and applied learning systems.",
             duration_days=28,
             price="120.00",
             discount_percent="20.00",
@@ -53,7 +50,7 @@ class ChatbotApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["provider"], "policy")
         self.assertEqual(response.data["model"], "greeting")
-        self.assertIn("SIA_Bot", response.data["reply"])
+        self.assertIn("education", response.data["reply"])
         mock_post.assert_not_called()
 
     @patch("chatbot.services.requests.post")
@@ -85,20 +82,6 @@ class ChatbotApiTests(APITestCase):
 
     @patch("chatbot.services.requests.post")
     @override_settings(GROQ_API_KEY="gsk_test_key")
-    def test_mentor_list_query_uses_local_intent_without_external_call(self, mock_post):
-        response = self.client.post(
-            self.url,
-            {"message": "mentor list of each course in data science"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["provider"], "policy")
-        self.assertEqual(response.data["model"], "intent_router")
-        self.assertIn("Mentor List", response.data["reply"])
-        mock_post.assert_not_called()
-
-    @patch("chatbot.services.requests.post")
-    @override_settings(GROQ_API_KEY="gsk_test_key")
     def test_career_query_uses_local_intent_without_external_call(self, mock_post):
         response = self.client.post(
             self.url,
@@ -122,7 +105,7 @@ class ChatbotApiTests(APITestCase):
         )
         self.client.force_authenticate(learner)
         mock_post.return_value = _MockGroqResponse(
-            {"choices": [{"message": {"content": "You can review the public syllabus and mentor overview first."}}]}
+            {"choices": [{"message": {"content": "You can review the public syllabus and overview first."}}]}
         )
 
         response = self.client.post(
@@ -169,9 +152,6 @@ class ChatbotApiTests(APITestCase):
             title="Data Visualization and Storytelling",
             short_description="Communicate analytical insights effectively.",
             description="Charts, narratives, and executive storytelling practice.",
-            mentor_name="Nisha Patel",
-            mentor_title="Data Visualization Mentor",
-            mentor_bio="Specialist in analytical storytelling for product teams.",
             duration_days=21,
             price="99.00",
             discount_percent="15.00",
@@ -188,14 +168,14 @@ class ChatbotApiTests(APITestCase):
         ]
 
         context = build_chat_context(
-            message="on this how the career and what mentor",
+            message="on this how the career and what details",
             user=None,
             course_id=None,
             history=history,
         )
         self.assertIn(f"course:{self.course.id}", context.sources)
         self.assertIn(f"course:{course_two.id}", context.sources)
-        self.assertIn("Mentor:", context.context_text)
+        self.assertIn("Course:", context.context_text)
 
     @patch("chatbot.services.requests.post")
     def test_history_payload_accepts_long_content_without_400(self, mock_post):

@@ -35,7 +35,6 @@ EDUCATION_HINTS = (
     "module",
     "assignment",
     "project",
-    "mentor",
     "enroll",
     "billing",
     "payment",
@@ -163,7 +162,6 @@ CAREER_HINTS = (
     "improvement",
 )
 
-MENTOR_HINTS = ("mentor", "instructor", "teacher", "faculty")
 PRICING_HINTS = ("price", "pricing", "discount", "billing", "payment", "cost", "fees", "fee")
 REQUIREMENTS_HINTS = ("requirement", "prerequisite", "need before", "eligibility", "beginner")
 
@@ -199,11 +197,6 @@ DEFAULT_EVAL_CASES: tuple[ChatEvaluationCase, ...] = (
         case_id="roadmap-ai",
         prompt="Give me AI learning roadmap for beginners",
         expected_keywords=("roadmap", "foundation", "projects", "skills"),
-    ),
-    ChatEvaluationCase(
-        case_id="mentor-list",
-        prompt="mentor list of each course in data science",
-        expected_keywords=("mentor", "course", "role"),
     ),
     ChatEvaluationCase(
         case_id="pricing-help",
@@ -362,19 +355,6 @@ def _courses_from_message_topic(normalized_message: str, limit: int = 6) -> list
     return list(queryset[:limit])
 
 
-def _build_mentor_list_reply(courses: list[Course]) -> str:
-    lines = ["**Mentor List (Relevant Courses)**"]
-    for index, course in enumerate(courses[:6], start=1):
-        mentor_name = (course.mentor_name or "").strip() or "SIA Faculty Mentor"
-        mentor_title = (course.mentor_title or "").strip() or "Course Mentor"
-        lines.append(f"{index}. **{course.title}**")
-        lines.append(f"   - Mentor: **{mentor_name}**")
-        lines.append(f"   - Role: {mentor_title}")
-    lines.append("")
-    lines.append("Ask: `career path for this` to get job roadmap for these courses.")
-    return "\n".join(lines)
-
-
 def _detect_track_name(normalized_message: str, courses: list[Course]) -> str:
     if "data science" in normalized_message:
         return "Data Science"
@@ -416,12 +396,10 @@ def _build_career_reply(normalized_message: str, courses: list[Course]) -> str:
     lines.append("- Spend at least 90 minutes daily on hands-on implementation.")
     lines.append("- Keep one learning journal: mistakes, fixes, and key formulas.")
     lines.append("- Rebuild one project from scratch without watching the solution.")
-    lines.append("- Review mentor feedback weekly and iterate on your code quality.")
     lines.append("")
     lines.append("**Recommended SIA Courses**")
     for course in courses[:5]:
-        mentor_name = (course.mentor_name or "").strip() or "SIA Faculty Mentor"
-        lines.append(f"- **{course.title}** (Mentor: {mentor_name})")
+        lines.append(f"- **{course.title}**")
     return "\n".join(lines)
 
 
@@ -433,12 +411,7 @@ def local_intent_reply(message: str, context: ChatContext) -> str | None:
     if not courses:
         courses = _courses_from_message_topic(normalized, limit=6)
 
-    asks_mentor = "mentor" in normalized
-    asks_list = any(token in normalized for token in ("list", "each", "all"))
     asks_career = any(token in normalized for token in CAREER_HINTS)
-
-    if asks_mentor and asks_list:
-        return _build_mentor_list_reply(courses)
 
     if asks_career:
         return _build_career_reply(normalized, courses)
@@ -479,15 +452,13 @@ def _serialize_course(course: Course, include_private: bool) -> str:
         f"[Course] {course.title}\n"
         f"- Category: {course.category.name}\n"
         f"- Duration: {course.duration_days} days\n"
-        f"- Mentor: {course.mentor_name or 'SIA Faculty'}\n"
         f"- Price: {_format_money(course.price)} (Discount {course.discount_percent}% -> {_format_money(discounted)})\n"
         f"- Public summary: {(course.short_description or '').strip()[:220]}"
     )
     if include_private:
         return (
             f"{summary}\n"
-            f"- Learning description: {(course.description or '').strip()[:900]}\n"
-            f"- Mentor profile: {(course.mentor_bio or '').strip()[:420]}"
+            f"- Learning description: {(course.description or '').strip()[:900]}"
         )
     return summary
 
@@ -524,9 +495,6 @@ def _derive_curriculum_lines(course: Course) -> list[str]:
 
 
 def _build_public_chunk_text(course: Course, section: str) -> str:
-    mentor_name = (course.mentor_name or "").strip() or "SIA Faculty Mentor"
-    mentor_title = (course.mentor_title or "").strip() or "Course Mentor"
-    mentor_bio = (course.mentor_bio or "").strip()
     discounted = _discounted_price(course)
     summary = (course.short_description or "").strip()[:280]
     category_name = course.category.name
@@ -537,13 +505,6 @@ def _build_public_chunk_text(course: Course, section: str) -> str:
             f"Category: {category_name}\n"
             f"Duration: {course.duration_days} days\n"
             f"Summary: {summary}"
-        )
-    if section == "mentor":
-        return (
-            f"Course: {course.title}\n"
-            f"Mentor: {mentor_name}\n"
-            f"Mentor Role: {mentor_title}\n"
-            f"Mentor Background: {mentor_bio[:260] if mentor_bio else 'Industry practitioner focused on practical outcomes.'}"
         )
     if section == "pricing":
         return (
@@ -577,12 +538,10 @@ def _build_public_chunk_text(course: Course, section: str) -> str:
 
 def _build_private_chunk_text(course: Course) -> str:
     desc = (course.description or "").strip()
-    mentor_bio = (course.mentor_bio or "").strip()
     return "\n".join(
         [
             f"Course: {course.title}",
             f"Detailed Learning Content: {desc[:1300]}",
-            f"Mentor Deep Profile: {mentor_bio[:600] if mentor_bio else 'Mentor profile available in platform.'}",
         ]
     )
 
@@ -615,7 +574,7 @@ def _build_retrieval_corpus() -> dict:
     total_length = 0
 
     for course in courses:
-        for section in ("overview", "curriculum", "requirements", "mentor", "pricing"):
+        for section in ("overview", "curriculum", "requirements", "pricing"):
             chunk = _build_course_chunk(
                 course=course,
                 section=section,
@@ -718,13 +677,11 @@ def _score_chunk(
     if chunk["course_id"] in history_course_ids:
         score += 0.9
 
-    if any(hint in query_line for hint in MENTOR_HINTS) and chunk["section"] == "mentor":
-        score += 1.2
     if any(hint in query_line for hint in PRICING_HINTS) and chunk["section"] == "pricing":
         score += 1.2
     if any(hint in query_line for hint in REQUIREMENTS_HINTS) and chunk["section"] == "requirements":
         score += 1.2
-    if any(hint in query_line for hint in CAREER_HINTS) and chunk["section"] in {"curriculum", "mentor"}:
+    if any(hint in query_line for hint in CAREER_HINTS) and chunk["section"] == "curriculum":
         score += 0.8
 
     if chunk["section"] == "overview":
@@ -750,7 +707,7 @@ def _retrieve_grounded_chunks(
     access_map = _build_access_map(user=user, course_ids=unique_course_ids)
     query_terms = _tokenize_for_retrieval(message)
     if not query_terms:
-        query_terms = ["course", "mentor", "skills"]
+        query_terms = ["course", "skills"]
 
     doc_count = max(int(corpus.get("doc_count") or len(chunks) or 1), 1)
     doc_freq = corpus.get("doc_freq", {})
@@ -884,7 +841,7 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
 
 def _build_system_prompt(context: ChatContext) -> str:
     return (
-        "You are SIA_Bot, an education-only assistant for SIA EDU.\n"
+        "You are an education-only assistant for SIA EDU.\n"
         "Rules:\n"
         "1) Answer only education and SIA course-related questions.\n"
         "2) If user asks outside education scope, reply exactly:\n"
@@ -894,7 +851,7 @@ def _build_system_prompt(context: ChatContext) -> str:
         "5) Never provide medical, legal, financial, political, or unrelated advice.\n"
         "6) Keep answers concise, practical, and student-friendly.\n"
         "7) If course_access is public, do not reveal paid/private lesson-level details.\n"
-        "8) If user asks career and mentor details, summarize available relevant courses from context with mentor name/title and likely career outcomes.\n"
+        "8) If user asks career details, summarize relevant courses from context with likely career outcomes.\n"
         "9) Do not ask for another course id when relevant context already includes enough details.\n"
         "10) Prefer markdown with short structure:\n"
         "   - Use **bold** section titles.\n"
@@ -991,16 +948,16 @@ def fallback_reply(message: str, context: ChatContext) -> str:
         return "\n".join(
             [
                 "**Course Guidance Available**",
-                "- I can explain outcomes, prerequisites, mentor profile, and learning plan for this course.",
+                "- I can explain outcomes, prerequisites, and learning plan for this course.",
                 "- Ask one specific doubt and I will answer in point-wise format.",
             ]
         )
     return "\n".join(
-        [
-            "**SIA_Bot Support Scope**",
-            "- AI, ML, DL, Data Science, Prompt Engineering, and Quantum course guidance.",
-            "- Ask your doubt with topic name for a structured answer.",
-        ]
+            [
+                "**Support Scope**",
+                "- AI, ML, DL, Data Science, Prompt Engineering, and Quantum course guidance.",
+                "- Ask your doubt with topic name for a structured answer.",
+            ]
     )
 
 
@@ -1054,12 +1011,7 @@ def _evaluate_case_quality(reply: str, context: ChatContext, case: ChatEvaluatio
     keyword_score = 0 if not case.expected_keywords else min(keyword_hits / len(case.expected_keywords), 1.0)
 
     title_hits = any(course.title.lower() in normalized_reply for course in source_courses if course.title)
-    mentor_hits = any(
-        (course.mentor_name or "").strip().lower() in normalized_reply
-        for course in source_courses
-        if (course.mentor_name or "").strip()
-    )
-    grounded = bool(source_courses) and (title_hits or mentor_hits or bool(context.focused_course_id))
+    grounded = bool(source_courses) and (title_hits or bool(context.focused_course_id))
 
     quality_score = 0
     quality_score += 35 if has_structure else 0
