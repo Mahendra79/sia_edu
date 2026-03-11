@@ -241,6 +241,7 @@ def build_invoice_pdf(transaction: PaymentTransaction) -> bytes:
     pricing = (transaction.metadata or {}).get("pricing") or {}
     amount = _to_decimal(pricing.get("amount", transaction.amount))
     discount_amount = _to_decimal(pricing.get("discount_amount", amount - transaction.total))
+    coupon_discount = _to_decimal(pricing.get("coupon_discount", (transaction.metadata or {}).get("coupon_discount")))
     subtotal = _to_decimal(pricing.get("subtotal", transaction.total - transaction.tax))
     tax = _to_decimal(pricing.get("tax", transaction.tax))
     total = _to_decimal(pricing.get("total", transaction.total))
@@ -262,11 +263,18 @@ def build_invoice_pdf(transaction: PaymentTransaction) -> bytes:
     rows = [
         ("Course", course_title, False),
         ("Base Price", _format_amount(amount, currency), True),
-        ("Discount", _format_amount(discount_amount, currency), True),
-        ("Subtotal (Excl. GST)", _format_amount(subtotal, currency), True),
-        (f"GST ({tax_rate_percent:.0f}%)", _format_amount(tax, currency), True),
-        ("Total Payable", _format_amount(total, currency), True),
     ]
+    if discount_amount > Decimal("0.00"):
+        rows.append(("Course Discount", _format_amount(discount_amount, currency), True))
+    if coupon_discount > Decimal("0.00"):
+        rows.append(("Coupon Discount", _format_amount(coupon_discount, currency), True))
+    rows.extend(
+        [
+            ("Subtotal (Excl. GST)", _format_amount(subtotal, currency), True),
+            (f"GST ({tax_rate_percent:.0f}%)", _format_amount(tax, currency), True),
+            ("Total Payable", _format_amount(total, currency), True),
+        ]
+    )
 
     row_heights: list[float] = []
     for _, value, _ in rows:
@@ -323,6 +331,9 @@ def build_invoice_pdf(transaction: PaymentTransaction) -> bytes:
         ("Order Ref", str(transaction.razorpay_order_id or "-")),
         ("Payment Ref", str(transaction.razorpay_payment_id or "-")),
     ]
+    coupon_code = str((transaction.metadata or {}).get("coupon_code") or "").strip()
+    if coupon_code:
+        details.append(("Coupon Code", coupon_code))
     key_w = 45 * mm
     for key, value in details:
         c.setFont("Helvetica-Bold", 10)

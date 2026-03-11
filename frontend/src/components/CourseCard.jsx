@@ -43,6 +43,7 @@ function resolveDurationDays(course) {
 
 export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   const imageUrl = resolveCourseImageUrl(course.image);
+  const logoPlaceholder = (import.meta.env.VITE_WEBSITE_LOGO_URL || "").trim();
   const discountPercent = Number(course.discount_percent || 0);
   const hasDiscount = discountPercent > 0;
   const listPrice = Number(course.price || 0);
@@ -85,7 +86,12 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
       onClick={typeof onOpen === "function" ? handleOpen : undefined}
       onKeyDown={typeof onOpen === "function" ? handleCardKeyDown : undefined}
     >
-      <CourseImage key={imageUrl || "course-image-placeholder"} imageUrl={imageUrl} title={course.title} />
+      <CourseImage
+        key={imageUrl || logoPlaceholder || "course-image-placeholder"}
+        imageUrl={imageUrl}
+        placeholderUrl={logoPlaceholder}
+        title={course.title}
+      />
       <div className="course-content">
         <div className="course-tags">
           <span className="pill">{course.category?.name || "General"}</span>
@@ -133,13 +139,21 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   );
 }
 
-function CourseImage({ imageUrl, title }) {
+function CourseImage({ imageUrl, placeholderUrl, title }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [placeholderFailed, setPlaceholderFailed] = useState(false);
 
   return (
     <div className="course-image-wrap">
       {imageUrl && !imageFailed ? (
         <img src={imageUrl} alt={title} className="course-image" onError={() => setImageFailed(true)} />
+      ) : placeholderUrl && !placeholderFailed ? (
+        <img
+          src={placeholderUrl}
+          alt="SIA Software Innovations logo"
+          className="course-image placeholder-logo"
+          onError={() => setPlaceholderFailed(true)}
+        />
       ) : (
         <div className="course-image-placeholder">
           <HiOutlineBookOpen />
