@@ -2,8 +2,10 @@ import { useState } from "react";
 
 import { formatCurrency } from "../utils/format";
 import { HiOutlineBookOpen, HiOutlineCalendarDays, HiOutlineShoppingBag } from "react-icons/hi2";
-import { API_BASE_URL } from "../services/api";
 import { getCourseStartLabel } from "../data/featuredCourse";
+
+const FORCED_COURSE_IMAGE_URL =
+  "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
 
 function getHighlightedTitle(title, query) {
   const normalizedQuery = String(query || "").trim();
@@ -19,19 +21,6 @@ function getHighlightedTitle(title, query) {
   );
 }
 
-function resolveCourseImageUrl(imagePath) {
-  if (!imagePath) {
-    return "";
-  }
-  if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith("data:")) {
-    return imagePath;
-  }
-
-  const normalizedPath = String(imagePath).replace(/\\/g, "/");
-  const apiOrigin = /^https?:\/\//i.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin;
-  return new URL(normalizedPath, `${apiOrigin}/`).toString();
-}
-
 function resolveDurationDays(course) {
   const direct = Number(course?.duration_days || 0);
   if (direct > 0) {
@@ -42,7 +31,7 @@ function resolveDurationDays(course) {
 }
 
 export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
-  const imageUrl = resolveCourseImageUrl(course.image);
+  const imageUrl = FORCED_COURSE_IMAGE_URL;
   const logoPlaceholder = (import.meta.env.VITE_WEBSITE_LOGO_URL || "").trim();
   const discountPercent = Number(course.discount_percent || 0);
   const hasDiscount = discountPercent > 0;
