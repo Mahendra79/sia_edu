@@ -21,15 +21,6 @@ function getHighlightedTitle(title, query) {
   );
 }
 
-function resolveDurationDays(course) {
-  const direct = Number(course?.duration_days || 0);
-  if (direct > 0) {
-    return direct;
-  }
-  const match = String(course?.description || "").match(/(\d{1,3})\s*days?/i);
-  return match?.[1] ? Number(match[1]) : null;
-}
-
 export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   const imageUrl = FORCED_COURSE_IMAGE_URL;
   const logoPlaceholder = (import.meta.env.VITE_WEBSITE_LOGO_URL || "").trim();
@@ -38,7 +29,6 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   const listPrice = Number(course.price || 0);
   const discountedPrice = Number(course.discounted_price ?? listPrice);
   const isPurchased = Boolean(course.is_purchased);
-  const durationDays = resolveDurationDays(course);
   const startLabel = getCourseStartLabel(course);
 
   const handleOpen = () => {
@@ -84,7 +74,6 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
       <div className="course-content">
         <div className="course-tags">
           <span className="pill">{course.category?.name || "General"}</span>
-          <span className="pill">{durationDays ? `${durationDays} days` : "TBD"}</span>
           {startLabel ? (
             <span className="pill">
               <HiOutlineCalendarDays />
