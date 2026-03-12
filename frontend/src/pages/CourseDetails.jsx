@@ -30,6 +30,24 @@ const DEFAULT_CURRICULUM = [
   "Module 4: Capstone delivery and skill assessment",
 ];
 
+const HARD_CODED_LEARNING_OUTCOMES = [
+  "Mathematically represent and manipulate quantum states.",
+  "Construct and execute multi-qubit quantum circuits.",
+  "Analyze quantum measurement distributions and expectation values.",
+  "Implement and interpret standard quantum algorithms.",
+  "Develop parameterized quantum circuits for optimization problems.",
+  "Apply hybrid quantum-classical computational models.",
+  "Utilize the HDQS platform for structured experimentation and project development.",
+];
+
+const HARD_CODED_CAPSTONE = [
+  "Design and implement a structured quantum circuit.",
+  "Define a Hamiltonian or optimization objective.",
+  "Execute parameter optimization.",
+  "Analyze results using measurement statistics.",
+  "Submit a formal technical project report.",
+];
+
 function resolveCourseImageUrl(imagePath) {
   if (!imagePath) {
     return "";
@@ -196,13 +214,8 @@ export default function CourseDetails() {
     return moduleLines.length > 0 ? moduleLines : DEFAULT_CURRICULUM;
   }, [description]);
 
-  const learningOutcomes = useMemo(() => {
-    return extractSectionBullets(description, ["Learning Outcomes"], 12);
-  }, [description]);
-
-  const capstone = useMemo(() => {
-    return extractSectionBullets(description, ["Capstone Project"], 12);
-  }, [description]);
+  const learningOutcomes = HARD_CODED_LEARNING_OUTCOMES;
+  const capstone = HARD_CODED_CAPSTONE;
 
   const imageCandidates = useMemo(() => {
     const primary = resolveCourseImageUrl(course?.image);
