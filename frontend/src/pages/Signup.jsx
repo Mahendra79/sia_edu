@@ -35,6 +35,12 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
+  const isValidPhone = (value) => /^\d{10}$/.test(value);
+  const isValidName = (value) => /^[A-Za-z ]+$/.test(value);
+  const isStrongPassword = (value) =>
+    value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -61,16 +67,59 @@ export default function Signup() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const trimmed = {
+      name: form.name.trim(),
+      username: form.username.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      password: form.password,
+      confirm_password: form.confirm_password,
+    };
+
+    if (!trimmed.name || !trimmed.username || !trimmed.email || !trimmed.phone || !trimmed.password || !trimmed.confirm_password) {
+      addToast({ type: "error", message: "All fields are required. Please fill in the missing information." });
+      return;
+    }
+    if (!isValidName(trimmed.name)) {
+      addToast({ type: "error", message: "Full name can contain letters and spaces only." });
+      return;
+    }
+    if (!isValidEmail(trimmed.email)) {
+      addToast({ type: "error", message: "Please enter a valid email address." });
+      return;
+    }
+    if (!isValidPhone(trimmed.phone)) {
+      addToast({ type: "error", message: "Please enter a valid phone number (e.g.,9874563210)." });
+      return;
+    }
+    if (!isStrongPassword(trimmed.password)) {
+      addToast({
+        type: "error",
+        message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character.",
+      });
+      return;
+    }
+    if (trimmed.password !== trimmed.confirm_password) {
+      addToast({ type: "error", message: "Passwords do not match. Please confirm your password." });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await signup(form);
+      const response = await signup(trimmed);
+      const requiresVerification =
+        response?.requires_email_verification || !response?.user?.is_email_verified;
+      const successMessage = requiresVerification
+        ? "Account created! Please check your email for a verification code to complete setup."
+        : "Welcome to SIA! Your account has been created successfully. You're now logged in.";
       addToast({
         type: "success",
-        message: response?.message || "Account ready. Logged in successfully.",
+        message: successMessage,
       });
       if (response?.access && response?.refresh && response?.user) {
-        if (response?.requires_email_verification || !response.user?.is_email_verified) {
+        if (requiresVerification) {
           navigate(`/verify-email?email=${encodeURIComponent(response.user.email || "")}`);
         } else {
           navigate(response.user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
@@ -79,12 +128,73 @@ export default function Signup() {
         navigate("/login");
       }
     } catch (error) {
-      const responseData = error.response?.data;
-      const firstError =
-        typeof responseData === "object"
-          ? Object.values(responseData).flat()[0]
-          : "Signup failed. Check your inputs.";
-      addToast({ type: "error", message: firstError || "Signup failed." });
+      if (!error?.response) {
+        addToast({
+          type: "error",
+          message: "Unable to create account right now. Please try again later or contact support.",
+        });
+        return;
+      }
+
+      const status = error.response.status;
+      if (status === 429) {
+        addToast({
+          type: "error",
+          message: "Too many signup attempts. Please wait 5 minutes before trying again.",
+        });
+        return;
+      }
+      if (status >= 500) {
+        addToast({
+          type: "error",
+          message: "Unable to create account right now. Please try again later or contact support.",
+        });
+        return;
+      }
+
+      const responseData = error.response?.data || {};
+      if (responseData.detail) {
+        addToast({ type: "error", message: responseData.detail });
+        return;
+      }
+      if (responseData.name) {
+        addToast({ type: "error", message: "Full name can contain letters and spaces only." });
+        return;
+      }
+      if (responseData.email) {
+        const emailMessage = String(responseData.email[0] || "");
+        addToast({
+          type: "error",
+          message: emailMessage.toLowerCase().includes("valid")
+            ? "Please enter a valid email address."
+            : "This email is already registered.",
+        });
+        return;
+      }
+      if (responseData.username) {
+        addToast({ type: "error", message: "Username is unavailable. Please choose a different one." });
+        return;
+      }
+      if (responseData.phone) {
+        addToast({ type: "error", message: "Please enter a valid phone number (e.g.,9874563210)." });
+        return;
+      }
+      if (responseData.password) {
+        addToast({
+          type: "error",
+          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character.",
+        });
+        return;
+      }
+      if (responseData.confirm_password) {
+        addToast({ type: "error", message: "Passwords do not match. Please confirm your password." });
+        return;
+      }
+
+      addToast({
+        type: "error",
+        message: "Signup failed due to invalid inputs. Please review and try again.",
+      });
     } finally {
       setLoading(false);
     }

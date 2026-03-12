@@ -9,13 +9,14 @@ from accounts.models import EmailVerificationToken, PasswordResetToken, User
 
 
 USERNAME_REGEX = re.compile(r"^[\w.@+-]+\Z")
+NAME_REGEX = re.compile(r"^[A-Za-z ]+\Z")
 
 
 class UserValidationMixin:
     username_invalid_message = "Username can only contain letters, numbers, and @/./+/-/_ characters."
-    username_exists_message = "Username already exists."
-    email_exists_message = "Email already exists."
-    phone_exists_message = "Phone number already exists."
+    username_exists_message = "Username is unavailable. Please choose a different one."
+    email_exists_message = "This email is already registered."
+    phone_exists_message = "Phone number is already registered."
 
     def _instance_id(self):
         return getattr(self.instance, "id", None)
@@ -24,6 +25,8 @@ class UserValidationMixin:
         value = (value or "").strip()
         if not value:
             raise serializers.ValidationError("Name is required.")
+        if not NAME_REGEX.fullmatch(value):
+            raise serializers.ValidationError("Full name can contain letters and spaces only.")
         return value
 
     def validate_username(self, value):
@@ -121,7 +124,7 @@ class SignupSerializer(UserValidationMixin, serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match. Please confirm your password."})
         validate_password(attrs["password"])
         return attrs
 
@@ -147,14 +150,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         username = attrs.get(self.username_field)
         password = attrs.get("password")
         if not username or not password:
-            raise serializers.ValidationError("Username and password are required.")
+            raise serializers.ValidationError("Username or email and password are required.")
 
         # Allow login by username or email.
         user = User.objects.filter(username__iexact=username).first()
         if not user:
             user = User.objects.filter(email__iexact=username).first()
         if not user or not user.check_password(password):
-            raise serializers.ValidationError("No active account found with the given credentials.")
+            raise serializers.ValidationError("Invalid username/email or password.")
         if not user.is_active:
             raise serializers.ValidationError("Account is inactive.")
 
@@ -197,7 +200,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match. Please confirm your new password."}
+            )
         email = attrs.get("email")
         otp_code = attrs.get("otp_code")
         if not (email and otp_code):
