@@ -256,6 +256,19 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "").strip()
+SUPABASE_PUBLIC_URL = os.getenv("SUPABASE_PUBLIC_URL", "").strip()
+SUPABASE_STORAGE_TIMEOUT = int(os.getenv("SUPABASE_STORAGE_TIMEOUT", "20"))
+USE_SUPABASE_STORAGE = os.getenv("USE_SUPABASE_STORAGE", "False").lower() == "true"
+
+if USE_SUPABASE_STORAGE and SUPABASE_URL and SUPABASE_SERVICE_KEY and SUPABASE_BUCKET and SUPABASE_PUBLIC_URL:
+    STORAGES = {
+        "default": {"BACKEND": "config.storage.SupabaseStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+
 CORS_ALLOWED_ORIGINS = _dedupe_preserve_order(
     [
         origin
