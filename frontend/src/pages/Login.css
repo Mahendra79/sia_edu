@@ -17,3 +17,13 @@
 .login-form-panel .auth-action-btn {
   margin-top: 0.1rem;
 }
+
+@media (max-width: 760px) {
+  .login-page .auth-experience {
+    min-height: auto;
+  }
+
+  .login-page .auth-intro-panel {
+    display: none;
+  }
+}
