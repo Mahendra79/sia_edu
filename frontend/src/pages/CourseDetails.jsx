@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineBookOpen,
   HiOutlineCalendarDays,
-  HiOutlineClock,
   HiOutlineDocumentText,
   HiOutlineShoppingBag,
 } from "react-icons/hi2";
@@ -194,14 +193,6 @@ export default function CourseDetails() {
   const description = String(course?.description || "");
   const previewDescription = parseDescriptionPreview(description, descriptionExpanded);
   const canToggleDescription = description.length > DESCRIPTION_PREVIEW_LIMIT;
-  const courseDurationDays = useMemo(() => {
-    const value = Number(course?.duration_days);
-    if (Number.isFinite(value) && value > 0) {
-      return Math.round(value);
-    }
-    return null;
-  }, [course?.duration_days]);
-  const durationLabel = courseDurationDays ? `${courseDurationDays} days` : "Duration not set";
   const startLabel = getCourseStartLabel(course);
 
   const curriculum = useMemo(() => {
@@ -290,10 +281,6 @@ export default function CourseDetails() {
                   <h1>{course.title}</h1>
                   <p className="course-subtitle">{course.short_description}</p>
                   <div className="course-hero-meta">
-                    <span className="meta-pill">
-                      <HiOutlineClock />
-                      {durationLabel}
-                    </span>
                     {startLabel ? (
                       <span className="meta-pill">
                         <HiOutlineCalendarDays />
@@ -324,7 +311,7 @@ export default function CourseDetails() {
                     <strong>Program Start</strong>
                     <span>{startLabel || "Start date will be announced soon."}</span>
                   </div>
-                  <p className="price-note">Guided learning plan: {durationLabel} with HDQS platform access.</p>
+                  <p className="price-note">Guided learning plan with HDQS platform access.</p>
                   <button
                     type="button"
                     className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
