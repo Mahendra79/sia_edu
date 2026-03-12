@@ -69,6 +69,9 @@
   gap: 0.5rem;
   margin-bottom: 0.95rem;
   flex-wrap: wrap;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
 }
 
 .admin-tab-btn {
@@ -78,6 +81,8 @@
   color: var(--text-secondary);
   padding: 0.46rem 0.88rem;
   box-shadow: none;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .admin-tab-btn.active {
@@ -329,5 +334,65 @@
 
   .dashboard-content .table-wrap > table {
     min-width: 860px;
+  }
+}
+
+.db-table-controls {
+  margin-bottom: 0.75rem;
+  gap: 0.7rem;
+}
+
+.db-table-controls select {
+  flex: 1 1 280px;
+  min-width: 220px;
+  max-width: 460px;
+}
+
+.db-table-meta {
+  white-space: nowrap;
+}
+
+.db-table-pagination {
+  margin-left: auto;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.db-table {
+  width: max-content;
+  min-width: max-content;
+  table-layout: auto;
+}
+
+.db-table th,
+.db-table td {
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.db-table th:last-child,
+.db-table td:last-child {
+  min-width: 140px;
+}
+
+.db-table td {
+  max-width: none;
+}
+
+.db-table-wrap {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 980px) {
+  .db-table-pagination {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
   }
 }

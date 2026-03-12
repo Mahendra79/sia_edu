@@ -21,6 +21,7 @@ const TABS = [
   { key: "categories", label: "Categories" },
   { key: "enrollments", label: "Enrollments" },
   { key: "payments", label: "Payments" },
+  { key: "tables", label: "All Tables" },
   { key: "coupons", label: "Coupons" },
   { key: "deleted", label: "Deleted Records" },
   { key: "logs", label: "Activity Logs" },
@@ -41,6 +42,12 @@ const EMPTY_COUPON = {
   valid_from: "",
   valid_until: "",
   is_active: true,
+};
+
+const EMPTY_DB_EDIT = {
+  tableKey: "",
+  pk: null,
+  payload: {},
 };
 
 function getApiError(error, fallback) {
@@ -78,6 +85,20 @@ function toIsoFromInput(value) {
   return date.toISOString();
 }
 
+function toInputDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatDbValue(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
 export default function DatabaseEditor() {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
@@ -98,6 +119,15 @@ export default function DatabaseEditor() {
   const [activityLogs, setActivityLogs] = useState([]);
   const [courseImage, setCourseImage] = useState(null);
   const [couponDraft, setCouponDraft] = useState(EMPTY_COUPON);
+  const [dbTables, setDbTables] = useState([]);
+  const [dbTableKey, setDbTableKey] = useState("");
+  const [dbColumns, setDbColumns] = useState([]);
+  const [dbRows, setDbRows] = useState([]);
+  const [dbCount, setDbCount] = useState(0);
+  const [dbPage, setDbPage] = useState(1);
+  const [dbPageSize] = useState(25);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbEdit, setDbEdit] = useState(EMPTY_DB_EDIT);
 
   const loadData = useCallback(
     async ({ silent = false } = {}) => {
@@ -143,6 +173,53 @@ export default function DatabaseEditor() {
     const timer = window.setInterval(() => loadData({ silent: true }), 45000);
     return () => window.clearInterval(timer);
   }, [loadData]);
+
+  const loadDbTables = useCallback(async () => {
+    setDbLoading(true);
+    try {
+      const { data } = await analyticsService.getAdminDbTables();
+      const tables = data?.tables || [];
+      setDbTables(tables);
+      if (!dbTableKey && tables.length) {
+        setDbTableKey(tables[0].key);
+      }
+    } catch {
+      addToast({ type: "error", message: "Unable to load database tables." });
+    } finally {
+      setDbLoading(false);
+    }
+  }, [addToast, dbTableKey]);
+
+  const loadDbRows = useCallback(
+    async ({ page = dbPage } = {}) => {
+      if (!dbTableKey) return;
+      setDbLoading(true);
+      try {
+        const { data } = await analyticsService.getAdminDbRows(dbTableKey, {
+          page,
+          page_size: dbPageSize,
+        });
+        setDbColumns(data?.columns || []);
+        setDbRows(data?.rows || []);
+        setDbCount(Number(data?.count || 0));
+        setDbPage(Number(data?.page || page));
+      } catch (error) {
+        addToast({ type: "error", message: getApiError(error, "Unable to load table rows.") });
+      } finally {
+        setDbLoading(false);
+      }
+    },
+    [addToast, dbPage, dbPageSize, dbTableKey],
+  );
+
+  useEffect(() => {
+    loadDbTables();
+  }, [loadDbTables]);
+
+  useEffect(() => {
+    if (dbTableKey) loadDbRows({ page: 1 });
+    setDbEdit(EMPTY_DB_EDIT);
+  }, [dbTableKey, loadDbRows]);
 
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ label: category.name, value: String(category.id) })),
@@ -328,6 +405,95 @@ export default function DatabaseEditor() {
     }
   };
 
+  const startDbEdit = (row) => {
+    const payload = {};
+    dbColumns.forEach((column) => {
+      payload[column.name] = row[column.name] ?? "";
+    });
+    setDbEdit({ tableKey: dbTableKey, pk: row.__pk, payload });
+  };
+
+  const clearDbEdit = () => {
+    setDbEdit(EMPTY_DB_EDIT);
+  };
+
+  const handleDbSave = async (event) => {
+    event.preventDefault();
+    if (!dbEdit.pk || !dbTableKey) return;
+    setSaving(true);
+    try {
+      const payload = {};
+      dbColumns.forEach((column) => {
+        if (column.read_only) return;
+        const raw = dbEdit.payload[column.name];
+        if (raw === "" || raw === undefined) {
+          if (column.null) payload[column.name] = null;
+          return;
+        }
+
+        if (column.type === "BooleanField") {
+          payload[column.name] = Boolean(raw);
+          return;
+        }
+
+        if (column.type === "DateTimeField") {
+          payload[column.name] = toIsoFromInput(raw);
+          return;
+        }
+
+        if (column.type === "DateField") {
+          payload[column.name] = raw;
+          return;
+        }
+
+        if (column.type === "IntegerField" || column.type === "BigIntegerField" || column.type === "PositiveIntegerField") {
+          payload[column.name] = Number(raw);
+          return;
+        }
+
+        if (column.type === "FloatField" || column.type === "DecimalField") {
+          payload[column.name] = String(raw);
+          return;
+        }
+
+        if (column.type === "JSONField") {
+          try {
+            payload[column.name] = JSON.parse(raw);
+          } catch {
+            payload[column.name] = raw;
+          }
+          return;
+        }
+
+        payload[column.name] = raw;
+      });
+
+      await analyticsService.updateAdminDbRow(dbTableKey, dbEdit.pk, payload);
+      addToast({ type: "success", message: "Record updated." });
+      clearDbEdit();
+      loadDbRows({ page: dbPage });
+    } catch (error) {
+      addToast({ type: "error", message: getApiError(error, "Unable to update record.") });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDbDelete = async (pk) => {
+    if (!dbTableKey || !pk) return;
+    setSaving(true);
+    try {
+      await analyticsService.deleteAdminDbRow(dbTableKey, pk);
+      addToast({ type: "success", message: "Record deleted." });
+      if (dbEdit.pk === pk) clearDbEdit();
+      loadDbRows({ page: dbPage });
+    } catch (error) {
+      addToast({ type: "error", message: getApiError(error, "Unable to delete record.") });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const rows = {
     users: users.map((item) => [item.name, item.email, item.phone, item.is_active ? "Yes" : "No", formatDate(item.created_at)]),
     courses: courses.map((item) => [
@@ -383,6 +549,116 @@ export default function DatabaseEditor() {
     payments: "Payment",
     coupons: "Coupon",
   };
+
+  const dbTotalPages = Math.max(1, Math.ceil(dbCount / dbPageSize));
+
+  const renderDbEditFields = () =>
+    dbColumns
+      .filter((column) => !column.read_only)
+      .map((column) => {
+        const value = dbEdit.payload[column.name] ?? "";
+        const label = column.name;
+        const isRelation = column.is_relation;
+        const placeholder = isRelation && column.related_model ? `FK: ${column.related_model}` : undefined;
+
+        if (column.choices?.length) {
+          return (
+            <InlineField key={column.name} label={label}>
+              <select
+                value={value === null || value === undefined ? "" : value}
+                onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+              >
+                {column.null && <option value="">(Empty)</option>}
+                {column.choices.map((choice) => (
+                  <option key={`${column.name}-${choice.value}`} value={choice.value}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
+            </InlineField>
+          );
+        }
+
+        if (column.type === "BooleanField") {
+          return (
+            <InlineField key={column.name} label={label} className="table-inline-field-toggle">
+              <label className="toggle-row table-inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={Boolean(value)}
+                  onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.checked } }))}
+                />
+                Enabled
+              </label>
+            </InlineField>
+          );
+        }
+
+        if (column.type === "DateTimeField") {
+          return (
+            <InlineField key={column.name} label={label}>
+              <input
+                type="datetime-local"
+                value={toInputDateTime(value)}
+                onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+                placeholder={placeholder}
+              />
+            </InlineField>
+          );
+        }
+
+        if (column.type === "DateField") {
+          return (
+            <InlineField key={column.name} label={label}>
+              <input
+                type="date"
+                value={toInputDate(value)}
+                onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+                placeholder={placeholder}
+              />
+            </InlineField>
+          );
+        }
+
+        if (column.type === "TextField" || column.type === "JSONField") {
+          const textValue = typeof value === "string" ? value : JSON.stringify(value ?? "", null, 2);
+          return (
+            <InlineField key={column.name} label={label} className="table-inline-field-wide">
+              <textarea
+                value={textValue}
+                onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+                placeholder={placeholder}
+              />
+            </InlineField>
+          );
+        }
+
+        const numberTypes = ["IntegerField", "BigIntegerField", "PositiveIntegerField", "FloatField", "DecimalField"];
+        if (numberTypes.includes(column.type)) {
+          const step = column.type === "IntegerField" || column.type === "BigIntegerField" || column.type === "PositiveIntegerField" ? "1" : "0.01";
+          return (
+            <InlineField key={column.name} label={label}>
+              <input
+                type="number"
+                step={step}
+                value={value}
+                onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+                placeholder={placeholder}
+              />
+            </InlineField>
+          );
+        }
+
+        return (
+          <InlineField key={column.name} label={label}>
+            <input
+              value={value === null || value === undefined ? "" : value}
+              onChange={(e) => setDbEdit((p) => ({ ...p, payload: { ...p.payload, [column.name]: e.target.value } }))}
+              placeholder={placeholder}
+            />
+          </InlineField>
+        );
+      });
 
   const renderInlineEditFields = () => {
     if (!edit.id || !edit.type) return null;
@@ -637,6 +913,101 @@ export default function DatabaseEditor() {
 
         {loading ? (
           <LoadingSpinner label="Loading database records..." />
+        ) : activeTab === "tables" ? (
+          <section className="panel-card">
+            <h2>All Tables</h2>
+            <p className="meta-note">Non-system tables only. Double-click a row to edit inline.</p>
+            <div className="inline-controls db-table-controls">
+              <select value={dbTableKey} onChange={(e) => setDbTableKey(e.target.value)} disabled={dbLoading}>
+                <option value="">Select a table</option>
+                {dbTables.map((table) => (
+                  <option key={table.key} value={table.key}>
+                    {table.label} ({table.key})
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="btn btn-muted btn-icon" onClick={() => loadDbRows({ page: dbPage })} disabled={dbLoading || !dbTableKey}>
+                <HiOutlineArrowPath />
+                {dbLoading ? "Refreshing..." : "Refresh"}
+              </button>
+              <span className="meta-note db-table-meta">
+                {dbTableKey ? `Rows: ${dbCount}` : "Pick a table to view rows."}
+              </span>
+              <div className="inline-controls db-table-pagination">
+                <button type="button" className="btn btn-muted" disabled={dbPage <= 1 || dbLoading} onClick={() => loadDbRows({ page: dbPage - 1 })}>
+                  Prev
+                </button>
+                <span className="meta-note">
+                  Page {dbPage} of {dbTotalPages}
+                </span>
+                <button type="button" className="btn btn-muted" disabled={dbPage >= dbTotalPages || dbLoading} onClick={() => loadDbRows({ page: dbPage + 1 })}>
+                  Next
+                </button>
+              </div>
+            </div>
+            {dbLoading && <LoadingSpinner label="Loading table..." />}
+            {!dbLoading && dbTableKey && (
+              <div className="table-wrap db-table-wrap">
+                <table className="db-table">
+                  <thead>
+                    <tr>
+                      {dbColumns.map((column) => (
+                        <th key={column.name}>{column.name}</th>
+                      ))}
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dbRows.map((row) => {
+                      const isEditing = dbEdit.tableKey === dbTableKey && String(dbEdit.pk) === String(row.__pk);
+                      return (
+                        <Fragment key={`${dbTableKey}-${row.__pk}`}>
+                          <tr
+                            className={`table-row-editable ${isEditing ? "is-editing" : ""}`}
+                            onDoubleClick={() => startDbEdit(row)}
+                          >
+                            {dbColumns.map((column) => {
+                              const displayValue = column.is_relation && row[`${column.name}__display`]
+                                ? `${row[`${column.name}__display`]} (${row[column.name]})`
+                                : formatDbValue(row[column.name]);
+                              return <td key={`${row.__pk}-${column.name}`}>{displayValue}</td>;
+                            })}
+                            <td>
+                              <div className="inline-controls">
+                                <button type="button" className="btn btn-muted" onClick={() => startDbEdit(row)}>
+                                  {isEditing ? "Editing" : "Edit"}
+                                </button>
+                                <button type="button" className="btn btn-danger" onClick={() => handleDbDelete(row.__pk)}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {isEditing && (
+                            <tr className="table-inline-edit-row">
+                              <td colSpan={dbColumns.length + 1}>
+                                <form className="table-inline-edit-wrap table-inline-edit-grid database-inline-edit-form" onSubmit={handleDbSave}>
+                                  {renderDbEditFields()}
+                                  <div className="table-inline-edit-actions">
+                                    <button type="submit" className="btn btn-primary" disabled={saving}>
+                                      {saving ? "Saving..." : "Update Record"}
+                                    </button>
+                                    <button type="button" className="btn btn-muted" onClick={clearDbEdit} disabled={saving}>
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         ) : (
           <section className="panel-card">
             <h2>{TABS.find((item) => item.key === activeTab)?.label}</h2>
