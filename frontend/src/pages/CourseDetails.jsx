@@ -5,7 +5,6 @@ import {
   HiOutlineCalendarDays,
   HiOutlineClock,
   HiOutlineDocumentText,
-  HiOutlinePlayCircle,
   HiOutlineShoppingBag,
 } from "react-icons/hi2";
 
@@ -394,15 +393,7 @@ export default function CourseDetails() {
                   </article>
                 </div>
 
-                <aside className="course-side-column">
-                  <article className="course-details-panel">
-                    <h2>Video section (placeholder)</h2>
-                    <p className="video-placeholder">
-                      <HiOutlinePlayCircle />
-                      Video preview is text-only at this stage. A real video player is intentionally not integrated yet.
-                    </p>
-                  </article>
-                </aside>
+                <aside className="course-side-column" />
               </section>
             </>
           )}
