@@ -63,13 +63,12 @@ export default function Login() {
       if (!user?.is_email_verified) {
         addToast({
           type: "info",
-          message: "Login successful, but email verification is required. Redirecting to verification page.",
+          message: "Login successful! Please verify your email from your profile.",
         });
-        navigate(`/verify-email?email=${encodeURIComponent(user?.email || "")}`);
       } else {
         addToast({ type: "success", message: "Login successful! Welcome back" });
-        navigate(user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
       }
+      navigate(user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
     } catch (error) {
       addToast({ type: "error", message: getLoginErrorMessage(error) });
     } finally {
