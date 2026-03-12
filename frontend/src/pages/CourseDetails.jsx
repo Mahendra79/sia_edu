@@ -200,10 +200,6 @@ export default function CourseDetails() {
     return extractSectionBullets(description, ["Learning Outcomes"], 12);
   }, [description]);
 
-  const platformResources = useMemo(() => {
-    return extractSectionBullets(description, ["Platform Access and Academic Resources"], 12);
-  }, [description]);
-
   const capstone = useMemo(() => {
     return extractSectionBullets(description, ["Capstone Project"], 12);
   }, [description]);
@@ -361,20 +357,6 @@ export default function CourseDetails() {
                       <h2>Capstone project</h2>
                       <ul className="details-list">
                         {capstone.map((item) => (
-                          <li key={item}>
-                            <HiOutlineDocumentText />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  ) : null}
-
-                  {platformResources.length > 0 ? (
-                    <article className="course-details-panel">
-                      <h2>Platform access and academic resources</h2>
-                      <ul className="details-list">
-                        {platformResources.map((item) => (
                           <li key={item}>
                             <HiOutlineDocumentText />
                             <span>{item}</span>
