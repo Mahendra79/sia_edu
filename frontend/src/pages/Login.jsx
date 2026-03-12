@@ -14,7 +14,6 @@ import PageTransition from "../components/PageTransition";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
-import { API_BASE_URL } from "../services/api";
 import companyLogo from "../assets/image.webp";
 import "./AuthPages.css";
 import "./Login.css";
@@ -29,26 +28,50 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const getLoginErrorMessage = (error) => {
+    if (!error?.response) {
+      return "Unable to connect to the server. Check your internet or try again later.";
+    }
+
+    const status = error.response.status;
+    if (status === 429) {
+      return "Too many login attempts. Please wait 5 minutes or use 'Forgot Password'.";
+    }
+    if (status >= 500) {
+      return "Server is currently unavailable. Please contact support if this persists.";
+    }
+
+    const detail = error.response.data?.detail || error.response.data?.non_field_errors?.[0];
+    if (detail) {
+      const lowered = String(detail).toLowerCase();
+      if (lowered.includes("invalid") || lowered.includes("no active account")) {
+        return "Invalid username/email or password.";
+      }
+      if (lowered.includes("verification")) {
+        return "Your account requires email verification. Please check your email for the OTP.";
+      }
+    }
+
+    return "Login failed. Please verify your credentials and try again.";
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     try {
       const user = await login(form);
       if (!user?.is_email_verified) {
-        addToast({ type: "info", message: "Please verify your email with OTP to complete setup." });
+        addToast({
+          type: "info",
+          message: "Login successful, but email verification is required. Redirecting to verification page.",
+        });
         navigate(`/verify-email?email=${encodeURIComponent(user?.email || "")}`);
       } else {
-        addToast({ type: "success", message: "Welcome back." });
+        addToast({ type: "success", message: "Login successful! Welcome back" });
         navigate(user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
       }
     } catch (error) {
-      const message =
-        error.response?.data?.detail ||
-        error.response?.data?.non_field_errors?.[0] ||
-        (!error.response
-          ? `Unable to reach backend API at ${API_BASE_URL}. Start Django server and check CORS.`
-          : "Unable to login. Please check credentials.");
-      addToast({ type: "error", message });
+      addToast({ type: "error", message: getLoginErrorMessage(error) });
     } finally {
       setLoading(false);
     }

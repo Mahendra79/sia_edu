@@ -29,6 +29,11 @@ export default function ForgotPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
+  const isStrongPassword = (value) =>
+    value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+  const isValidOtp = (value) => /^\d{6}$/.test(value);
+
   const passwordStrength = useMemo(() => {
     if (!password) {
       return { score: 0, label: "Add a password" };
@@ -50,12 +55,23 @@ export default function ForgotPassword() {
 
   const handleRequestToken = async (event) => {
     event.preventDefault();
+    if (!isValidEmail(email.trim())) {
+      addToast({ type: "error", message: "Please enter a valid email address." });
+      return;
+    }
     setRequesting(true);
     try {
       await authService.requestPasswordReset({ email });
-      addToast({ type: "info", message: "Reset OTP sent if this email is registered." });
-    } catch {
-      addToast({ type: "error", message: "Unable to request reset OTP right now." });
+      addToast({ type: "success", message: "Verification code is sent." });
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      if (detail) {
+        addToast({ type: "error", message: detail });
+      } else if (!error?.response) {
+        addToast({ type: "error", message: "Unable to send reset email right now. Please try again later." });
+      } else {
+        addToast({ type: "error", message: "Unable to send reset email right now. Please try again later." });
+      }
     } finally {
       setRequesting(false);
     }
@@ -63,6 +79,21 @@ export default function ForgotPassword() {
 
   const handleResetPassword = async (event) => {
     event.preventDefault();
+    if (!isValidOtp(otpCode.trim())) {
+      addToast({ type: "error", message: "OTP is invalid or expired. Please request a new one." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      addToast({ type: "error", message: "Passwords do not match. Please confirm your new password." });
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      addToast({
+        type: "error",
+        message: "New password must be at least 8 characters with uppercase, lowercase, number, and special character.",
+      });
+      return;
+    }
     setResetting(true);
     try {
       await authService.confirmPasswordReset({
@@ -71,12 +102,31 @@ export default function ForgotPassword() {
         password,
         confirm_password: confirmPassword,
       });
-      addToast({ type: "success", message: "Password reset successful. Please login." });
+      addToast({ type: "success", message: "Password updated successfully! You can now log in with your new password." });
       setOtpCode("");
       setPassword("");
       setConfirmPassword("");
-    } catch {
-      addToast({ type: "error", message: "Failed to reset password. Check token and password format." });
+    } catch (error) {
+      if (!error?.response) {
+        addToast({ type: "error", message: "Unable to reset password. Please try again or contact support." });
+      } else if (error.response.status >= 500) {
+        addToast({ type: "error", message: "Unable to reset password. Please try again or contact support." });
+      } else {
+        const detail = error.response?.data?.detail || "";
+        const lowered = String(detail).toLowerCase();
+        if (lowered.includes("otp") || lowered.includes("expired") || lowered.includes("invalid")) {
+          addToast({ type: "error", message: "OTP is invalid or expired. Please request a new one." });
+        } else if (error.response?.data?.confirm_password) {
+          addToast({ type: "error", message: "Passwords do not match. Please confirm your new password." });
+        } else if (error.response?.data?.password) {
+          addToast({
+            type: "error",
+            message: "New password must be at least 8 characters with uppercase, lowercase, number, and special character.",
+          });
+        } else {
+          addToast({ type: "error", message: "Reset failed. Please check your inputs and try again." });
+        }
+      }
     } finally {
       setResetting(false);
     }
@@ -162,8 +212,11 @@ export default function ForgotPassword() {
                 <input
                   id="reset_otp"
                   value={otpCode}
-                  onChange={(event) => setOtpCode(event.target.value)}
+                  onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, ""))}
                   placeholder="6-digit OTP"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
                   required
                 />
                 <label htmlFor="new_password">New Password</label>

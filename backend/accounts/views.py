@@ -94,23 +94,19 @@ class SignupView(generics.CreateAPIView):
             ).first()
             if existing_user:
                 if existing_user.is_deleted or not existing_user.is_active:
-                    return Response({"detail": "Account is inactive."}, status=status.HTTP_400_BAD_REQUEST)
-                if not password or not existing_user.check_password(password):
                     return Response(
-                        {"detail": "Account already exists. Use login with correct password."},
+                        {"detail": "Unable to create account right now. Please try again later or contact support."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                token = None
-                if not existing_user.is_email_verified:
-                    token = _send_email_verification_token(existing_user)
-                return Response(
-                    _attach_verification_meta(
-                        _issue_auth_payload(existing_user, "Account already exists. Logged in successfully."),
-                        existing_user,
-                        token,
-                    ),
-                    status=status.HTTP_200_OK,
-                )
+                if username and existing_user.username.lower() == username.lower():
+                    detail = "Username is unavailable. Please choose a different one."
+                elif email and existing_user.email.lower() == email.lower():
+                    detail = "This email is already registered."
+                elif phone and existing_user.phone == phone:
+                    detail = "Phone number is already registered."
+                else:
+                    detail = "Signup failed due to invalid inputs. Please review and try again."
+                return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
 
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -119,7 +115,7 @@ class SignupView(generics.CreateAPIView):
 
             return Response(
                 _attach_verification_meta(
-                    _issue_auth_payload(user, "Signup successful. Logged in successfully."),
+                    _issue_auth_payload(user, "Welcome to SIA! Your account has been created successfully. You're now logged in."),
                     user,
                     token,
                 ),
@@ -129,10 +125,17 @@ class SignupView(generics.CreateAPIView):
             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError:
             logger.exception("Signup failed due to integrity constraint.")
-            return Response({"detail": "Account already exists. Try login."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Unable to create account right now. Please try again later or contact support."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.exception("Unexpected signup failure.")
-            detail = str(exc) if settings.DEBUG else "Signup failed on server."
+            detail = (
+                str(exc)
+                if settings.DEBUG
+                else "Unable to create account right now. Please try again later or contact support."
+            )
             return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -266,11 +269,15 @@ class PasswordResetRequestView(APIView):
                 send_password_reset_verification_code_email(user=user, verification_code=reset_token.otp_code)
             except Exception:
                 logger.exception("Failed to send password reset email for user_id=%s", user.id)
-            response_payload = {"message": "If the account exists, a reset verification code has been sent."}
+                return Response(
+                    {"detail": "Unable to send reset email right now. Please try again later."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+            response_payload = {"message": "Verification code is sent."}
             if settings.AUTH_DEBUG_TOKENS:
                 response_payload["debug_reset"] = {"otp_code": reset_token.otp_code}
             return Response(response_payload)
-        return Response({"message": "If the account exists, a reset verification code has been sent."})
+        return Response({"detail": "This email is not registered."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PasswordResetConfirmView(APIView):
@@ -291,7 +298,10 @@ class PasswordResetConfirmView(APIView):
             .first()
         )
         if not reset_token or not reset_token.is_valid():
-            return Response({"detail": "Verification code is invalid or expired."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "OTP is invalid or expired. Please request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user = reset_token.user
         user.set_password(serializer.validated_data["password"])
