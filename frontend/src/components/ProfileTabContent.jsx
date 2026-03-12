@@ -18,6 +18,8 @@ const EMPTY_FORM = {
 };
 
 const USERNAME_REGEX = /^[\w.@+-]+$/;
+const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function resolveImageUrl(path) {
   if (!path) {
@@ -28,6 +30,19 @@ function resolveImageUrl(path) {
   }
   const apiOrigin = /^https?:\/\//i.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin;
   return new URL(String(path).replace(/\\/g, "/"), `${apiOrigin}/`).toString();
+}
+
+function validateAvatarFile(file) {
+  if (!file) {
+    return "";
+  }
+  if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+    return "Invalid avatar type. Use JPG, PNG or WEBP.";
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    return "Avatar image must be 3MB or smaller.";
+  }
+  return "";
 }
 
 function toProfileForm(payload = {}) {
@@ -170,6 +185,16 @@ export default function ProfileTabContent() {
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] || null;
+    const validationMessage = validateAvatarFile(file);
+    if (validationMessage) {
+      setFieldErrors((prev) => ({ ...prev, avatar: validationMessage }));
+      addToast({ type: "error", message: validationMessage });
+      event.target.value = "";
+      setAvatarFile(null);
+      clearLocalAvatarObjectUrl();
+      setAvatarPreview(resolveImageUrl(form.avatar));
+      return;
+    }
     setAvatarFile(file);
     if (fieldErrors.avatar) {
       setFieldErrors((prev) => {
@@ -206,6 +231,15 @@ export default function ProfileTabContent() {
     event.preventDefault();
     if (!isEditing || saving) {
       return;
+    }
+
+    if (avatarFile) {
+      const validationMessage = validateAvatarFile(avatarFile);
+      if (validationMessage) {
+        setFieldErrors((prev) => ({ ...prev, avatar: validationMessage }));
+        addToast({ type: "error", message: validationMessage });
+        return;
+      }
     }
 
     const trimmedUsername = form.username.trim();
