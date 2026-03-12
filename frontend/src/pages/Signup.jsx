@@ -119,11 +119,7 @@ export default function Signup() {
         message: successMessage,
       });
       if (response?.access && response?.refresh && response?.user) {
-        if (requiresVerification) {
-          navigate(`/verify-email?email=${encodeURIComponent(response.user.email || "")}`);
-        } else {
-          navigate(response.user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
-        }
+        navigate(response.user?.is_admin ? "/admin/dashboard" : "/user/dashboard");
       } else {
         navigate("/login");
       }
