@@ -20,6 +20,8 @@ import { getCourseStartLabel } from "../data/featuredCourse";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
+const FALLBACK_COURSE_IMAGE_URL =
+  "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
 
 const DEFAULT_CURRICULUM = [
   "Module 1: Foundations, notation, and problem framing",
@@ -146,11 +148,13 @@ export default function CourseDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [imageStage, setImageStage] = useState(0);
 
   const loadCourseDetails = useCallback(async () => {
     setLoading(true);
     setError("");
     setDescriptionExpanded(false);
+    setImageStage(0);
 
     try {
       const detailResponse = await courseService.getCourse(id);
@@ -204,7 +208,20 @@ export default function CourseDetails() {
     return extractSectionBullets(description, ["Capstone Project"], 12);
   }, [description]);
 
-  const imageUrl = resolveCourseImageUrl(course?.image);
+  const imageCandidates = useMemo(() => {
+    const primary = resolveCourseImageUrl(course?.image);
+    const candidates = [primary, FALLBACK_COURSE_IMAGE_URL].filter(Boolean);
+    const unique = [];
+    for (const candidate of candidates) {
+      if (!unique.includes(candidate)) {
+        unique.push(candidate);
+      }
+    }
+    return unique;
+  }, [course?.image]);
+
+  const imageUrl = imageCandidates[imageStage] || "";
+  const showImage = Boolean(imageUrl);
 
   const handleBuyCourse = () => {
     if (!course) {
@@ -277,8 +294,13 @@ export default function CourseDetails() {
                     ) : null}
                   </div>
                   <div className="course-hero-image-wrap">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={course.title} className="course-hero-image" />
+                    {showImage ? (
+                      <img
+                        src={imageUrl}
+                        alt={course.title}
+                        className="course-hero-image"
+                        onError={() => setImageStage((stage) => Math.min(stage + 1, imageCandidates.length))}
+                      />
                     ) : (
                       <div className="course-hero-image-placeholder">
                         <HiOutlineBookOpen />
