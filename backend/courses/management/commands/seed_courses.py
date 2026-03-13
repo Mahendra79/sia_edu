@@ -42,7 +42,7 @@ COURSE_BLUEPRINTS: tuple[CourseBlueprint, ...] = (
         price=Decimal("0.00"),
         discount_percent=Decimal("0.00"),
         topics=("Quantum Foundations", "Quantum Circuits", "Quantum Algorithms", "Hybrid Optimization", "HDQS Platform"),
-        duration_days=30,
+        duration_days=56,
         description_override=(
             "Certificate Program in Quantum Computing\n"
             "Delivered on the Hyper Dimensional Quantum System (HDQS) Platform\n"
@@ -141,7 +141,7 @@ CATEGORY_REQUIREMENTS: dict[str, tuple[str, ...]] = {
 }
 
 CATEGORY_DURATION_DAYS: dict[str, int] = {
-    "Quantum Computing": 30,
+    "Quantum Computing": 56,
 }
 
 
@@ -163,6 +163,7 @@ class Command(BaseCommand):
         topics = list(blueprint.topics)
         requirements = list(blueprint.requirements or CATEGORY_REQUIREMENTS.get(blueprint.category, ()))
         duration_days = blueprint.duration_days or CATEGORY_DURATION_DAYS.get(blueprint.category, 30)
+        duration_weeks = max(1, round(duration_days / 7))
         if not requirements:
             requirements = [
                 "No strict prerequisites; beginner-friendly mindset is enough.",
@@ -189,7 +190,7 @@ class Command(BaseCommand):
                 f"It combines guided practice, structured labs, and project-focused outcomes."
             ),
             "",
-            f"Estimated duration: {duration_days} days of structured learning.",
+            f"Estimated duration: {duration_weeks} weeks of structured learning.",
             "",
             "What you'll learn:",
             *[f"- {item}" for item in learn_points],
