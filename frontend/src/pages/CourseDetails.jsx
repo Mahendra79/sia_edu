@@ -194,6 +194,9 @@ export default function CourseDetails() {
   const previewDescription = parseDescriptionPreview(description, descriptionExpanded);
   const canToggleDescription = description.length > DESCRIPTION_PREVIEW_LIMIT;
   const startLabel = getCourseStartLabel(course);
+  const durationDays = Number(course?.duration_days || 0);
+  const durationWeeks = durationDays > 0 ? Math.round(durationDays / 7) : 0;
+  const durationLabel = durationWeeks > 0 ? `${durationWeeks} weeks` : "";
 
   const curriculum = useMemo(() => {
     const extracted = extractSectionBullets(description, ["Course content", "Curriculum"], 10);
@@ -285,6 +288,12 @@ export default function CourseDetails() {
                       <span className="meta-pill">
                         <HiOutlineCalendarDays />
                         {startLabel}
+                      </span>
+                    ) : null}
+                    {durationLabel ? (
+                      <span className="meta-pill">
+                        <HiOutlineCalendarDays />
+                        {durationLabel}
                       </span>
                     ) : null}
                   </div>

@@ -30,6 +30,9 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
   const discountedPrice = Number(course.discounted_price ?? listPrice);
   const isPurchased = Boolean(course.is_purchased);
   const startLabel = getCourseStartLabel(course);
+  const durationDays = Number(course.duration_days || 0);
+  const durationWeeks = durationDays > 0 ? Math.round(durationDays / 7) : 0;
+  const durationLabel = durationWeeks > 0 ? `${durationWeeks} weeks` : "";
 
   const handleOpen = () => {
     if (typeof onOpen === "function") {
@@ -78,6 +81,12 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
             <span className="pill">
               <HiOutlineCalendarDays />
               {startLabel}
+            </span>
+          ) : null}
+          {durationLabel ? (
+            <span className="pill">
+              <HiOutlineCalendarDays />
+              {durationLabel}
             </span>
           ) : null}
           {hasDiscount && (
