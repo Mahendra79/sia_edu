@@ -26,6 +26,9 @@ class CourseBlueprint:
 
 
 CATEGORY_SEEDS: tuple[tuple[str, str], ...] = (
+    ("AI & ML", "Applied artificial intelligence and machine learning for real-world systems and workflows."),
+    ("Agentic AI", "Autonomous AI systems, tool-using agents, planning, and multi-step execution patterns."),
+    ("Data Science", "Data analysis, statistical reasoning, visualization, and decision-focused modeling."),
     ("Quantum Computing", "Quantum information, circuits, algorithms, and implementation frameworks."),
 )
 
@@ -50,6 +53,8 @@ COURSE_BLUEPRINTS: tuple[CourseBlueprint, ...] = (
             "Offered by SIA Software Innovations Private Limited\n"
             "\n"
             "Program Overview\n"
+            "Difficulty Level: Advanced\n"
+            "\n"
             "The Certificate Program in Quantum Computing is a structured, programming-intensive academic offering "
             "designed to provide foundational knowledge, algorithmic competence, and applied implementation skills "
             "in quantum computation.\n"
@@ -109,6 +114,328 @@ COURSE_BLUEPRINTS: tuple[CourseBlueprint, ...] = (
             "- Certificate of completion.\n"
         ),
     ),
+    CourseBlueprint(
+        title="Quantum Gates and Circuit Design",
+        short_description=(
+            "Build quantum circuits with core gate sets, entanglement patterns, measurement logic, and simulator workflows."
+        ),
+        category="Quantum Computing",
+        focus="design and analyze quantum circuits using practical gate-based workflows",
+        price=Decimal("499.00"),
+        discount_percent=Decimal("20.00"),
+        topics=("Quantum Gates", "Circuit Design", "Entanglement", "Measurement", "Simulation Workflows"),
+        duration_days=28,
+        description_override=(
+            "Quantum Gates and Circuit Design\n"
+            "Build practical fluency with gate-based quantum circuit construction\n"
+            "\n"
+            "Course Overview\n"
+            "Difficulty Level: Basic\n"
+            "\n"
+            "This course is designed for learners who want a rigorous but approachable entry into quantum circuit engineering. "
+            "It focuses on the operational layer of quantum computing: how qubits are represented, how gates transform quantum states, "
+            "how entanglement is created, and how circuits are evaluated in simulation environments.\n"
+            "\n"
+            "Rather than treating quantum computing as a purely theoretical subject, the course emphasizes circuit construction, "
+            "measurement interpretation, debugging strategies, and structured practice with executable examples.\n"
+            "\n"
+            "Who this course is for\n"
+            "- Students preparing for advanced quantum algorithm study.\n"
+            "- Engineers transitioning from classical programming into quantum workflows.\n"
+            "- Technical teams that need circuit-level intuition before exploring platform-specific quantum tooling.\n"
+            "\n"
+            "Learning outcomes\n"
+            "- Explain the purpose and behavior of standard single-qubit and multi-qubit gates.\n"
+            "- Build and analyze circuits for superposition, interference, and entanglement.\n"
+            "- Interpret measurement outcomes and connect them to circuit design choices.\n"
+            "- Evaluate circuit depth, state evolution, and execution tradeoffs in simulation.\n"
+            "- Document quantum experiments clearly for review, collaboration, and iteration.\n"
+            "\n"
+            "Course content / curriculum\n"
+            "Module 1: Qubits, states, and circuit notation\n"
+            "- State vectors, basis states, amplitudes, and Bloch sphere intuition.\n"
+            "- Dirac notation and circuit diagram conventions.\n"
+            "- Measurement basics and probability interpretation.\n"
+            "\n"
+            "Module 2: Single-qubit gate operations\n"
+            "- X, Y, Z, H, S, T and rotation gates.\n"
+            "- Circuit transformations and state preparation workflows.\n"
+            "- Visualizing and validating state transitions.\n"
+            "\n"
+            "Module 3: Multi-qubit systems and entanglement\n"
+            "- Tensor products and two-qubit state construction.\n"
+            "- Controlled gates, Bell states, and entanglement patterns.\n"
+            "- Interference, correlation, and circuit debugging.\n"
+            "\n"
+            "Module 4: Circuit execution and optimization basics\n"
+            "- Measurement strategies, repeated sampling, and result interpretation.\n"
+            "- Circuit depth, gate count, and implementation tradeoffs.\n"
+            "- Simulator-led experimentation and report writing.\n"
+            "\n"
+            "Capstone project\n"
+            "Design and present a quantum circuit portfolio containing a state preparation circuit, a Bell-state circuit, "
+            "and a small experimental report that explains design intent, expected results, observed outcomes, and possible optimizations.\n"
+            "\n"
+            "Full description\n"
+            "By the end of the course, learners will be able to move beyond conceptual curiosity and reason about circuit structure with confidence. "
+            "This makes the course a strong prerequisite for deeper study in quantum algorithms, variational methods, and hybrid quantum-classical applications.\n"
+        ),
+    ),
+    CourseBlueprint(
+        title="Agentic AI",
+        short_description=(
+            "Design AI agents that reason, plan, use tools, and complete multi-step tasks with reliability and control."
+        ),
+        category="Agentic AI",
+        focus="build agentic systems that combine reasoning, tool use, memory, and workflow control",
+        price=Decimal("599.00"),
+        discount_percent=Decimal("15.00"),
+        topics=("Agent Design", "Planning", "Tool Use", "Memory", "Multi-Step Execution"),
+        duration_days=35,
+        description_override=(
+            "Agentic AI\n"
+            "Architect practical AI agents for multi-step execution and decision-driven workflows\n"
+            "\n"
+            "Course Overview\n"
+            "Difficulty Level: Intermediate\n"
+            "\n"
+            "This course focuses on the design of agentic AI systems that do more than return a single response. "
+            "Learners build systems that plan, call tools, maintain context, recover from failure, and complete tasks across multiple steps. "
+            "The course is intentionally implementation-oriented and aligns with modern product patterns for assistants, copilots, and workflow automation.\n"
+            "\n"
+            "Who this course is for\n"
+            "- Developers building LLM-powered products and internal tools.\n"
+            "- Product teams designing assistants with action-taking capabilities.\n"
+            "- Engineers who need reliable orchestration patterns rather than prompt-only prototypes.\n"
+            "\n"
+            "Learning outcomes\n"
+            "- Distinguish between single-turn prompting and agentic execution architectures.\n"
+            "- Design planning, tool selection, and state management strategies for AI agents.\n"
+            "- Build guardrails for retries, validation, and fallback behavior.\n"
+            "- Evaluate agent performance using task completion, latency, and reliability signals.\n"
+            "- Ship agent workflows that are easier to inspect, debug, and improve over time.\n"
+            "\n"
+            "Course content / curriculum\n"
+            "Module 1: Agent foundations and execution loops\n"
+            "- Agent roles, objectives, state, and environment boundaries.\n"
+            "- ReAct-style reasoning, action loops, and control flow patterns.\n"
+            "- Common failure modes in autonomous task completion.\n"
+            "\n"
+            "Module 2: Tool use and workflow integration\n"
+            "- Function calling, external APIs, retrieval, and structured outputs.\n"
+            "- Planning when to call tools versus when to answer directly.\n"
+            "- Input validation and error handling for tool-using agents.\n"
+            "\n"
+            "Module 3: Memory, reliability, and evaluation\n"
+            "- Session memory, working memory, and persistent context design.\n"
+            "- Reliability strategies for retries, constraints, and human handoff.\n"
+            "- Evaluation methods for task accuracy and workflow success.\n"
+            "\n"
+            "Module 4: Production patterns for agentic systems\n"
+            "- Monitoring, audit trails, and user-facing transparency.\n"
+            "- Permission boundaries and risk controls.\n"
+            "- Designing maintainable agent pipelines for real teams.\n"
+            "\n"
+            "Capstone project\n"
+            "Build a task-completion agent for an operations or support workflow that uses at least two tools, maintains execution state, "
+            "handles one failure mode gracefully, and produces a reviewable execution trace.\n"
+            "\n"
+            "Full description\n"
+            "The course is structured to move learners from agent concepts to production-minded implementation. "
+            "Instead of vague automation demos, students produce systems that can be reasoned about, tested, and improved with clear engineering tradeoffs.\n"
+        ),
+    ),
+    CourseBlueprint(
+        title="AI & ML",
+        short_description=(
+            "Learn core artificial intelligence and machine learning concepts for applied product, model, and analytics work."
+        ),
+        category="AI & ML",
+        focus="understand and apply foundational AI and machine learning methods to practical problems",
+        price=Decimal("549.00"),
+        discount_percent=Decimal("18.00"),
+        topics=("Supervised Learning", "Model Evaluation", "Feature Engineering", "Deployment Basics", "AI Workflows"),
+        duration_days=42,
+        description_override=(
+            "AI & ML\n"
+            "Develop strong applied foundations in machine learning system design and evaluation\n"
+            "\n"
+            "Course Overview\n"
+            "Difficulty Level: Basic\n"
+            "\n"
+            "This course provides a practical foundation in artificial intelligence and machine learning with emphasis on how real teams frame problems, "
+            "prepare data, train models, evaluate outcomes, and communicate tradeoffs. It is suitable for learners who want a structured bridge between "
+            "theory and applied model development.\n"
+            "\n"
+            "Who this course is for\n"
+            "- Students entering AI and ML from software, analytics, or engineering backgrounds.\n"
+            "- Early-career professionals who want a realistic understanding of ML workflows.\n"
+            "- Teams that need shared vocabulary across model development, evaluation, and deployment.\n"
+            "\n"
+            "Learning outcomes\n"
+            "- Frame business and product problems as machine learning tasks.\n"
+            "- Prepare datasets and select suitable baseline and advanced models.\n"
+            "- Evaluate models using appropriate performance and error analysis metrics.\n"
+            "- Understand overfitting, generalization, bias, and practical deployment constraints.\n"
+            "- Present model decisions and results in language stakeholders can act on.\n"
+            "\n"
+            "Course content / curriculum\n"
+            "Module 1: AI and ML foundations\n"
+            "- Types of learning, supervised vs unsupervised tasks, and real-world use cases.\n"
+            "- Problem framing, target definition, and dataset boundaries.\n"
+            "- Baseline thinking and the cost of poor problem formulation.\n"
+            "\n"
+            "Module 2: Data preparation and feature engineering\n"
+            "- Cleaning, splitting, scaling, encoding, and leakage prevention.\n"
+            "- Feature selection and transformation strategies.\n"
+            "- Reproducible experimentation and dataset version awareness.\n"
+            "\n"
+            "Module 3: Model training and evaluation\n"
+            "- Regression, classification, tree-based methods, and introductory ensemble thinking.\n"
+            "- Precision, recall, F1, ROC-AUC, MAE, RMSE, and confusion analysis.\n"
+            "- Error inspection and iterative improvement loops.\n"
+            "\n"
+            "Module 4: Deployment thinking and model operations\n"
+            "- Batch vs real-time inference patterns.\n"
+            "- Monitoring drift, data quality, and business-aligned success metrics.\n"
+            "- Responsible AI basics and communication of limitations.\n"
+            "\n"
+            "Capstone project\n"
+            "Develop an end-to-end ML case study from data preparation through model evaluation, then deliver a project report that includes "
+            "problem framing, feature decisions, metric justification, error analysis, and deployment recommendations.\n"
+            "\n"
+            "Full description\n"
+            "The course is built to produce practical confidence rather than checkbox familiarity. Learners complete realistic exercises that mirror "
+            "how machine learning projects are scoped, reviewed, and improved in production environments.\n"
+        ),
+    ),
+    CourseBlueprint(
+        title="Data Science",
+        short_description=(
+            "Work with data end to end using analysis, visualization, statistics, and decision-focused reporting."
+        ),
+        category="Data Science",
+        focus="analyze data, extract insight, and communicate evidence-backed recommendations",
+        price=Decimal("449.00"),
+        discount_percent=Decimal("22.00"),
+        topics=("Data Analysis", "Statistics", "Visualization", "Exploratory Data Analysis", "Reporting"),
+        duration_days=30,
+        description_override=(
+            "Data Science\n"
+            "Turn raw data into structured insight, clear reporting, and actionable business recommendations\n"
+            "\n"
+            "Course Overview\n"
+            "Difficulty Level: Basic\n"
+            "\n"
+            "This course covers the core workflow of modern data science: collecting and cleaning data, exploring patterns, testing assumptions, "
+            "building visual narratives, and presenting evidence clearly. The emphasis is on decision support rather than abstract theory alone.\n"
+            "\n"
+            "Who this course is for\n"
+            "- Learners who want to build practical data analysis skills.\n"
+            "- Analysts moving from spreadsheet-heavy work into more structured data practice.\n"
+            "- Teams that need clearer, more defensible reporting and insight generation.\n"
+            "\n"
+            "Learning outcomes\n"
+            "- Clean and structure datasets for trustworthy analysis.\n"
+            "- Perform exploratory data analysis that surfaces useful patterns and anomalies.\n"
+            "- Apply foundational statistics to support interpretation and decision making.\n"
+            "- Build visualizations that communicate trends clearly to technical and non-technical audiences.\n"
+            "- Translate analytical findings into concise recommendations and next steps.\n"
+            "\n"
+            "Course content / curriculum\n"
+            "Module 1: Data preparation and analytical framing\n"
+            "- Asking the right analytical questions.\n"
+            "- Cleaning, formatting, missing-value handling, and data quality checks.\n"
+            "- Building an analysis plan before jumping into charts.\n"
+            "\n"
+            "Module 2: Exploratory data analysis\n"
+            "- Distribution analysis, segmentation, trend inspection, and anomaly detection.\n"
+            "- Working with categorical and numerical variables.\n"
+            "- Identifying misleading patterns and weak conclusions.\n"
+            "\n"
+            "Module 3: Statistics and interpretation\n"
+            "- Central tendency, variance, correlation, and confidence-aware thinking.\n"
+            "- Practical hypothesis framing and interpretation limits.\n"
+            "- Distinguishing signal from noise in business contexts.\n"
+            "\n"
+            "Module 4: Visualization and reporting\n"
+            "- Chart selection, dashboard storytelling, and stakeholder-friendly summaries.\n"
+            "- Writing insight narratives with context and recommendations.\n"
+            "- Building concise analytical presentations.\n"
+            "\n"
+            "Capstone project\n"
+            "Analyze a multi-dimensional dataset and produce a decision-ready report with cleaned data assumptions, exploratory findings, "
+            "key visualizations, risk notes, and a final recommendation summary for stakeholders.\n"
+            "\n"
+            "Full description\n"
+            "This course trains learners to produce analysis that is not only technically correct, but also useful. "
+            "By the end, students can move from raw data to defensible recommendations with a workflow appropriate for production teams and client delivery.\n"
+        ),
+    ),
+    CourseBlueprint(
+        title="Quantum Algorithms and Complex Computations",
+        short_description=(
+            "Study core quantum algorithms and solve computation-heavy problems using formal quantum methods."
+        ),
+        category="Quantum Computing",
+        focus="implement quantum algorithms and reason about complex computation problems with quantum methods",
+        price=Decimal("699.00"),
+        discount_percent=Decimal("12.00"),
+        topics=("Deutsch-Jozsa", "Bernstein-Vazirani", "Grover Search", "Quantum Fourier Transform", "Complexity Analysis"),
+        duration_days=32,
+        description_override=(
+            "Quantum Algorithms and Complex Computations\n"
+            "Understand canonical quantum algorithms and apply them to complex computational problem structures\n"
+            "\n"
+            "Course Overview\n"
+            "Difficulty Level: Advanced\n"
+            "\n"
+            "This course explores the algorithmic side of quantum computing. Learners study the structure of widely cited quantum algorithms, "
+            "the problem structures they address, and the conditions under which quantum methods become meaningfully interesting for complex computations. "
+            "The course balances formal understanding with circuit-level implementation and analysis.\n"
+            "\n"
+            "Who this course is for\n"
+            "- Students who already understand basic qubits and circuit notation.\n"
+            "- Engineers preparing for deeper work in quantum software or research support.\n"
+            "- Technical learners who want to evaluate quantum advantage claims rigorously.\n"
+            "\n"
+            "Learning outcomes\n"
+            "- Explain the structure and objective of foundational quantum algorithms.\n"
+            "- Implement small algorithmic circuits and interpret their outcomes.\n"
+            "- Compare classical and quantum approaches at the level of complexity and problem structure.\n"
+            "- Analyze which classes of complex computations are suitable for quantum treatment.\n"
+            "- Communicate algorithm tradeoffs with technical precision.\n"
+            "\n"
+            "Course content / curriculum\n"
+            "Module 1: Algorithmic foundations\n"
+            "- Oracle-based problem framing and reversible computation.\n"
+            "- Interference as a computational resource.\n"
+            "- Complexity intuition for quantum speedup discussions.\n"
+            "\n"
+            "Module 2: Early quantum algorithms\n"
+            "- Deutsch and Deutsch-Jozsa.\n"
+            "- Bernstein-Vazirani and hidden-structure reasoning.\n"
+            "- Circuit design patterns behind oracle problems.\n"
+            "\n"
+            "Module 3: Search and transform methods\n"
+            "- Grover's search and amplitude amplification.\n"
+            "- Quantum Fourier Transform and phase structure.\n"
+            "- Practical circuit considerations and scaling limits.\n"
+            "\n"
+            "Module 4: Interpreting quantum advantage\n"
+            "- Classical baselines and fairness in comparison.\n"
+            "- Resource assumptions, noise sensitivity, and implementation constraints.\n"
+            "- Framing realistic claims for technical and business audiences working on complex computational systems.\n"
+            "\n"
+            "Capstone project\n"
+            "Implement and compare two canonical quantum algorithms in simulation, document the circuit logic, analyze expected behavior, "
+            "and write a short technical brief on how quantum methods can support complex computation problems and where practical constraints remain.\n"
+            "\n"
+            "Full description\n"
+            "The course is intended to make learners precise rather than merely enthusiastic. Students leave with a grounded understanding of why "
+            "quantum algorithms matter, what assumptions they rely on, and how to discuss complex computational applications without oversimplification.\n"
+        ),
+    ),
 )
 
 
@@ -134,6 +461,18 @@ REVIEW_TEMPLATES: dict[int, tuple[str, ...]] = {
 
 
 CATEGORY_REQUIREMENTS: dict[str, tuple[str, ...]] = {
+    "AI & ML": (
+        "Basic comfort with algebra and logical problem solving.",
+        "Interest in training, evaluating, and improving machine learning systems.",
+    ),
+    "Agentic AI": (
+        "Basic familiarity with prompts, APIs, or automation workflows.",
+        "Willingness to reason about task planning and tool orchestration.",
+    ),
+    "Data Science": (
+        "Comfort with spreadsheets or basic Python-based data handling.",
+        "Interest in statistics, trends, and data-backed decisions.",
+    ),
     "Quantum Computing": (
         "High-school algebra and basic linear algebra familiarity.",
         "Curiosity for non-classical computation models.",
@@ -141,6 +480,9 @@ CATEGORY_REQUIREMENTS: dict[str, tuple[str, ...]] = {
 }
 
 CATEGORY_DURATION_DAYS: dict[str, int] = {
+    "AI & ML": 42,
+    "Agentic AI": 35,
+    "Data Science": 30,
     "Quantum Computing": 56,
 }
 
