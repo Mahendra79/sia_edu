@@ -1,7 +1,7 @@
 import hashlib
 
 from django.core.cache import cache
-from django.db.models import Avg, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import Avg, Case, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
@@ -27,6 +27,7 @@ from deleted_records.services import record_soft_delete
 COURSE_CACHE_VERSION_KEY = "courses:cache_version"
 CATEGORY_CACHE_TTL = 120
 COURSE_CACHE_TTL = 60
+PINNED_COURSE_TITLE = "Certificate Program in Quantum Computing"
 
 
 def _get_cache_version() -> int:
@@ -76,6 +77,16 @@ def _annotated_course_queryset(user):
             **purchased_annotation,
         )
     )
+
+
+def _ordered_course_queryset(queryset):
+    return queryset.annotate(
+        pinned_order=Case(
+            When(title=PINNED_COURSE_TITLE, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+    ).order_by("pinned_order", "-created_at")
 
 
 def _log_admin_action(user, action: str, target_type: str, target_id: str, details: str = ""):
@@ -171,7 +182,7 @@ class CourseListCreateView(generics.ListCreateAPIView):
                 payment_transactions__is_deleted=False,
                 payment_transactions__payment_status="success",
             ).distinct()
-        return queryset.order_by("-created_at")
+        return _ordered_course_queryset(queryset)
 
     def list(self, request, *args, **kwargs):
         cache_key = _build_cache_key("courses-list", request, include_user=True)
@@ -254,12 +265,12 @@ class RelatedCoursesView(APIView):
             limit_value = 6
 
         base_queryset = _annotated_course_queryset(request.user).filter(is_active=True).exclude(id=course.id)
-        related_queryset = base_queryset.filter(category_id=course.category_id).order_by("-created_at")
+        related_queryset = _ordered_course_queryset(base_queryset.filter(category_id=course.category_id))
         related_items = list(related_queryset[:limit_value])
 
         if len(related_items) < limit_value:
             existing_ids = [item.id for item in related_items]
-            fallback_queryset = base_queryset.exclude(id__in=existing_ids).order_by("-created_at")
+            fallback_queryset = _ordered_course_queryset(base_queryset.exclude(id__in=existing_ids))
             related_items.extend(list(fallback_queryset[: (limit_value - len(related_items))]))
 
         serializer = CourseSerializer(related_items, many=True, context={"request": request, "search_query": ""})
