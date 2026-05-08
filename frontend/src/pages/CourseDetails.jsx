@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  HiOutlineArrowTopRightOnSquare,
   HiOutlineBookOpen,
   HiOutlineCalendarDays,
   HiOutlineDocumentText,
@@ -230,7 +231,7 @@ export default function CourseDetails() {
       return;
     }
     if (isPurchased) {
-      navigate("/user/my-courses");
+      navigate(`/user/lms/${course.id}`);
       return;
     }
     if (!isAuthenticated) {
@@ -326,8 +327,8 @@ export default function CourseDetails() {
                     className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
                     onClick={handleBuyCourse}
                   >
-                    <HiOutlineShoppingBag />
-                    {isPurchased ? "Open My Courses" : "Buy This Course"}
+                    {isPurchased ? <HiOutlineArrowTopRightOnSquare /> : <HiOutlineShoppingBag />}
+                    {isPurchased ? "Start Learning" : "Buy This Course"}
                   </button>
                 </aside>
               </section>

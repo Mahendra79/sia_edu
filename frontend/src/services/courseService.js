@@ -73,4 +73,25 @@ export const courseService = {
   getMyCourses(params) {
     return api.get("/courses/enrollments/me/", { params });
   },
+  getLmsOverview(courseId) {
+    return api.get(`/courses/lms/${courseId}/overview/`);
+  },
+  getLessonDetail(lessonId) {
+    return api.get(`/courses/lms/lessons/${lessonId}/`);
+  },
+  updateLessonProgress(lessonId, payload) {
+    return api.post(`/courses/lms/lessons/${lessonId}/progress/`, payload);
+  },
+  getAdminLmsLessons(params) {
+    return api.get("/courses/admin/lms-lessons/", { params });
+  },
+  createAdminLmsLesson(payload) {
+    return api.post("/courses/admin/lms-lessons/", payload);
+  },
+  updateAdminLmsLesson(id, payload) {
+    return api.patch(`/courses/admin/lms-lessons/${id}/`, payload);
+  },
+  deleteAdminLmsLesson(id) {
+    return api.delete(`/courses/admin/lms-lessons/${id}/`);
+  },
 };

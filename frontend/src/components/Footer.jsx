@@ -60,11 +60,13 @@ export default function Footer() {
           <h3>Connect</h3>
           <div className="site-footer-contact-list">
             <p className="site-footer-contact-item">
-              <span>General Information</span>
+              <span className="site-footer-label">General Information</span>
+              <span className="site-footer-colon">:</span>
               <a href="mailto:info@siasoftwareinnovations.com">info@siasoftwareinnovations.com</a>
             </p>
             <p className="site-footer-contact-item">
-              <span>Product &amp; Collaboration</span>
+              <span className="site-footer-label">Product &amp; Collaboration</span>
+              <span className="site-footer-colon">:</span>
               <a href="mailto:contact@siasoftwareinnovations.com">contact@siasoftwareinnovations.com</a>
             </p>
           </div>

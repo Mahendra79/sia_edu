@@ -27,6 +27,14 @@
   color: var(--text-primary);
 }
 
+/* Prevent long metric values (e.g., evaluation mode names) from overflowing cards. */
+.mis-kpi-grid .stat-card strong {
+  font-size: clamp(1.1rem, 2.1vw, 1.58rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .stat-card-button {
   width: 100%;
   padding: 1rem;
@@ -227,6 +235,28 @@
   min-width: 0;
 }
 
+/* Keep coupon date pickers fully clickable in dense inline-edit layouts. */
+.database-inline-edit-form input[type="datetime-local"],
+.coupon-create-form input[type="datetime-local"] {
+  min-width: 220px;
+  min-height: 46px;
+  padding-right: 2.2rem;
+  position: relative;
+  z-index: 2;
+  -webkit-appearance: auto;
+  appearance: auto;
+}
+
+.database-inline-edit-form input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.coupon-create-form input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.database-inline-edit-form .table-inline-field-toggle,
+.coupon-create-form .table-inline-field-toggle {
+  min-width: 150px;
+}
+
 .table-inline-field-toggle {
   align-content: end;
 }
@@ -387,6 +417,28 @@
   overflow-y: hidden;
   scrollbar-gutter: stable both-edges;
   overscroll-behavior-x: contain;
+}
+
+/* Keep action buttons visually separated inside admin tables. */
+.db-table td .inline-controls {
+  gap: 0.72rem;
+  flex-wrap: nowrap;
+}
+
+.db-table td .inline-controls .btn {
+  min-width: 120px;
+}
+
+/* LMS Admin lesson action buttons */
+.lms-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.62rem;
+  flex-wrap: nowrap;
+}
+
+.lms-row-actions .btn {
+  min-width: 108px;
 }
 
 @media (max-width: 980px) {

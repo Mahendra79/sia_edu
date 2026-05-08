@@ -5,9 +5,10 @@ import re
 from decimal import Decimal
 
 from django.db.models import Avg
+from django.utils import timezone
 from rest_framework import serializers
 
-from courses.models import Category, Course, Enrollment, Review, ReviewVote
+from courses.models import Category, Course, CourseLesson, Enrollment, Review, ReviewVote, UserLessonProgress
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -278,3 +279,71 @@ class AdminReviewUpdateSerializer(serializers.ModelSerializer):
         if value < 1 or value > 5:
             raise serializers.ValidationError("Rating must be between 1 and 5.")
         return value
+
+
+class CourseLessonAdminSerializer(serializers.ModelSerializer):
+    course_title = serializers.CharField(source="course.title", read_only=True)
+
+    class Meta:
+        model = CourseLesson
+        fields = (
+            "id",
+            "course",
+            "course_title",
+            "module_number",
+            "lesson_number",
+            "title",
+            "description",
+            "video_url",
+            "thumbnail_url",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class CourseLessonLearnerSerializer(serializers.ModelSerializer):
+    is_completed = serializers.SerializerMethodField()
+    is_unlocked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourseLesson
+        fields = (
+            "id",
+            "module_number",
+            "lesson_number",
+            "title",
+            "description",
+            "thumbnail_url",
+            "is_active",
+            "is_completed",
+            "is_unlocked",
+        )
+
+    def get_is_completed(self, obj):
+        completed_ids = self.context.get("completed_lesson_ids", set())
+        return obj.id in completed_ids
+
+    def get_is_unlocked(self, obj):
+        unlocked_ids = self.context.get("unlocked_lesson_ids", set())
+        return obj.id in unlocked_ids
+
+
+class LessonProgressUpdateSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=("complete", "skip"))
+
+    def save(self, **kwargs):
+        user = self.context["user"]
+        lesson = self.context["lesson"]
+        action = self.validated_data["action"]
+        progress, _ = UserLessonProgress.objects.get_or_create(
+            user=user,
+            lesson=lesson,
+            defaults={"is_completed": False},
+        )
+        if action in {"complete", "skip"} and not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save(update_fields=["is_completed", "completed_at", "updated_at"])
+        return progress

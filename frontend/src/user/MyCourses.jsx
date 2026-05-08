@@ -35,7 +35,7 @@ export default function MyCourses() {
   }, [page, addToast]);
 
   const handleViewCourse = (courseId) => {
-    navigate(`/course/${courseId}`);
+    navigate(`/user/lms/${courseId}`);
   };
 
   return (
@@ -74,7 +74,7 @@ export default function MyCourses() {
                         onClick={() => handleViewCourse(item.course.id)}
                       >
                         <HiOutlineArrowTopRightOnSquare />
-                        View Course
+                        Start Learning
                       </button>
                     </td>
                   </tr>

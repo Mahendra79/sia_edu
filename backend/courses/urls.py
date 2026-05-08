@@ -3,6 +3,8 @@ from django.urls import path
 from courses.views import (
     AdminEnrollmentDetailView,
     AdminEnrollmentsView,
+    AdminLessonDetailView,
+    AdminLessonListCreateView,
     AdminReviewDetailView,
     AdminReviewsView,
     CategoryListCreateView,
@@ -10,6 +12,9 @@ from courses.views import (
     CourseListCreateView,
     CourseRetrieveUpdateDestroyView,
     CourseReviewsView,
+    LearnerLessonDetailView,
+    LearnerLessonProgressView,
+    LearnerLMSOverviewView,
     MyEnrollmentsView,
     RelatedCoursesView,
     ReviewVoteView,
@@ -28,4 +33,9 @@ urlpatterns = [
     path("admin/enrollments/<int:enrollment_id>/", AdminEnrollmentDetailView.as_view(), name="admin-enrollment-detail"),
     path("admin/reviews/", AdminReviewsView.as_view(), name="admin-reviews"),
     path("admin/reviews/<int:review_id>/", AdminReviewDetailView.as_view(), name="admin-review-detail"),
+    path("admin/lms-lessons/", AdminLessonListCreateView.as_view(), name="admin-lms-lessons"),
+    path("admin/lms-lessons/<int:lesson_id>/", AdminLessonDetailView.as_view(), name="admin-lms-lesson-detail"),
+    path("lms/<int:course_id>/overview/", LearnerLMSOverviewView.as_view(), name="learner-lms-overview"),
+    path("lms/lessons/<int:lesson_id>/", LearnerLessonDetailView.as_view(), name="learner-lesson-detail"),
+    path("lms/lessons/<int:lesson_id>/progress/", LearnerLessonProgressView.as_view(), name="learner-lesson-progress"),
 ]

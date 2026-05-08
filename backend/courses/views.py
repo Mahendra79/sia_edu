@@ -11,10 +11,12 @@ from rest_framework.views import APIView
 from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
 from analytics.models import AdminActivityLog
 from config.pagination import StandardResultsSetPagination
-from courses.models import Category, Course, Enrollment, Review, ReviewVote
+from courses.models import Category, Course, CourseLesson, Enrollment, Review, ReviewVote, UserLessonProgress
 from courses.serializers import (
     AdminEnrollmentSerializer,
     AdminEnrollmentUpdateSerializer,
+    CourseLessonAdminSerializer,
+    LessonProgressUpdateSerializer,
     AdminReviewSerializer,
     AdminReviewUpdateSerializer,
     CategorySerializer,
@@ -98,6 +100,77 @@ def _log_admin_action(user, action: str, target_type: str, target_id: str, detai
             target_id=target_id,
             details=details,
         )
+
+
+def _has_success_enrollment(user, course_id: int) -> bool:
+    return Enrollment.objects.filter(
+        user=user,
+        course_id=course_id,
+        payment_status="success",
+        is_deleted=False,
+    ).exists()
+
+
+def _build_lms_payload(user, course: Course):
+    db_lessons = list(
+        CourseLesson.objects.filter(course=course).order_by("module_number", "lesson_number", "id")
+    )
+    lesson_map = {(item.module_number, item.lesson_number): item for item in db_lessons}
+    completed_ids = set(
+        UserLessonProgress.objects.filter(user=user, lesson__in=db_lessons, is_completed=True).values_list("lesson_id", flat=True)
+    )
+
+    modules = []
+    total_lessons = 8 * 5
+    completed_lessons = 0
+
+    for module_number in range(1, 9):
+        module_lessons = []
+        module_completed = True
+        for lesson_number in range(1, 6):
+            lesson = lesson_map.get((module_number, lesson_number))
+            has_video = bool(lesson and str(lesson.video_url or "").strip())
+            is_active = bool(lesson and lesson.is_active)
+            is_unlocked = bool(lesson and has_video and is_active)
+            is_completed = bool(lesson and lesson.id in completed_ids)
+            if is_completed:
+                completed_lessons += 1
+            if not is_completed:
+                module_completed = False
+
+            module_lessons.append(
+                {
+                    "id": lesson.id if lesson else f"m{module_number}-l{lesson_number}",
+                    "module_number": module_number,
+                    "lesson_number": lesson_number,
+                    "title": lesson.title if lesson else f"Lesson {lesson_number}",
+                    "description": lesson.description if lesson else "",
+                    "thumbnail_url": lesson.thumbnail_url if lesson else "",
+                    "is_active": bool(is_active),
+                    "is_completed": is_completed,
+                    "is_unlocked": is_unlocked,
+                }
+            )
+
+        modules.append(
+            {
+                "module_number": module_number,
+                "title": f"Module {module_number}",
+                "lessons": module_lessons,
+                "is_completed": module_completed,
+            }
+        )
+
+    progress_percent = round((completed_lessons / total_lessons) * 100) if total_lessons else 0
+
+    return {
+        "course_id": course.id,
+        "course_title": course.title,
+        "modules": modules,
+        "progress_percent": progress_percent,
+        "completed_lessons": completed_lessons,
+        "total_lessons": total_lessons,
+    }
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -500,4 +573,155 @@ class AdminReviewDetailView(APIView):
         _bump_cache_version()
         _log_admin_action(request.user, "delete_review", "Review", str(review.id), reason)
         return Response({"message": "Review soft deleted."}, status=status.HTTP_200_OK)
+
+
+class AdminLessonListCreateView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        course_id = request.query_params.get("course_id")
+        queryset = CourseLesson.objects.select_related("course").all().order_by("course_id", "module_number", "lesson_number")
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+        serializer = CourseLessonAdminSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = CourseLessonAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lesson = serializer.save()
+        _log_admin_action(
+            request.user,
+            "create_lms_lesson",
+            "CourseLesson",
+            str(lesson.id),
+            f"course={lesson.course_id};module={lesson.module_number};lesson={lesson.lesson_number}",
+        )
+        return Response(CourseLessonAdminSerializer(lesson).data, status=status.HTTP_201_CREATED)
+
+
+class AdminLessonDetailView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    @staticmethod
+    def _get_lesson(lesson_id: int):
+        return CourseLesson.objects.select_related("course").filter(id=lesson_id).first()
+
+    def patch(self, request, lesson_id: int):
+        lesson = self._get_lesson(lesson_id)
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CourseLessonAdminSerializer(lesson, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        _log_admin_action(request.user, "update_lms_lesson", "CourseLesson", str(updated.id), updated.title)
+        return Response(CourseLessonAdminSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, lesson_id: int):
+        lesson = self._get_lesson(lesson_id)
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        lesson.delete()
+        _log_admin_action(request.user, "delete_lms_lesson", "CourseLesson", str(lesson_id))
+        return Response({"message": "Lesson deleted."}, status=status.HTTP_200_OK)
+
+
+class LearnerLMSOverviewView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, course_id: int):
+        course = Course.objects.filter(id=course_id, is_deleted=False, is_active=True).first()
+        if not course:
+            return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+        payload = _build_lms_payload(request.user, course)
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class LearnerLessonDetailView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, lesson_id: int):
+        lesson = CourseLesson.objects.select_related("course").filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, lesson.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        payload = _build_lms_payload(request.user, lesson.course)
+        unlocked_ids = {
+            lesson_item["id"]
+            for module in payload["modules"]
+            for lesson_item in module["lessons"]
+            if lesson_item["is_unlocked"]
+        }
+        completed_ids = {
+            lesson_item["id"]
+            for module in payload["modules"]
+            for lesson_item in module["lessons"]
+            if lesson_item["is_completed"]
+        }
+
+        return Response(
+            {
+                "id": lesson.id,
+                "course_id": lesson.course_id,
+                "module_number": lesson.module_number,
+                "lesson_number": lesson.lesson_number,
+                "title": lesson.title,
+                "description": lesson.description,
+                "video_url": lesson.video_url,
+                "thumbnail_url": lesson.thumbnail_url,
+                "is_unlocked": lesson.id in unlocked_ids,
+                "is_completed": lesson.id in completed_ids,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class LearnerLessonProgressView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def post(self, request, lesson_id: int):
+        lesson = CourseLesson.objects.select_related("course").filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, lesson.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        payload = _build_lms_payload(request.user, lesson.course)
+        unlocked_ids = {
+            lesson_item["id"]
+            for module in payload["modules"]
+            for lesson_item in module["lessons"]
+            if lesson_item["is_unlocked"]
+        }
+        if lesson.id not in unlocked_ids:
+            return Response({"detail": "This lesson is locked."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = LessonProgressUpdateSerializer(
+            data=request.data,
+            context={"user": request.user, "lesson": lesson},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        refreshed = _build_lms_payload(request.user, lesson.course)
+        flat_lessons = [l for module in refreshed["modules"] for l in module["lessons"]]
+        current_index = next((idx for idx, item in enumerate(flat_lessons) if item["id"] == lesson.id), -1)
+        next_lesson = flat_lessons[current_index + 1] if current_index >= 0 and (current_index + 1) < len(flat_lessons) else None
+        next_locked = bool(next_lesson and not next_lesson["is_unlocked"])
+
+        return Response(
+            {
+                "message": "Lesson marked as completed.",
+                "progress_percent": refreshed["progress_percent"],
+                "next_lesson_locked": next_locked,
+                "next_lesson_id": next_lesson["id"] if next_lesson else None,
+                "next_lesson_title": next_lesson["title"] if next_lesson else None,
+                "overview": refreshed,
+            },
+            status=status.HTTP_200_OK,
+        )
 

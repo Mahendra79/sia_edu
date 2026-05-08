@@ -97,7 +97,7 @@ export default function Home() {
 
   const handleBuy = (course) => {
     if (course?.is_purchased) {
-      navigate("/user/my-courses");
+      navigate(`/user/lms/${course.id}`);
       return;
     }
     if (!isAuthenticated) {

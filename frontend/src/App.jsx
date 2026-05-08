@@ -25,11 +25,15 @@ const AdminPayments = lazy(() => import("./admin/Payments"));
 const DatabaseEditor = lazy(() => import("./admin/DatabaseEditor"));
 const MISReports = lazy(() => import("./admin/MISReports"));
 const ChatbotQA = lazy(() => import("./admin/ChatbotQA"));
+const AdminLMS = lazy(() => import("./admin/AdminLMS"));
+const AdminQuiz = lazy(() => import("./admin/AdminQuiz"));
 
 const UserDashboard = lazy(() => import("./user/UserDashboard"));
 const Profile = lazy(() => import("./user/Profile"));
 const MyCourses = lazy(() => import("./user/MyCourses"));
 const PaymentHistory = lazy(() => import("./user/PaymentHistory"));
+const LMSPortal = lazy(() => import("./user/LMSPortal"));
+const LessonPlayer = lazy(() => import("./user/LessonPlayer"));
 
 export default function App() {
   return (
@@ -132,6 +136,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/lms"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminLMS />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/quiz"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminQuiz />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/user/dashboard"
@@ -162,6 +182,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <PaymentHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/lms/:courseId"
+          element={
+            <ProtectedRoute>
+              <LMSPortal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/lms/:courseId/module/:moduleId/lesson/:lessonId"
+          element={
+            <ProtectedRoute>
+              <LessonPlayer />
             </ProtectedRoute>
           }
         />

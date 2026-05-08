@@ -1,7 +1,11 @@
 import { useState } from "react";
-
 import { formatCurrency } from "../utils/format";
-import { HiOutlineBookOpen, HiOutlineCalendarDays, HiOutlineShoppingBag } from "react-icons/hi2";
+import {
+  HiOutlineArrowTopRightOnSquare,
+  HiOutlineBookOpen,
+  HiOutlineCalendarDays,
+  HiOutlineShoppingBag,
+} from "react-icons/hi2";
 import { getCourseStartLabel } from "../data/featuredCourse";
 
 const FORCED_COURSE_IMAGE_URL =
@@ -49,9 +53,6 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
 
   const handleBuy = (event) => {
     event.stopPropagation();
-    if (isPurchased) {
-      return;
-    }
     onBuy(course);
   };
 
@@ -115,10 +116,9 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
             type="button"
             className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
             onClick={handleBuy}
-            disabled={isPurchased}
           >
-            <HiOutlineShoppingBag />
-            {isPurchased ? "Purchased" : "Buy"}
+            {isPurchased ? <HiOutlineArrowTopRightOnSquare /> : <HiOutlineShoppingBag />}
+            {isPurchased ? "Start Learning" : "Buy"}
           </button>
         </div>
       </div>
