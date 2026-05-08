@@ -4,6 +4,8 @@ import {
   HiOutlineChartBar,
   HiOutlineCircleStack,
   HiOutlineCreditCard,
+  HiOutlineBookOpen,
+  HiOutlineAcademicCap,
   HiOutlinePresentationChartBar,
   HiOutlineSquares2X2,
   HiOutlineUserCircle,
@@ -50,6 +52,14 @@ export default function AdminLayout({ children }) {
           <NavLink to="/admin/chatbot" className="nav-link-item">
             <HiOutlineCpuChip />
             Chatbot QA
+          </NavLink>
+          <NavLink to="/admin/lms" className="nav-link-item">
+            <HiOutlineBookOpen />
+            LMS
+          </NavLink>
+          <NavLink to="/admin/quiz" className="nav-link-item">
+            <HiOutlineAcademicCap />
+            Quizz
           </NavLink>
         </aside>
         <section className="dashboard-content">

@@ -124,3 +124,45 @@ class ReviewVote(models.Model):
     def __str__(self) -> str:
         return f"{self.user_id} -> {self.review_id}: {self.vote}"
 
+
+class CourseLesson(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
+    module_number = models.PositiveSmallIntegerField()
+    lesson_number = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    video_url = models.URLField(max_length=1200)
+    thumbnail_url = models.URLField(max_length=1200, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["module_number", "lesson_number", "id"]
+        unique_together = ("course", "module_number", "lesson_number")
+        indexes = [
+            models.Index(fields=["course", "is_active"]),
+            models.Index(fields=["course", "module_number", "lesson_number"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.course_id} M{self.module_number} L{self.lesson_number}"
+
+
+class UserLessonProgress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesson_progress")
+    lesson = models.ForeignKey(CourseLesson, on_delete=models.CASCADE, related_name="progress_items")
+    is_completed = models.BooleanField(default=False, db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "lesson")
+        indexes = [
+            models.Index(fields=["user", "is_completed"]),
+            models.Index(fields=["user", "lesson"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} -> {self.lesson_id} ({self.is_completed})"
+
