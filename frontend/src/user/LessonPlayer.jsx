@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft, HiOutlinePlayCircle } from "react-icons/hi2";
+import { HiOutlineArrowLeft, HiOutlineArrowTopRightOnSquare, HiOutlineDocumentText, HiOutlinePlayCircle } from "react-icons/hi2";
 
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useToast } from "../context/ToastContext";
@@ -49,6 +49,8 @@ export default function LessonPlayer() {
   const lessonIndex = allLessons.findIndex((item) => String(item.id) === String(lessonId));
   const previousLesson = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex >= 0 && lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
+  const pdfUrl = String(lesson?.pdf_url || "").trim();
+  const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
   const previousEnabled = isPlayableLesson(previousLesson);
@@ -147,6 +149,20 @@ export default function LessonPlayer() {
                 Now playing: {lesson.title}
               </span>
             </div>
+            {pdfUrl ? (
+              <section className="lesson-pdf-section" onContextMenu={(event) => event.preventDefault()}>
+                <div className="lesson-pdf-row">
+                  <div className="lesson-pdf-file">
+                    <HiOutlineDocumentText />
+                    <span>{pdfName}</span>
+                  </div>
+                  <a className="btn btn-muted btn-icon lesson-pdf-view" href={pdfUrl} target="_blank" rel="noreferrer">
+                    <HiOutlineArrowTopRightOnSquare />
+                    View
+                  </a>
+                </div>
+              </section>
+            ) : null}
             <div className="lesson-nav-row">
               <button
                 type="button"

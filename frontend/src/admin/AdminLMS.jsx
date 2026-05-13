@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   description: "",
   video_url: "",
   thumbnail_url: "",
+  pdf_url: "",
   is_active: true,
 };
 
@@ -23,6 +24,7 @@ export default function AdminLMS() {
   const [lessons, setLessons] = useState([]);
   const [courseFilter, setCourseFilter] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editingLessonId, setEditingLessonId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,25 +71,58 @@ export default function AdminLMS() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const buildLessonPayload = () => ({
+    ...form,
+    course: Number(form.course),
+    module_number: Number(form.module_number),
+    lesson_number: Number(form.lesson_number),
+  });
+
+  const resetForm = (course = form.course) => {
+    setForm({ ...EMPTY_FORM, course });
+    setEditingLessonId(null);
+  };
+
+  const startEdit = (lesson) => {
+    setEditingLessonId(lesson.id);
+    setForm({
+      course: String(lesson.course || ""),
+      module_number: lesson.module_number || 1,
+      lesson_number: lesson.lesson_number || 1,
+      title: lesson.title || "",
+      description: lesson.description || "",
+      video_url: lesson.video_url || "",
+      thumbnail_url: lesson.thumbnail_url || "",
+      pdf_url: lesson.pdf_url || "",
+      is_active: Boolean(lesson.is_active),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (!form.course) {
       addToast({ type: "warning", message: "Please select a course." });
       return;
     }
     setSubmitting(true);
     try {
-      await courseService.createAdminLmsLesson({
-        ...form,
-        course: Number(form.course),
-        module_number: Number(form.module_number),
-        lesson_number: Number(form.lesson_number),
-      });
-      addToast({ type: "success", message: "LMS lesson created." });
-      setForm({ ...EMPTY_FORM, course: form.course });
+      const payload = buildLessonPayload();
+      if (editingLessonId) {
+        await courseService.updateAdminLmsLesson(editingLessonId, payload);
+        addToast({ type: "success", message: "LMS lesson updated." });
+      } else {
+        await courseService.createAdminLmsLesson(payload);
+        addToast({ type: "success", message: "LMS lesson created." });
+      }
+      resetForm(form.course);
+      formElement.reset();
       await fetchLessons(selectedCourseId);
     } catch (error) {
-      const detail = error?.response?.data?.detail || "Failed to create LMS lesson.";
+      const detail =
+        error?.response?.data?.detail ||
+        (editingLessonId ? "Failed to update LMS lesson." : "Failed to create LMS lesson.");
       addToast({ type: "error", message: detail });
     } finally {
       setSubmitting(false);
@@ -184,7 +219,7 @@ export default function AdminLMS() {
 
       <section className="panel-card">
 
-        <h2>Add LMS Lesson</h2>
+        <h2>{editingLessonId ? "Edit LMS Lesson" : "Add LMS Lesson"}</h2>
         <form className="table-inline-edit-grid" onSubmit={handleSubmit}>
           <label className="table-inline-field">
             <span className="table-inline-field-label">Course</span>
@@ -238,6 +273,10 @@ export default function AdminLMS() {
             <span className="table-inline-field-label">Thumbnail URL</span>
             <input type="url" value={form.thumbnail_url} onChange={(e) => handleChange("thumbnail_url", e.target.value)} />
           </label>
+          <label className="table-inline-field table-inline-field-wide">
+            <span className="table-inline-field-label">PDF URL (Cloudflare, optional)</span>
+            <input type="url" value={form.pdf_url} onChange={(e) => handleChange("pdf_url", e.target.value)} />
+          </label>
           <label className="toggle-row">
             <input
               type="checkbox"
@@ -247,8 +286,13 @@ export default function AdminLMS() {
             Is Active
           </label>
           <div className="table-inline-edit-actions">
+            {editingLessonId ? (
+              <button type="button" className="btn btn-muted" onClick={() => resetForm()} disabled={submitting}>
+                Cancel Edit
+              </button>
+            ) : null}
             <button type="submit" className="btn btn-primary" disabled={submitting || loading}>
-              {submitting ? "Saving..." : "Add Lesson"}
+              {submitting ? "Saving..." : editingLessonId ? "Update Lesson" : "Add Lesson"}
             </button>
           </div>
         </form>
@@ -273,6 +317,7 @@ export default function AdminLMS() {
                 <th>Module</th>
                 <th>Lesson</th>
                 <th>Title</th>
+                <th>PDF</th>
                 <th>Active</th>
                 <th>Actions</th>
               </tr>
@@ -284,9 +329,26 @@ export default function AdminLMS() {
                   <td>{lesson.module_number}</td>
                   <td>{lesson.lesson_number}</td>
                   <td>{lesson.title}</td>
+                  <td>
+                    {lesson.pdf_url ? (
+                      <a href={lesson.pdf_url} target="_blank" rel="noreferrer">
+                        View
+                      </a>
+                    ) : (
+                      "No"
+                    )}
+                  </td>
                   <td>{lesson.is_active ? "Yes" : "No"}</td>
                   <td>
                     <div className="lms-row-actions">
+                    <button
+                      type="button"
+                      className="btn btn-muted"
+                      onClick={() => startEdit(lesson)}
+                    >
+                      Edit
+                    </button>
+
                     <button
                       type="button"
                       className="btn btn-muted"
@@ -308,7 +370,7 @@ export default function AdminLMS() {
               ))}
               {lessons.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="meta-note">
+                  <td colSpan={7} className="meta-note">
                     No LMS lessons found.
                   </td>
                 </tr>
