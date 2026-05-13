@@ -65,7 +65,14 @@ export default function MyCourses() {
                     <td>{item.course.title}</td>
                     <td>{item.status}</td>
                     <td>{item.payment_status}</td>
-                    <td>{formatCurrency(item.course.price, "INR")}</td>
+                    <td>
+                      {formatCurrency(
+                        item.course.final_price ??
+                          item.course.discounted_price ??
+                          item.course.price,
+                        "INR"
+                      )}
+                    </td>
                     <td>{formatDate(item.enrolled_at)}</td>
                     <td>
                       <button

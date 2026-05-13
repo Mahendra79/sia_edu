@@ -8,7 +8,20 @@ from django.db.models import Avg
 from django.utils import timezone
 from rest_framework import serializers
 
-from courses.models import Category, Course, CourseLesson, Enrollment, Review, ReviewVote, UserLessonProgress
+from courses.models import (
+    Category,
+    Course,
+    CourseLesson,
+    Enrollment,
+    Quiz,
+    QuizAttempt,
+    QuizAttemptAnswer,
+    QuizOption,
+    QuizQuestion,
+    Review,
+    ReviewVote,
+    UserLessonProgress,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -296,6 +309,7 @@ class CourseLessonAdminSerializer(serializers.ModelSerializer):
             "description",
             "video_url",
             "thumbnail_url",
+            "pdf_url",
             "is_active",
             "created_at",
             "updated_at",
@@ -347,3 +361,242 @@ class LessonProgressUpdateSerializer(serializers.Serializer):
             progress.completed_at = timezone.now()
             progress.save(update_fields=["is_completed", "completed_at", "updated_at"])
         return progress
+
+
+class QuizOptionAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizOption
+        fields = ("id", "option_text", "is_correct", "order")
+        read_only_fields = ("id",)
+
+
+class QuizQuestionAdminSerializer(serializers.ModelSerializer):
+    options = QuizOptionAdminSerializer(many=True)
+
+    class Meta:
+        model = QuizQuestion
+        fields = ("id", "quiz", "question_text", "marks", "order", "is_active", "options", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+        extra_kwargs = {"quiz": {"required": False}}
+
+    def validate_options(self, value):
+        if len(value) != 4:
+            raise serializers.ValidationError("Each question must have exactly 4 options.")
+        correct_count = sum(1 for option in value if option.get("is_correct"))
+        if correct_count != 1:
+            raise serializers.ValidationError("Select exactly one correct option.")
+        return value
+
+    def create(self, validated_data):
+        options_data = validated_data.pop("options", [])
+        question = QuizQuestion.objects.create(**validated_data)
+        for index, option_data in enumerate(options_data, start=1):
+            option_order = option_data.pop("order", None) or index
+            QuizOption.objects.create(question=question, order=option_order, **option_data)
+        return question
+
+    def update(self, instance, validated_data):
+        options_data = validated_data.pop("options", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if options_data is not None:
+            instance.options.all().delete()
+            for index, option_data in enumerate(options_data, start=1):
+                option_order = option_data.pop("order", None) or index
+                QuizOption.objects.create(question=instance, order=option_order, **option_data)
+        return instance
+
+
+class QuizAdminSerializer(serializers.ModelSerializer):
+    course_title = serializers.CharField(source="course.title", read_only=True)
+    question_count = serializers.SerializerMethodField()
+    active_question_count = serializers.SerializerMethodField()
+    is_publish_ready = serializers.SerializerMethodField()
+    publish_issues = serializers.SerializerMethodField()
+    questions = QuizQuestionAdminSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Quiz
+        fields = (
+            "id",
+            "course",
+            "course_title",
+            "module_number",
+            "title",
+            "description",
+            "time_per_question_seconds",
+            "pass_percentage",
+            "max_questions",
+            "status",
+            "is_active",
+            "question_count",
+            "active_question_count",
+            "is_publish_ready",
+            "publish_issues",
+            "questions",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "question_count",
+            "active_question_count",
+            "is_publish_ready",
+            "publish_issues",
+            "questions",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_question_count(self, obj):
+        return obj.questions.count()
+
+    def get_active_question_count(self, obj):
+        return obj.questions.filter(is_active=True).count()
+
+    def get_publish_issues(self, obj):
+        issues = []
+        active_questions = list(obj.questions.filter(is_active=True).prefetch_related("options"))
+        if not active_questions:
+            issues.append("Add at least 1 active question.")
+        if len(active_questions) > 25:
+            issues.append("Keep active questions at 25 or fewer.")
+        for question in active_questions:
+            options = list(question.options.all())
+            if len(options) != 4:
+                issues.append(f"Question {question.order} must have exactly 4 options.")
+            if sum(1 for option in options if option.is_correct) != 1:
+                issues.append(f"Question {question.order} must have exactly 1 correct option.")
+        if obj.time_per_question_seconds < 5:
+            issues.append("Set at least 5 seconds per question.")
+        return issues
+
+    def get_is_publish_ready(self, obj):
+        return len(self.get_publish_issues(obj)) == 0
+
+
+class QuizOptionLearnerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizOption
+        fields = ("id", "option_text", "order")
+
+
+class QuizQuestionLearnerSerializer(serializers.ModelSerializer):
+    options = QuizOptionLearnerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = QuizQuestion
+        fields = ("id", "question_text", "marks", "order", "options")
+
+
+class LearnerQuizSummarySerializer(serializers.ModelSerializer):
+    question_count = serializers.IntegerField(read_only=True)
+    latest_attempt = serializers.SerializerMethodField()
+    attempts_count = serializers.SerializerMethodField()
+    is_done = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quiz
+        fields = (
+            "id",
+            "course",
+            "module_number",
+            "title",
+            "description",
+            "time_per_question_seconds",
+            "pass_percentage",
+            "question_count",
+            "latest_attempt",
+            "attempts_count",
+            "is_done",
+        )
+
+    def get_latest_attempt(self, obj):
+        attempt = obj.attempts.filter(user=self.context["request"].user, status=QuizAttempt.STATUS_SUBMITTED).order_by("-submitted_at").first()
+        return QuizAttemptResultSerializer(attempt).data if attempt else None
+
+    def get_attempts_count(self, obj):
+        return obj.attempts.filter(user=self.context["request"].user, status=QuizAttempt.STATUS_SUBMITTED).count()
+
+    def get_is_done(self, obj):
+        return obj.attempts.filter(user=self.context["request"].user, is_passed=True, status=QuizAttempt.STATUS_SUBMITTED).exists()
+
+
+class QuizAttemptAnswerSerializer(serializers.ModelSerializer):
+    question_id = serializers.IntegerField(source="question.id", read_only=True)
+    selected_option_id = serializers.IntegerField(source="selected_option.id", read_only=True)
+
+    class Meta:
+        model = QuizAttemptAnswer
+        fields = ("id", "question_id", "selected_option_id", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds")
+
+
+class QuizAttemptSerializer(serializers.ModelSerializer):
+    quiz_title = serializers.CharField(source="quiz.title", read_only=True)
+    time_per_question_seconds = serializers.IntegerField(source="quiz.time_per_question_seconds", read_only=True)
+    pass_percentage = serializers.IntegerField(source="quiz.pass_percentage", read_only=True)
+    questions = serializers.SerializerMethodField()
+    answers = QuizAttemptAnswerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = QuizAttempt
+        fields = (
+            "id",
+            "quiz",
+            "quiz_title",
+            "time_per_question_seconds",
+            "pass_percentage",
+            "attempt_number",
+            "started_at",
+            "submitted_at",
+            "total_questions",
+            "answered_count",
+            "unanswered_count",
+            "correct_count",
+            "wrong_count",
+            "total_marks",
+            "score",
+            "percentage",
+            "is_passed",
+            "time_taken_seconds",
+            "status",
+            "questions",
+            "answers",
+        )
+
+    def get_questions(self, obj):
+        questions = obj.quiz.questions.filter(is_active=True).prefetch_related("options").order_by("order", "id")[: obj.total_questions]
+        return QuizQuestionLearnerSerializer(questions, many=True).data
+
+
+class QuizAttemptResultSerializer(serializers.ModelSerializer):
+    quiz_title = serializers.CharField(source="quiz.title", read_only=True)
+
+    class Meta:
+        model = QuizAttempt
+        fields = (
+            "id",
+            "quiz",
+            "quiz_title",
+            "attempt_number",
+            "started_at",
+            "submitted_at",
+            "total_questions",
+            "answered_count",
+            "unanswered_count",
+            "correct_count",
+            "wrong_count",
+            "total_marks",
+            "score",
+            "percentage",
+            "is_passed",
+            "time_taken_seconds",
+            "status",
+        )
+
+
+class QuizAnswerSaveSerializer(serializers.Serializer):
+    question_id = serializers.IntegerField()
+    selected_option_id = serializers.IntegerField(required=False, allow_null=True)
+    time_taken_seconds = serializers.IntegerField(required=False, min_value=0)

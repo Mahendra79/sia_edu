@@ -1,8 +1,13 @@
+import csv
 import hashlib
+import io
+from decimal import Decimal
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Avg, Case, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -11,17 +16,24 @@ from rest_framework.views import APIView
 from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
 from analytics.models import AdminActivityLog
 from config.pagination import StandardResultsSetPagination
-from courses.models import Category, Course, CourseLesson, Enrollment, Review, ReviewVote, UserLessonProgress
+from courses.models import Category, Course, CourseLesson, Enrollment, Quiz, QuizAttempt, QuizAttemptAnswer, QuizOption, QuizQuestion, Review, ReviewVote, UserLessonProgress
 from courses.serializers import (
     AdminEnrollmentSerializer,
     AdminEnrollmentUpdateSerializer,
     CourseLessonAdminSerializer,
     LessonProgressUpdateSerializer,
+    LearnerQuizSummarySerializer,
     AdminReviewSerializer,
     AdminReviewUpdateSerializer,
     CategorySerializer,
     CourseSerializer,
     EnrollmentSerializer,
+    QuizAdminSerializer,
+    QuizAnswerSaveSerializer,
+    QuizAttemptAnswerSerializer,
+    QuizAttemptResultSerializer,
+    QuizAttemptSerializer,
+    QuizQuestionAdminSerializer,
     ReviewSerializer,
 )
 from deleted_records.services import record_soft_delete
@@ -109,6 +121,24 @@ def _has_success_enrollment(user, course_id: int) -> bool:
         payment_status="success",
         is_deleted=False,
     ).exists()
+
+
+def _quiz_publish_issues(quiz: Quiz) -> list[str]:
+    issues = []
+    active_questions = list(quiz.questions.filter(is_active=True).prefetch_related("options"))
+    if not active_questions:
+        issues.append("Add at least 1 active question before publishing.")
+    if len(active_questions) > 25:
+        issues.append("A quiz can have a maximum of 25 active questions.")
+    for question in active_questions:
+        options = list(question.options.all())
+        if len(options) != 4:
+            issues.append(f"Question {question.order} must have exactly 4 options.")
+        if sum(1 for option in options if option.is_correct) != 1:
+            issues.append(f"Question {question.order} must have exactly 1 correct option.")
+    if quiz.time_per_question_seconds < 5:
+        issues.append("Question timer must be at least 5 seconds.")
+    return issues
 
 
 def _build_lms_payload(user, course: Course):
@@ -583,11 +613,11 @@ class AdminLessonListCreateView(APIView):
         queryset = CourseLesson.objects.select_related("course").all().order_by("course_id", "module_number", "lesson_number")
         if course_id:
             queryset = queryset.filter(course_id=course_id)
-        serializer = CourseLessonAdminSerializer(queryset, many=True)
+        serializer = CourseLessonAdminSerializer(queryset, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        serializer = CourseLessonAdminSerializer(data=request.data)
+        serializer = CourseLessonAdminSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save()
         _log_admin_action(
@@ -597,7 +627,7 @@ class AdminLessonListCreateView(APIView):
             str(lesson.id),
             f"course={lesson.course_id};module={lesson.module_number};lesson={lesson.lesson_number}",
         )
-        return Response(CourseLessonAdminSerializer(lesson).data, status=status.HTTP_201_CREATED)
+        return Response(CourseLessonAdminSerializer(lesson, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 class AdminLessonDetailView(APIView):
@@ -611,11 +641,11 @@ class AdminLessonDetailView(APIView):
         lesson = self._get_lesson(lesson_id)
         if not lesson:
             return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = CourseLessonAdminSerializer(lesson, data=request.data, partial=True)
+        serializer = CourseLessonAdminSerializer(lesson, data=request.data, partial=True, context={"request": request})
         serializer.is_valid(raise_exception=True)
         updated = serializer.save()
         _log_admin_action(request.user, "update_lms_lesson", "CourseLesson", str(updated.id), updated.title)
-        return Response(CourseLessonAdminSerializer(updated).data, status=status.HTTP_200_OK)
+        return Response(CourseLessonAdminSerializer(updated, context={"request": request}).data, status=status.HTTP_200_OK)
 
     def delete(self, request, lesson_id: int):
         lesson = self._get_lesson(lesson_id)
@@ -673,6 +703,7 @@ class LearnerLessonDetailView(APIView):
                 "description": lesson.description,
                 "video_url": lesson.video_url,
                 "thumbnail_url": lesson.thumbnail_url,
+                "pdf_url": lesson.pdf_url,
                 "is_unlocked": lesson.id in unlocked_ids,
                 "is_completed": lesson.id in completed_ids,
             },
@@ -724,4 +755,324 @@ class LearnerLessonProgressView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class AdminQuizListCreateView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        course_id = request.query_params.get("course_id")
+        queryset = Quiz.objects.select_related("course").prefetch_related("questions__options").order_by("course_id", "module_number", "id")
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+        serializer = QuizAdminSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = QuizAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        quiz = serializer.save()
+        if quiz.status == Quiz.STATUS_PUBLISHED:
+            issues = _quiz_publish_issues(quiz)
+            if issues:
+                quiz.status = Quiz.STATUS_DRAFT
+                quiz.is_active = False
+                quiz.save(update_fields=["status", "is_active", "updated_at"])
+                return Response({"detail": "Quiz is not ready to publish.", "issues": issues}, status=status.HTTP_400_BAD_REQUEST)
+        _log_admin_action(request.user, "create_quiz", "Quiz", str(quiz.id), quiz.title)
+        return Response(QuizAdminSerializer(quiz).data, status=status.HTTP_201_CREATED)
+
+
+class AdminQuizDetailView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    @staticmethod
+    def _get_quiz(quiz_id: int):
+        return Quiz.objects.select_related("course").prefetch_related("questions__options").filter(id=quiz_id).first()
+
+    def patch(self, request, quiz_id: int):
+        quiz = self._get_quiz(quiz_id)
+        if not quiz:
+            return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = QuizAdminSerializer(quiz, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        if updated.status == Quiz.STATUS_PUBLISHED:
+            issues = _quiz_publish_issues(updated)
+            if issues:
+                updated.status = Quiz.STATUS_DRAFT
+                updated.is_active = False
+                updated.save(update_fields=["status", "is_active", "updated_at"])
+                return Response({"detail": "Quiz is not ready to publish.", "issues": issues}, status=status.HTTP_400_BAD_REQUEST)
+        _log_admin_action(request.user, "update_quiz", "Quiz", str(updated.id), updated.title)
+        return Response(QuizAdminSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, quiz_id: int):
+        quiz = self._get_quiz(quiz_id)
+        if not quiz:
+            return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
+        quiz.delete()
+        _log_admin_action(request.user, "delete_quiz", "Quiz", str(quiz_id))
+        return Response({"message": "Quiz deleted."}, status=status.HTTP_200_OK)
+
+
+class AdminQuizQuestionCreateView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request, quiz_id: int):
+        quiz = Quiz.objects.filter(id=quiz_id).first()
+        if not quiz:
+            return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
+        if quiz.questions.count() >= 25:
+            return Response({"detail": "A quiz can have a maximum of 25 questions."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = QuizQuestionAdminSerializer(data={**request.data, "quiz": quiz.id})
+        serializer.is_valid(raise_exception=True)
+        question = serializer.save()
+        _log_admin_action(request.user, "create_quiz_question", "QuizQuestion", str(question.id), quiz.title)
+        return Response(QuizQuestionAdminSerializer(question).data, status=status.HTTP_201_CREATED)
+
+
+class AdminQuizQuestionImportView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request, quiz_id: int):
+        quiz = Quiz.objects.filter(id=quiz_id).first()
+        if not quiz:
+            return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        csv_text = str(request.data.get("csv_text") or "").strip()
+        if not csv_text:
+            return Response({"detail": "CSV content is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            rows = list(csv.DictReader(io.StringIO(csv_text)))
+        except csv.Error:
+            return Response({"detail": "Invalid CSV format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        required_columns = {"question", "option_1", "option_2", "option_3", "option_4", "correct_option"}
+        if not rows or not required_columns.issubset(set(rows[0].keys())):
+            return Response(
+                {"detail": "CSV must include question, option_1, option_2, option_3, option_4, correct_option columns."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        existing_count = quiz.questions.count()
+        if existing_count + len(rows) > 25:
+            return Response({"detail": "Import would exceed the 25 question limit."}, status=status.HTTP_400_BAD_REQUEST)
+
+        created = []
+        errors = []
+        with transaction.atomic():
+            for row_index, row in enumerate(rows, start=2):
+                question_text = str(row.get("question") or "").strip()
+                options = [str(row.get(f"option_{index}") or "").strip() for index in range(1, 5)]
+                try:
+                    correct_index = int(str(row.get("correct_option") or "").strip()) - 1
+                except ValueError:
+                    correct_index = -1
+                try:
+                    marks = int(str(row.get("marks") or "1").strip())
+                except ValueError:
+                    marks = 1
+
+                if not question_text or any(not option for option in options) or correct_index not in range(4):
+                    errors.append(f"Row {row_index}: fill question, 4 options, and correct_option 1-4.")
+                    continue
+                order = existing_count + len(created) + 1
+                question = QuizQuestion.objects.create(quiz=quiz, question_text=question_text, marks=max(1, marks), order=order)
+                for option_index, option_text in enumerate(options):
+                    QuizOption.objects.create(
+                        question=question,
+                        option_text=option_text,
+                        order=option_index + 1,
+                        is_correct=option_index == correct_index,
+                    )
+                created.append(question)
+
+            if errors:
+                transaction.set_rollback(True)
+                return Response({"detail": "CSV import failed.", "issues": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        quiz.status = Quiz.STATUS_DRAFT
+        quiz.is_active = False
+        quiz.save(update_fields=["status", "is_active", "updated_at"])
+        _log_admin_action(request.user, "import_quiz_questions", "Quiz", str(quiz.id), f"count={len(created)}")
+        return Response({"message": f"Imported {len(created)} questions.", "quiz": QuizAdminSerializer(quiz).data}, status=status.HTTP_201_CREATED)
+
+
+class AdminQuizQuestionDetailView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    @staticmethod
+    def _get_question(question_id: int):
+        return QuizQuestion.objects.select_related("quiz").prefetch_related("options").filter(id=question_id).first()
+
+    def patch(self, request, question_id: int):
+        question = self._get_question(question_id)
+        if not question:
+            return Response({"detail": "Question not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = QuizQuestionAdminSerializer(question, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        _log_admin_action(request.user, "update_quiz_question", "QuizQuestion", str(updated.id), updated.quiz.title)
+        return Response(QuizQuestionAdminSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, question_id: int):
+        question = self._get_question(question_id)
+        if not question:
+            return Response({"detail": "Question not found."}, status=status.HTTP_404_NOT_FOUND)
+        question.delete()
+        _log_admin_action(request.user, "delete_quiz_question", "QuizQuestion", str(question_id))
+        return Response({"message": "Question deleted."}, status=status.HTTP_200_OK)
+
+
+class LearnerQuizListView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, course_id: int):
+        course = Course.objects.filter(id=course_id, is_deleted=False, is_active=True).first()
+        if not course:
+            return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+        queryset = (
+            Quiz.objects.filter(course=course, status=Quiz.STATUS_PUBLISHED, is_active=True, questions__is_active=True)
+            .annotate(question_count=Count("questions", filter=Q(questions__is_active=True), distinct=True))
+            .filter(question_count__gt=0)
+            .prefetch_related("attempts")
+            .order_by("module_number", "id")
+        )
+        serializer = LearnerQuizSummarySerializer(queryset, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LearnerQuizStartView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def post(self, request, quiz_id: int):
+        quiz = (
+            Quiz.objects.select_related("course")
+            .prefetch_related("questions__options")
+            .filter(id=quiz_id, status=Quiz.STATUS_PUBLISHED, is_active=True)
+            .first()
+        )
+        if not quiz:
+            return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, quiz.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        existing_attempt = (
+            QuizAttempt.objects.select_related("quiz")
+            .prefetch_related("answers", "quiz__questions__options")
+            .filter(user=request.user, quiz=quiz, status=QuizAttempt.STATUS_IN_PROGRESS)
+            .order_by("-started_at")
+            .first()
+        )
+        if existing_attempt:
+            return Response(QuizAttemptSerializer(existing_attempt).data, status=status.HTTP_200_OK)
+
+        questions = list(quiz.questions.filter(is_active=True).prefetch_related("options").order_by("order", "id")[: quiz.max_questions])
+        if not questions:
+            return Response({"detail": "No active questions are available for this quiz."}, status=status.HTTP_400_BAD_REQUEST)
+        for question in questions:
+            if question.options.count() != 4 or question.options.filter(is_correct=True).count() != 1:
+                return Response({"detail": "This quiz is not ready. Please contact admin."}, status=status.HTTP_400_BAD_REQUEST)
+
+        attempt_number = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status=QuizAttempt.STATUS_SUBMITTED).count() + 1
+        total_marks = sum(question.marks for question in questions)
+        with transaction.atomic():
+            attempt = QuizAttempt.objects.create(
+                user=request.user,
+                quiz=quiz,
+                attempt_number=attempt_number,
+                total_questions=len(questions),
+                unanswered_count=len(questions),
+                total_marks=total_marks,
+            )
+            QuizAttemptAnswer.objects.bulk_create([QuizAttemptAnswer(attempt=attempt, question=question) for question in questions])
+        attempt = QuizAttempt.objects.select_related("quiz").prefetch_related("answers", "quiz__questions__options").get(id=attempt.id)
+        return Response(QuizAttemptSerializer(attempt).data, status=status.HTTP_201_CREATED)
+
+
+class LearnerQuizAttemptDetailView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, attempt_id: int):
+        attempt = QuizAttempt.objects.select_related("quiz", "quiz__course").prefetch_related("answers", "quiz__questions__options").filter(
+            id=attempt_id,
+            user=request.user,
+        ).first()
+        if not attempt:
+            return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, attempt.quiz.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = QuizAttemptResultSerializer if attempt.status == QuizAttempt.STATUS_SUBMITTED else QuizAttemptSerializer
+        return Response(serializer(attempt).data, status=status.HTTP_200_OK)
+
+
+class LearnerQuizAnswerView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def post(self, request, attempt_id: int):
+        attempt = QuizAttempt.objects.select_related("quiz").filter(id=attempt_id, user=request.user).first()
+        if not attempt:
+            return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
+        if attempt.status != QuizAttempt.STATUS_IN_PROGRESS:
+            return Response({"detail": "This quiz attempt is already submitted."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = QuizAnswerSaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.validated_data["question_id"]
+        selected_option_id = serializer.validated_data.get("selected_option_id")
+        time_taken_seconds = serializer.validated_data.get("time_taken_seconds", 0)
+
+        answer = QuizAttemptAnswer.objects.select_related("question").filter(attempt=attempt, question_id=question_id).first()
+        if not answer:
+            return Response({"detail": "Question does not belong to this attempt."}, status=status.HTTP_400_BAD_REQUEST)
+
+        selected_option = None
+        if selected_option_id:
+            selected_option = QuizOption.objects.filter(id=selected_option_id, question_id=question_id).first()
+            if not selected_option:
+                return Response({"detail": "Selected option does not belong to this question."}, status=status.HTTP_400_BAD_REQUEST)
+
+        answer.selected_option = selected_option
+        answer.is_answered = bool(selected_option)
+        answer.is_correct = bool(selected_option and selected_option.is_correct)
+        answer.marks_awarded = answer.question.marks if answer.is_correct else 0
+        answer.time_taken_seconds = time_taken_seconds
+        answer.save(update_fields=["selected_option", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds"])
+        return Response(QuizAttemptAnswerSerializer(answer).data, status=status.HTTP_200_OK)
+
+
+class LearnerQuizSubmitView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def post(self, request, attempt_id: int):
+        attempt = QuizAttempt.objects.select_related("quiz").prefetch_related("answers").filter(id=attempt_id, user=request.user).first()
+        if not attempt:
+            return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
+        if attempt.status == QuizAttempt.STATUS_SUBMITTED:
+            return Response(QuizAttemptResultSerializer(attempt).data, status=status.HTTP_200_OK)
+
+        answers = list(attempt.answers.all())
+        answered_count = sum(1 for answer in answers if answer.is_answered)
+        correct_count = sum(1 for answer in answers if answer.is_correct)
+        score = sum(answer.marks_awarded for answer in answers)
+        total_marks = attempt.total_marks or 0
+        percentage = (Decimal(score) * Decimal("100") / Decimal(total_marks)).quantize(Decimal("0.01")) if total_marks else Decimal("0.00")
+        now = timezone.now()
+        time_taken_seconds = max(0, int((now - attempt.started_at).total_seconds())) if attempt.started_at else 0
+
+        attempt.answered_count = answered_count
+        attempt.unanswered_count = max(0, attempt.total_questions - answered_count)
+        attempt.correct_count = correct_count
+        attempt.wrong_count = max(0, answered_count - correct_count)
+        attempt.score = score
+        attempt.percentage = percentage
+        attempt.is_passed = percentage >= Decimal(attempt.quiz.pass_percentage)
+        attempt.time_taken_seconds = time_taken_seconds
+        attempt.submitted_at = now
+        attempt.status = QuizAttempt.STATUS_SUBMITTED
+        attempt.save()
+        return Response(QuizAttemptResultSerializer(attempt).data, status=status.HTTP_200_OK)
 

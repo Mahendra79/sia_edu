@@ -34,6 +34,7 @@ const MyCourses = lazy(() => import("./user/MyCourses"));
 const PaymentHistory = lazy(() => import("./user/PaymentHistory"));
 const LMSPortal = lazy(() => import("./user/LMSPortal"));
 const LessonPlayer = lazy(() => import("./user/LessonPlayer"));
+const QuizPlayer = lazy(() => import("./user/QuizPlayer"));
 
 export default function App() {
   return (
@@ -198,6 +199,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <LessonPlayer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/lms/:courseId/quiz/:quizId"
+          element={
+            <ProtectedRoute>
+              <QuizPlayer />
             </ProtectedRoute>
           }
         />

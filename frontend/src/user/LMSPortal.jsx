@@ -34,9 +34,6 @@ const MODULE_TITLES = {
   8: "Capstone Project",
 };
 
-const QUIZ_PASS_SCORE = 70;
-const QUIZ_TIME_MINUTES = 20;
-const QUIZ_ATTEMPTS = 3;
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
 
 function formatEnrolledAt(value) {
@@ -72,6 +69,7 @@ export default function LMSPortal() {
   const [durationByLessonId, setDurationByLessonId] = useState({});
   const [watchProgressByLessonId, setWatchProgressByLessonId] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quizzes, setQuizzes] = useState([]);
 
   useEffect(() => {
     try {
@@ -99,6 +97,8 @@ export default function LMSPortal() {
         ]);
         setCourse(courseResponse.data);
         setOverview(overviewResponse.data);
+        const quizResponse = await courseService.getLearnerQuizzes(courseId);
+        setQuizzes(quizResponse.data || []);
       } catch {
         setError("Unable to load this course in LMS portal.");
         addToast({ type: "error", message: "Unable to load LMS modules." });
@@ -119,30 +119,6 @@ export default function LMSPortal() {
   const completedLessons = Number(
     overview?.completed_lessons ||
       modules.reduce((sum, module) => sum + module.lessons.filter((item) => item.is_completed).length, 0)
-  );
-
-  const quizCards = useMemo(
-    () =>
-      modules.map((module) => {
-        const previousModule = modules.find((item) => item.module_number === module.module_number - 1);
-        const isUnlocked = module.module_number === 1 || Boolean(previousModule?.is_completed);
-        const completedCount = module.lessons.filter((lesson) => lesson.is_completed).length;
-        const totalCount = module.lessons.length;
-        const isReady = completedCount === totalCount && totalCount > 0;
-
-        return {
-          moduleNumber: module.module_number,
-          title: MODULE_TITLES[module.module_number] || `Module ${module.module_number}`,
-          isUnlocked,
-          isReady,
-          completedCount,
-          totalCount,
-          attemptsLeft: QUIZ_ATTEMPTS,
-          passScore: QUIZ_PASS_SCORE,
-          timeMinutes: QUIZ_TIME_MINUTES,
-        };
-      }),
-    [modules]
   );
 
   useEffect(() => {
@@ -454,8 +430,61 @@ export default function LMSPortal() {
               {activeTab === "quiz" ? (
                 <article className="lms-modules-card">
                   <h2>Quizz</h2>
-                  <p className="lms-placeholder-message">No quizzes available yet. Please stay tuned.</p>
-                  <div className="lms-quiz-grid" />
+                  {quizzes.length ? (
+                    <div className="lms-quiz-grid">
+                      {quizzes.map((quiz) => {
+                        const latestAttempt = quiz.latest_attempt;
+                        const isDone = Boolean(quiz.is_done);
+                        const hasFailedAttempt = Boolean(latestAttempt && !latestAttempt.is_passed);
+                        const actionLabel = isDone ? "Done" : hasFailedAttempt ? "Retry" : "Start Quiz";
+                        return (
+                          <article key={quiz.id} className={`lms-quiz-card ${isDone ? "is-done" : ""}`}>
+                            <div className="lms-quiz-head">
+                              <h3>{quiz.title}</h3>
+                              <span className={`lms-quiz-badge ${isDone ? "is-complete" : ""}`}>
+                                {isDone ? "Passed" : hasFailedAttempt ? "Retry" : "Available"}
+                              </span>
+                            </div>
+                            <p>{quiz.description || `Module ${quiz.module_number || "-"} quiz`}</p>
+                            <div className="lms-quiz-meta">
+                              <span>
+                                <HiOutlineClipboardDocumentList />
+                                {quiz.question_count} questions
+                              </span>
+                              <span>
+                                <HiOutlineClock />
+                                {quiz.time_per_question_seconds}s per question
+                              </span>
+                              <span>
+                                <HiOutlineShieldCheck />
+                                {quiz.pass_percentage}% pass mark
+                              </span>
+                              <span>Attempts: {quiz.attempts_count}</span>
+                            </div>
+                            {latestAttempt ? (
+                              <p className="lms-result-note">
+                                Last score: {latestAttempt.score}/{latestAttempt.total_marks} ({Number(latestAttempt.percentage).toFixed(2)}%)
+                              </p>
+                            ) : null}
+                            <button
+                              type="button"
+                              className={`btn ${isDone ? "btn-muted" : "btn-primary"}`}
+                              onClick={() => {
+                                if (!isDone) {
+                                  navigate(`/user/lms/${courseId}/quiz/${quiz.id}`);
+                                }
+                              }}
+                              disabled={isDone}
+                            >
+                              {actionLabel}
+                            </button>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="lms-placeholder-message">No quizzes available yet. Please stay tuned.</p>
+                  )}
                 </article>
               ) : null}
 
