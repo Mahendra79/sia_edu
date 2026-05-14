@@ -319,7 +319,7 @@ export default function CourseDetails() {
                   {isPurchased ? <span className="pill pill-owned">Purchased</span> : null}
                   <div className="pricing-kpi">
                     <strong>Program Start</strong>
-                    <span>{startLabel || "Start date will be announced soon."}</span>
+                    <span>{startLabel || ""}</span>
                   </div>
                   <p className="price-note">Guided learning plan with HDQS platform access.</p>
                   <button

@@ -1,5 +1,5 @@
 export const FEATURED_COURSE_TITLE = "Certificate Program in Quantum Computing";
-export const FEATURED_COURSE_START_LABEL = "Classes already started";
+export const FEATURED_COURSE_START_LABEL = "";
 
 export function isFeaturedCourseTitle(title) {
   return String(title || "").trim().toLowerCase() === FEATURED_COURSE_TITLE.toLowerCase();
