@@ -121,7 +121,7 @@ export default function PaymentHistory() {
                     <tr key={payment.id} className={highlightedPaymentId === payment.id ? "table-row-highlight" : ""}>
                       <td>{payment.course_title}</td>
                       <td>{payment.payment_status}</td>
-                      <td>{formatCurrency(payment.total)}</td>
+                      <td>{formatCurrency(payment.total, "INR")}</td>
                       <td>{formatDate(payment.created_at)}</td>
                       <td>
                         {payment.payment_status === "success" ? (
