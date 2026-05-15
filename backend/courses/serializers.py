@@ -223,10 +223,12 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only=True)
+    paid_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    paid_currency = serializers.CharField(read_only=True)
 
     class Meta:
         model = Enrollment
-        fields = ("id", "course", "status", "payment_status", "enrolled_at")
+        fields = ("id", "course", "status", "payment_status", "paid_total", "paid_currency", "enrolled_at")
 
 
 class AdminEnrollmentSerializer(serializers.ModelSerializer):
