@@ -129,8 +129,8 @@ def _quiz_publish_issues(quiz: Quiz) -> list[str]:
     active_questions = list(quiz.questions.filter(is_active=True).prefetch_related("options"))
     if not active_questions:
         issues.append("Add at least 1 active question before publishing.")
-    if len(active_questions) > 25:
-        issues.append("A quiz can have a maximum of 25 active questions.")
+    if len(active_questions) > 50:
+        issues.append("A quiz can have a maximum of 50 active questions.")
     for question in active_questions:
         options = list(question.options.all())
         if len(options) != 4:
@@ -846,8 +846,8 @@ class AdminQuizQuestionCreateView(APIView):
         quiz = Quiz.objects.filter(id=quiz_id).first()
         if not quiz:
             return Response({"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND)
-        if quiz.questions.count() >= 25:
-            return Response({"detail": "A quiz can have a maximum of 25 questions."}, status=status.HTTP_400_BAD_REQUEST)
+        if quiz.questions.count() >= 50:
+            return Response({"detail": "A quiz can have a maximum of 50 questions."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = QuizQuestionAdminSerializer(data={**request.data, "quiz": quiz.id})
         serializer.is_valid(raise_exception=True)
         question = serializer.save()
@@ -880,8 +880,8 @@ class AdminQuizQuestionImportView(APIView):
             )
 
         existing_count = quiz.questions.count()
-        if existing_count + len(rows) > 25:
-            return Response({"detail": "Import would exceed the 25 question limit."}, status=status.HTTP_400_BAD_REQUEST)
+        if existing_count + len(rows) > 50:
+            return Response({"detail": "Import would exceed the 50 question limit."}, status=status.HTTP_400_BAD_REQUEST)
 
         created = []
         errors = []

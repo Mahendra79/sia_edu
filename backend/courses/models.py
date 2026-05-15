@@ -184,7 +184,7 @@ class Quiz(models.Model):
     description = models.TextField(blank=True)
     time_per_question_seconds = models.PositiveSmallIntegerField(default=25)
     pass_percentage = models.PositiveSmallIntegerField(default=70, validators=[MinValueValidator(1), MaxValueValidator(100)])
-    max_questions = models.PositiveSmallIntegerField(default=25, validators=[MinValueValidator(1), MaxValueValidator(25)])
+    max_questions = models.PositiveSmallIntegerField(default=50, validators=[MinValueValidator(1), MaxValueValidator(50)])
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT, db_index=True)
     is_active = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

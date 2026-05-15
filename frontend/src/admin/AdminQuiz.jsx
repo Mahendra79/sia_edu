@@ -12,7 +12,7 @@ const EMPTY_QUIZ = {
   description: "",
   time_per_question_seconds: 25,
   pass_percentage: 70,
-  max_questions: 25,
+  max_questions: 50,
   status: "draft",
   is_active: false,
 };
@@ -107,7 +107,7 @@ export default function AdminQuiz() {
       description: quiz.description || "",
       time_per_question_seconds: quiz.time_per_question_seconds || 25,
       pass_percentage: quiz.pass_percentage || 70,
-      max_questions: quiz.max_questions || 25,
+      max_questions: quiz.max_questions || 50,
       status: quiz.status || "draft",
       is_active: Boolean(quiz.is_active),
     });
@@ -141,7 +141,7 @@ export default function AdminQuiz() {
       module_number: quizForm.module_number ? Number(quizForm.module_number) : null,
       time_per_question_seconds: Number(quizForm.time_per_question_seconds),
       pass_percentage: Number(quizForm.pass_percentage),
-      max_questions: Math.min(25, Number(quizForm.max_questions) || 25),
+      max_questions: Math.min(50, Number(quizForm.max_questions) || 50),
       status: quizForm.status,
     };
     try {
@@ -332,7 +332,7 @@ export default function AdminQuiz() {
             <input
               type="number"
               min="1"
-              max="25"
+              max="50"
               value={quizForm.max_questions}
               onChange={(e) => setQuizForm((prev) => ({ ...prev, max_questions: e.target.value }))}
               required
@@ -572,7 +572,7 @@ export default function AdminQuiz() {
                       </div>
                     </article>
                   ))}
-                  {!selectedQuiz.questions?.length ? <p className="meta-note">Add up to 25 questions for this quiz.</p> : null}
+                  {!selectedQuiz.questions?.length ? <p className="meta-note">Add up to 50 questions for this quiz.</p> : null}
                 </div>
               </>
             ) : (
