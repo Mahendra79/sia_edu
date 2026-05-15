@@ -462,8 +462,8 @@ class QuizAdminSerializer(serializers.ModelSerializer):
         active_questions = list(obj.questions.filter(is_active=True).prefetch_related("options"))
         if not active_questions:
             issues.append("Add at least 1 active question.")
-        if len(active_questions) > 25:
-            issues.append("Keep active questions at 25 or fewer.")
+        if len(active_questions) > 50:
+            issues.append("Keep active questions at 50 or fewer.")
         for question in active_questions:
             options = list(question.options.all())
             if len(options) != 4:
