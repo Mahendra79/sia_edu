@@ -37,6 +37,7 @@ from courses.serializers import (
     ReviewSerializer,
 )
 from deleted_records.services import record_soft_delete
+from payments.models import PaymentTransaction
 
 COURSE_CACHE_VERSION_KEY = "courses:cache_version"
 CATEGORY_CACHE_TTL = 120
@@ -492,9 +493,31 @@ class MyEnrollmentsView(generics.ListAPIView):
 
     def get_queryset(self):
         status_filter = self.request.query_params.get("status")
+        paid_total_subquery = (
+            PaymentTransaction.objects.filter(
+                enrollment_id=OuterRef("pk"),
+                payment_status="success",
+                is_deleted=False,
+            )
+            .order_by("-created_at")
+            .values("total")[:1]
+        )
+        paid_currency_subquery = (
+            PaymentTransaction.objects.filter(
+                enrollment_id=OuterRef("pk"),
+                payment_status="success",
+                is_deleted=False,
+            )
+            .order_by("-created_at")
+            .values("currency")[:1]
+        )
         queryset = (
             Enrollment.objects.filter(user=self.request.user, is_deleted=False)
             .select_related("course", "course__category")
+            .annotate(
+                paid_total=Subquery(paid_total_subquery),
+                paid_currency=Coalesce(Subquery(paid_currency_subquery, output_field=CharField()), Value("inr")),
+            )
             .order_by("-enrolled_at")
         )
         if status_filter:

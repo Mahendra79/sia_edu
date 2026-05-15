@@ -67,10 +67,11 @@ export default function MyCourses() {
                     <td>{item.payment_status}</td>
                     <td>
                       {formatCurrency(
-                        item.course.final_price ??
+                        item.paid_total ??
+                          item.course.final_price ??
                           item.course.discounted_price ??
                           item.course.price,
-                        "INR"
+                        String(item.paid_currency || "INR").toUpperCase()
                       )}
                     </td>
                     <td>{formatDate(item.enrolled_at)}</td>
