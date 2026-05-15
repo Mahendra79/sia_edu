@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft, HiOutlineArrowTopRightOnSquare, HiOutlineDocumentText, HiOutlinePlayCircle } from "react-icons/hi2";
+import { HiOutlineArrowLeft, HiOutlineDocumentText, HiOutlinePlayCircle } from "react-icons/hi2";
 
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useToast } from "../context/ToastContext";
@@ -20,6 +20,7 @@ export default function LessonPlayer() {
   const [marking, setMarking] = useState(false);
   const [maxWatchedPercent, setMaxWatchedPercent] = useState(0);
   const [isAutoCompleted, setIsAutoCompleted] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
   const WATCH_THRESHOLD_PERCENT = 80;
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function LessonPlayer() {
   const nextLesson = lessonIndex >= 0 && lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
   const pdfUrl = String(lesson?.pdf_url || "").trim();
   const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
+  const pdfEmbedUrl = pdfUrl ? `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1` : "";
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
   const previousEnabled = isPlayableLesson(previousLesson);
@@ -156,10 +158,9 @@ export default function LessonPlayer() {
                     <HiOutlineDocumentText />
                     <span>{pdfName}</span>
                   </div>
-                  <a className="btn btn-muted btn-icon lesson-pdf-view" href={pdfUrl} target="_blank" rel="noreferrer">
-                    <HiOutlineArrowTopRightOnSquare />
+                  <button type="button" className="btn btn-muted lesson-pdf-view" onClick={() => setShowPdfViewer(true)}>
                     View
-                  </a>
+                  </button>
                 </div>
               </section>
             ) : null}
@@ -184,6 +185,20 @@ export default function LessonPlayer() {
               </button>
             </div>
           </article>
+        ) : null}
+        {showPdfViewer ? (
+          <section className="lesson-pdf-fullscreen" onContextMenu={(event) => event.preventDefault()}>
+            <div className="lesson-pdf-fullscreen-topbar">
+              <div className="lesson-pdf-file">
+                <HiOutlineDocumentText />
+                <span>{pdfName}</span>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={() => setShowPdfViewer(false)}>
+                Back to Video
+              </button>
+            </div>
+            <iframe title={pdfName} src={pdfEmbedUrl} className="lesson-pdf-fullscreen-frame" loading="lazy" referrerPolicy="no-referrer" />
+          </section>
         ) : null}
       </section>
     </MainLayout>

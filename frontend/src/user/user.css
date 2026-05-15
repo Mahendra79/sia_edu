@@ -668,6 +668,71 @@
   flex: 0 0 auto;
 }
 
+[data-theme="light"] .lesson-pdf-section {
+  border-color: #c7d7ee;
+  background: linear-gradient(180deg, #f8fbff 0%, #edf4ff 100%);
+  box-shadow: 0 6px 18px rgba(26, 58, 117, 0.08);
+}
+
+[data-theme="light"] .lesson-pdf-file {
+  color: #1e3a66;
+}
+
+[data-theme="light"] .lesson-pdf-view {
+  border-color: #9eb8e0;
+  background: #ffffff;
+  color: #1c3f78;
+}
+
+[data-theme="light"] .lesson-pdf-view:hover,
+[data-theme="light"] .lesson-pdf-view:focus-visible {
+  border-color: #6f98d6;
+  background: #f1f6ff;
+  color: #17345f;
+}
+
+.lesson-pdf-embed-wrap {
+  margin-top: 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--soft-border) 90%, #17335f);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #fff;
+}
+
+.lesson-pdf-embed {
+  width: 100%;
+  height: min(72vh, 760px);
+  border: 0;
+  display: block;
+}
+
+.lesson-pdf-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: var(--bg-primary);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.lesson-pdf-fullscreen-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--soft-border) 88%, #17335f);
+  background: color-mix(in srgb, var(--surface-card) 92%, #020b1f);
+}
+
+.lesson-pdf-fullscreen-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #fff;
+}
+
 .lesson-nav-row {
   margin-top: 0.7rem;
   display: flex;
