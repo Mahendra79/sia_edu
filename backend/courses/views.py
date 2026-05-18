@@ -161,8 +161,9 @@ def _build_lms_payload(user, course: Course):
         for lesson_number in range(1, 6):
             lesson = lesson_map.get((module_number, lesson_number))
             has_video = bool(lesson and str(lesson.video_url or "").strip())
+            has_pdf = bool(lesson and str(lesson.pdf_url or "").strip())
             is_active = bool(lesson and lesson.is_active)
-            is_unlocked = bool(lesson and has_video and is_active)
+            is_unlocked = bool(lesson and (has_video or has_pdf) and is_active)
             is_completed = bool(lesson and lesson.id in completed_ids)
             if is_completed:
                 completed_lessons += 1

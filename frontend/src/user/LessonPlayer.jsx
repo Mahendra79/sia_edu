@@ -50,6 +50,7 @@ export default function LessonPlayer() {
   const lessonIndex = allLessons.findIndex((item) => String(item.id) === String(lessonId));
   const previousLesson = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex >= 0 && lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
+  const videoUrl = String(lesson?.video_url || "").trim();
   const pdfUrl = String(lesson?.pdf_url || "").trim();
   const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const pdfEmbedUrl = pdfUrl ? `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1` : "";
@@ -130,25 +131,32 @@ export default function LessonPlayer() {
               {lesson.description || "Watch this lesson to complete it and unlock the next lesson."}
             </p>
 
-            <div className="lesson-video-wrap">
-              <video
-                controls
-                controlsList="nodownload"
-                preload="metadata"
-                className="lesson-video"
-                src={lesson.video_url}
-                poster={lesson.thumbnail_url || undefined}
-                onContextMenu={(event) => event.preventDefault()}
-                onTimeUpdate={handleTimeUpdate}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
+            {videoUrl ? (
+              <div className="lesson-video-wrap">
+                <video
+                  controls
+                  controlsList="nodownload"
+                  preload="metadata"
+                  className="lesson-video"
+                  src={videoUrl}
+                  poster={lesson.thumbnail_url || undefined}
+                  onContextMenu={(event) => event.preventDefault()}
+                  onTimeUpdate={handleTimeUpdate}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            ) : (
+              <div className="lesson-video-placeholder">
+                <HiOutlineDocumentText />
+                <p>Lesson will be uploaded soon. Meanwhile go through the Document.</p>
+              </div>
+            )}
 
             <div className="lesson-info">
               <span>
                 <HiOutlinePlayCircle />
-                Now playing: {lesson.title}
+                {videoUrl ? `Now playing: ${lesson.title}` : `Document available: ${lesson.title}`}
               </span>
             </div>
             {pdfUrl ? (

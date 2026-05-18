@@ -131,7 +131,7 @@ class CourseLesson(models.Model):
     lesson_number = models.PositiveSmallIntegerField()
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    video_url = models.URLField(max_length=1200)
+    video_url = models.URLField(max_length=1200, blank=True)
     thumbnail_url = models.URLField(max_length=1200, blank=True)
     pdf_url = models.URLField(max_length=1200, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)

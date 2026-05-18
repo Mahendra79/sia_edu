@@ -318,6 +318,14 @@ class CourseLessonAdminSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "updated_at")
 
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+        video_url = attrs.get("video_url", getattr(instance, "video_url", ""))
+        pdf_url = attrs.get("pdf_url", getattr(instance, "pdf_url", ""))
+        if not str(video_url or "").strip() and not str(pdf_url or "").strip():
+            raise serializers.ValidationError("Add either a video URL or a PDF URL for this lesson.")
+        return attrs
+
 
 class CourseLessonLearnerSerializer(serializers.ModelSerializer):
     is_completed = serializers.SerializerMethodField()

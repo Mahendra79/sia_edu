@@ -261,12 +261,11 @@ export default function AdminLMS() {
             <textarea rows={3} value={form.description} onChange={(e) => handleChange("description", e.target.value)} />
           </label>
           <label className="table-inline-field table-inline-field-wide">
-            <span className="table-inline-field-label">Video URL (Cloudflare or direct video URL)</span>
+            <span className="table-inline-field-label">Video URL (Cloudflare or direct video URL, optional)</span>
             <input
               type="url"
               value={form.video_url}
               onChange={(e) => handleChange("video_url", e.target.value)}
-              required
             />
           </label>
           <label className="table-inline-field table-inline-field-wide">
