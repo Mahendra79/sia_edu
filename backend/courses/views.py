@@ -3,6 +3,8 @@ import hashlib
 import io
 from decimal import Decimal
 
+import requests
+from django.http import HttpResponse
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Avg, Case, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value, When
@@ -733,6 +735,33 @@ class LearnerLessonDetailView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class LearnerLessonPdfView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, lesson_id: int):
+        lesson = CourseLesson.objects.select_related("course").filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, lesson.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        pdf_url = str(lesson.pdf_url or "").strip()
+        if not pdf_url:
+            return Response({"detail": "PDF not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            upstream = requests.get(pdf_url, timeout=25)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            return Response({"detail": "Unable to load PDF."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        response = HttpResponse(upstream.content, content_type="application/pdf")
+        response["Content-Disposition"] = 'inline; filename="lesson.pdf"'
+        response["Cache-Control"] = "no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
 
 
 class LearnerLessonProgressView(APIView):
