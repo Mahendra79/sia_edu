@@ -4,7 +4,8 @@ import io
 from decimal import Decimal
 
 import requests
-from django.http import HttpResponse
+from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
+from django.http import HttpResponse, StreamingHttpResponse
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Avg, Case, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value, When
@@ -45,6 +46,22 @@ COURSE_CACHE_VERSION_KEY = "courses:cache_version"
 CATEGORY_CACHE_TTL = 120
 COURSE_CACHE_TTL = 60
 PINNED_COURSE_TITLE = "Certificate Program in Quantum Computing"
+LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS = 60 * 60
+
+
+def _make_lesson_media_token(lesson_id: int) -> str:
+    return TimestampSigner(salt="lesson-media").sign(str(lesson_id))
+
+
+def _is_valid_lesson_media_token(token: str, lesson_id: int) -> bool:
+    try:
+        value = TimestampSigner(salt="lesson-media").unsign(
+            token,
+            max_age=LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS,
+        )
+    except (BadSignature, SignatureExpired):
+        return False
+    return str(value) == str(lesson_id)
 
 
 def _get_cache_version() -> int:
@@ -730,6 +747,7 @@ class LearnerLessonDetailView(APIView):
                 "video_url": lesson.video_url,
                 "thumbnail_url": lesson.thumbnail_url,
                 "pdf_url": lesson.pdf_url,
+                "media_token": _make_lesson_media_token(lesson.id),
                 "is_unlocked": lesson.id in unlocked_ids,
                 "is_completed": lesson.id in completed_ids,
             },
@@ -759,6 +777,78 @@ class LearnerLessonPdfView(APIView):
 
         response = HttpResponse(upstream.content, content_type="application/pdf")
         response["Content-Disposition"] = 'inline; filename="lesson.pdf"'
+        response["Cache-Control"] = "no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
+class LearnerLessonVideoView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, lesson_id: int):
+        token = str(request.query_params.get("token") or "")
+        if not _is_valid_lesson_media_token(token, lesson_id):
+            return Response({"detail": "Invalid media token."}, status=status.HTTP_403_FORBIDDEN)
+
+        lesson = CourseLesson.objects.filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        video_url = str(lesson.video_url or "").strip()
+        if not video_url:
+            return Response({"detail": "Video not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        headers = {}
+        range_header = request.headers.get("Range")
+        if range_header:
+            headers["Range"] = range_header
+
+        try:
+            upstream = requests.get(video_url, headers=headers, stream=True, timeout=25)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            return Response({"detail": "Unable to load video."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        response = StreamingHttpResponse(
+            upstream.iter_content(chunk_size=1024 * 256),
+            status=upstream.status_code,
+            content_type=upstream.headers.get("Content-Type", "video/mp4"),
+        )
+        for header in ("Accept-Ranges", "Content-Length", "Content-Range"):
+            value = upstream.headers.get(header)
+            if value:
+                response[header] = value
+        response["Cache-Control"] = "no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
+class LearnerLessonThumbnailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, lesson_id: int):
+        token = str(request.query_params.get("token") or "")
+        if not _is_valid_lesson_media_token(token, lesson_id):
+            return Response({"detail": "Invalid media token."}, status=status.HTTP_403_FORBIDDEN)
+
+        lesson = CourseLesson.objects.filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        thumbnail_url = str(lesson.thumbnail_url or "").strip()
+        if not thumbnail_url:
+            return Response({"detail": "Thumbnail not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            upstream = requests.get(thumbnail_url, timeout=25)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            return Response({"detail": "Unable to load thumbnail."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        response = HttpResponse(
+            upstream.content,
+            content_type=upstream.headers.get("Content-Type", "image/jpeg"),
+        )
         response["Cache-Control"] = "no-store"
         response["X-Content-Type-Options"] = "nosniff"
         return response

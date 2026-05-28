@@ -212,7 +212,12 @@ export default function LessonPlayer() {
   const nextLesson = lessonIndex >= 0 && lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
   const videoUrl = String(lesson?.video_url || "").trim();
   const pdfUrl = String(lesson?.pdf_url || "").trim();
+  const mediaToken = String(lesson?.media_token || "");
+  const mediaTokenQuery = mediaToken ? `?token=${encodeURIComponent(mediaToken)}` : "";
   const pdfViewerUrl = pdfUrl ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/pdf/` : "";
+  const videoViewerUrl = videoUrl && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/video/${mediaTokenQuery}` : "";
+  const thumbnailViewerUrl =
+    lesson?.thumbnail_url && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/thumbnail/${mediaTokenQuery}` : "";
   const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
@@ -291,20 +296,25 @@ export default function LessonPlayer() {
               {lesson.description || "Watch this lesson to complete it and unlock the next lesson."}
             </p>
 
-            {videoUrl ? (
+            {videoUrl && videoViewerUrl ? (
               <div className="lesson-video-wrap">
                 <video
                   controls
                   controlsList="nodownload"
                   preload="metadata"
                   className="lesson-video"
-                  src={videoUrl}
-                  poster={lesson.thumbnail_url || undefined}
+                  src={videoViewerUrl}
+                  poster={thumbnailViewerUrl || undefined}
                   onContextMenu={(event) => event.preventDefault()}
                   onTimeUpdate={handleTimeUpdate}
                 >
                   Your browser does not support the video tag.
                 </video>
+              </div>
+            ) : videoUrl ? (
+              <div className="lesson-video-placeholder">
+                <HiOutlinePlayCircle />
+                <p>Loading protected video...</p>
               </div>
             ) : (
               <div className="lesson-video-placeholder">
