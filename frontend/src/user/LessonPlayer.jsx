@@ -213,8 +213,6 @@ export default function LessonPlayer() {
   const videoUrl = String(lesson?.video_url || "").trim();
   const pdfUrl = String(lesson?.pdf_url || "").trim();
   const pdfViewerUrl = pdfUrl ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/pdf/` : "";
-  const videoViewerUrl = videoUrl ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/video/` : "";
-  const thumbnailViewerUrl = lesson?.thumbnail_url ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/thumbnail/` : "";
   const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
@@ -300,8 +298,8 @@ export default function LessonPlayer() {
                   controlsList="nodownload"
                   preload="metadata"
                   className="lesson-video"
-                  src={videoViewerUrl}
-                  poster={thumbnailViewerUrl || undefined}
+                  src={videoUrl}
+                  poster={lesson.thumbnail_url || undefined}
                   onContextMenu={(event) => event.preventDefault()}
                   onTimeUpdate={handleTimeUpdate}
                 >
