@@ -4,7 +4,7 @@ import io
 from decimal import Decimal
 
 import requests
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Avg, Case, CharField, Count, Exists, FloatField, IntegerField, OuterRef, Q, Subquery, Value, When
@@ -759,6 +759,74 @@ class LearnerLessonPdfView(APIView):
 
         response = HttpResponse(upstream.content, content_type="application/pdf")
         response["Content-Disposition"] = 'inline; filename="lesson.pdf"'
+        response["Cache-Control"] = "no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
+class LearnerLessonVideoView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, lesson_id: int):
+        lesson = CourseLesson.objects.select_related("course").filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, lesson.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        video_url = str(lesson.video_url or "").strip()
+        if not video_url:
+            return Response({"detail": "Video not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        headers = {}
+        range_header = request.headers.get("Range")
+        if range_header:
+            headers["Range"] = range_header
+
+        try:
+            upstream = requests.get(video_url, headers=headers, stream=True, timeout=25)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            return Response({"detail": "Unable to load video."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        response = StreamingHttpResponse(
+            upstream.iter_content(chunk_size=1024 * 256),
+            status=upstream.status_code,
+            content_type=upstream.headers.get("Content-Type", "video/mp4"),
+        )
+        for header in ("Accept-Ranges", "Content-Length", "Content-Range"):
+            value = upstream.headers.get(header)
+            if value:
+                response[header] = value
+        response["Cache-Control"] = "no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
+class LearnerLessonThumbnailView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    def get(self, request, lesson_id: int):
+        lesson = CourseLesson.objects.select_related("course").filter(id=lesson_id, is_active=True).first()
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _has_success_enrollment(request.user, lesson.course_id):
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        thumbnail_url = str(lesson.thumbnail_url or "").strip()
+        if not thumbnail_url:
+            return Response({"detail": "Thumbnail not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            upstream = requests.get(thumbnail_url, timeout=25)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            return Response({"detail": "Unable to load thumbnail."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        response = HttpResponse(
+            upstream.content,
+            content_type=upstream.headers.get("Content-Type", "image/jpeg"),
+        )
         response["Cache-Control"] = "no-store"
         response["X-Content-Type-Options"] = "nosniff"
         return response
