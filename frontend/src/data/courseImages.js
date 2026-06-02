@@ -8,7 +8,9 @@ export const COURSE_IMAGE_URLS_BY_ID = {
   55: "https://cdn.corenexis.com/files/c/5482339720.png",
   56: "https://cdn.corenexis.com/files/c/5181743720.png",
   58: "https://cdn.corenexis.com/files/c/5133421720.png",
-  57: DEFAULT_COURSE_IMAGE_URL,
+  60: "https://cdn.corenexis.com/files/c/5133421720.png",
+  59: "https://cdn.corenexis.com/files/c/5181743720.png",
+  57: "https://cdn.corenexis.com/files/c/4223578720.png",
 };
 
 export function getCourseImageUrl(course) {
