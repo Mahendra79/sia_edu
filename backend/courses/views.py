@@ -45,7 +45,6 @@ from payments.models import PaymentTransaction
 COURSE_CACHE_VERSION_KEY = "courses:cache_version"
 CATEGORY_CACHE_TTL = 120
 COURSE_CACHE_TTL = 60
-PINNED_COURSE_TITLE = "Certificate Program in Quantum Computing"
 LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS = 60 * 60
 
 
@@ -111,6 +110,9 @@ def _annotated_course_queryset(user):
             **purchased_annotation,
         )
     )
+
+
+PINNED_COURSE_TITLE = "Advanced Quantum Computing using HDQS"
 
 
 def _ordered_course_queryset(queryset):
