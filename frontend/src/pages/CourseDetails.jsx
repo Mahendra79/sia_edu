@@ -13,14 +13,12 @@ import PageTransition from "../components/PageTransition";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
-import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
+import { getCourseImageUrl } from "../data/courseImages";
 import { getCourseStartLabel } from "../data/featuredCourse";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
-const FALLBACK_COURSE_IMAGE_URL =
-  "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
 
 const DEFAULT_CURRICULUM = [
   "Module 1: Foundations, notation, and problem framing",
@@ -46,18 +44,6 @@ const HARD_CODED_CAPSTONE = [
   "Analyze results using measurement statistics.",
   "Submit a formal technical project report.",
 ];
-
-function resolveCourseImageUrl(imagePath) {
-  if (!imagePath) {
-    return "";
-  }
-  if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith("data:")) {
-    return imagePath;
-  }
-  const normalizedPath = String(imagePath).replace(/\\/g, "/");
-  const apiOrigin = /^https?:\/\//i.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin;
-  return new URL(normalizedPath, `${apiOrigin}/`).toString();
-}
 
 function uniqueItems(items, max = 8) {
   const seen = new Set();
@@ -212,8 +198,7 @@ export default function CourseDetails() {
   const capstone = HARD_CODED_CAPSTONE;
 
   const imageCandidates = useMemo(() => {
-    const primary = resolveCourseImageUrl(course?.image);
-    const candidates = [primary, FALLBACK_COURSE_IMAGE_URL].filter(Boolean);
+    const candidates = [getCourseImageUrl(course)].filter(Boolean);
     const unique = [];
     for (const candidate of candidates) {
       if (!unique.includes(candidate)) {
@@ -221,7 +206,7 @@ export default function CourseDetails() {
       }
     }
     return unique;
-  }, [course?.image]);
+  }, [course]);
 
   const imageUrl = imageCandidates[imageStage] || "";
   const showImage = Boolean(imageUrl);

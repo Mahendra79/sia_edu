@@ -6,10 +6,8 @@ import {
   HiOutlineCalendarDays,
   HiOutlineShoppingBag,
 } from "react-icons/hi2";
+import { getCourseImageUrl } from "../data/courseImages";
 import { getCourseStartLabel } from "../data/featuredCourse";
-
-const FORCED_COURSE_IMAGE_URL =
-  "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
 
 function getHighlightedTitle(title, query) {
   const normalizedQuery = String(query || "").trim();
@@ -26,7 +24,7 @@ function getHighlightedTitle(title, query) {
 }
 
 export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
-  const imageUrl = FORCED_COURSE_IMAGE_URL;
+  const imageUrl = getCourseImageUrl(course);
   const logoPlaceholder = (import.meta.env.VITE_WEBSITE_LOGO_URL || "").trim();
   const discountPercent = Number(course.discount_percent || 0);
   const hasDiscount = discountPercent > 0;

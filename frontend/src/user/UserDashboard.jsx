@@ -77,7 +77,7 @@ export default function UserDashboard() {
           </button>
           <button type="button" className="stat-card user-stat-card-btn" onClick={() => navigate("/user/payment-history")}>
             <h3>Total Spent</h3>
-            <strong>{formatCurrency(stats.spent)}</strong>
+            <strong>{formatCurrency(stats.spent, "INR")}</strong>
           </button>
         </div>
       )}
