@@ -173,13 +173,15 @@ def _build_lms_payload(user, course: Course):
     )
 
     modules = []
-    total_lessons = 8 * 5
+    module_numbers = range(1, 9)
+    lesson_count_for_module = lambda module_number: 5 if module_number <= 3 else 4
+    total_lessons = sum(lesson_count_for_module(module_number) for module_number in module_numbers)
     completed_lessons = 0
 
-    for module_number in range(1, 9):
+    for module_number in module_numbers:
         module_lessons = []
         module_completed = True
-        for lesson_number in range(1, 6):
+        for lesson_number in range(1, lesson_count_for_module(module_number) + 1):
             lesson = lesson_map.get((module_number, lesson_number))
             has_video = bool(lesson and str(lesson.video_url or "").strip())
             has_pdf = bool(lesson and str(lesson.pdf_url or "").strip())
