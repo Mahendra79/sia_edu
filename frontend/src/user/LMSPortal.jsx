@@ -29,8 +29,8 @@ const MODULE_TITLES = {
   3: "Entanglement, Correlation, and State Analysis",
   4: "Fundamental Quantum Algorithms",
   5: "Quantum Information and Search Algorithms",
-  6: "Variational Quantum Algorithms and Optimization",
-  7: "Hyper Dimensional Quantum System Architecture",
+  6: "Quantum Cryptography and Secure Communication",
+  7: "Variational Quantum Algorithms and Optimization",
   8: "Capstone Project",
 };
 
