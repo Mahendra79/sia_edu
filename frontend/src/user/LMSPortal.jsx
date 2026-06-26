@@ -31,7 +31,7 @@ const MODULE_TITLES = {
   5: "Quantum Information and Search Algorithms",
   6: "Quantum Cryptography and Secure Communication",
   7: "Variational Quantum Algorithms and Optimization",
-  8: "Capstone Project",
+  8: "QML on Quantum-Encoded Datasets Using HDQS",
 };
 
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
