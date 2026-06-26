@@ -19,8 +19,9 @@ import {
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
+import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
-import { formatDate } from "../utils/format";
+import { LessonPdfViewer } from "./LessonPlayer";
 import "./user.css";
 
 const MODULE_TITLES = {
@@ -36,26 +37,6 @@ const MODULE_TITLES = {
 
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
 
-function formatEnrolledAt(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
-}
-
 export default function LMSPortal() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -70,6 +51,7 @@ export default function LMSPortal() {
   const [watchProgressByLessonId, setWatchProgressByLessonId] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quizzes, setQuizzes] = useState([]);
+  const [projectPdf, setProjectPdf] = useState(null);
 
   useEffect(() => {
     try {
@@ -111,7 +93,6 @@ export default function LMSPortal() {
 
   const modules = useMemo(() => overview?.modules || [], [overview]);
   const progressPercent = Number(overview?.progress_percent || 0);
-  const enrolledAtLabel = useMemo(() => formatEnrolledAt(overview?.enrolled_at), [overview]);
 
   const totalLessons = Number(
     overview?.total_lessons || modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0)
@@ -184,9 +165,20 @@ export default function LMSPortal() {
     window.open(lessonUrl, "_blank", "noopener,noreferrer");
   };
 
+  const openProjectPdf = (lesson) => {
+    setProjectPdf({
+      name: `${String(lesson.title || "Project").trim()}.pdf`,
+      url: `${API_BASE_URL}/courses/lms/lessons/${lesson.id}/pdf/`,
+    });
+  };
+
   const handleLessonAction = (moduleNumber, lesson) => {
     const lessonStatus = getLessonStatus(lesson);
     if (lessonStatus !== "Continue" && lessonStatus !== "Resume" && lessonStatus !== "Completed") {
+      return;
+    }
+    if (lesson.is_project || Number(moduleNumber) === 9) {
+      openProjectPdf(lesson);
       return;
     }
     openLesson(moduleNumber, lesson.id);
@@ -204,6 +196,21 @@ export default function LMSPortal() {
       return "Resume";
     }
     return "Continue";
+  };
+
+  const getModuleTitle = (module) => {
+    if (module.is_project_section || Number(module.module_number) === 9) {
+      return "Projects";
+    }
+    return `Module ${module.module_number}: ${MODULE_TITLES[module.module_number] || "Module"}`;
+  };
+
+  const getModuleCountLabel = (module) => {
+    const completedCount = module.lessons.filter((item) => item.is_completed).length;
+    if (module.is_project_section || Number(module.module_number) === 9) {
+      return `${module.lessons.length} ${module.lessons.length === 1 ? "project" : "projects"}`;
+    }
+    return `${completedCount}/${module.lessons.length} lessons`;
   };
 
   return (
@@ -373,8 +380,8 @@ export default function LMSPortal() {
                                 <HiOutlineLockClosed />
                               )}
                               <div className="lms-module-text">
-                                <strong>{`Module ${module.module_number}: ${MODULE_TITLES[module.module_number] || "Module"}`}</strong>
-                                <p>{`${module.lessons.filter((item) => item.is_completed).length}/${module.lessons.length} lessons`}</p>
+                                <strong>{getModuleTitle(module)}</strong>
+                                <p>{getModuleCountLabel(module)}</p>
                               </div>
                             </div>
                             {openModuleId === module.module_number ? <HiOutlineChevronUp /> : <HiOutlineChevronDown />}
@@ -386,6 +393,7 @@ export default function LMSPortal() {
                                   const lessonStatus = getLessonStatus(lesson);
                                   const isPlayable =
                                     lessonStatus === "Continue" || lessonStatus === "Resume" || lessonStatus === "Completed";
+                                  const isProjectLesson = lesson.is_project || Number(module.module_number) === 9;
                                   return (
                                   <li key={lesson.id} className={lesson.is_completed ? "is-completed" : ""}>
                                     <div className="lms-lesson-meta">
@@ -407,7 +415,7 @@ export default function LMSPortal() {
                                         className={`btn lms-lesson-cta ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"}`}
                                         onClick={() => handleLessonAction(module.module_number, lesson)}
                                       >
-                                        {lessonStatus}
+                                        {isProjectLesson ? "View PDF" : lessonStatus}
                                       </button>
                                     ) : (
                                       <span className={`lms-lesson-status ${lessonStatus === "Completed" ? "is-completed" : "is-locked"}`}>
@@ -486,6 +494,20 @@ export default function LMSPortal() {
                     <p className="lms-placeholder-message">No quizzes available yet. Please stay tuned.</p>
                   )}
                 </article>
+              ) : null}
+              {projectPdf ? (
+                <section className="lesson-pdf-fullscreen" onContextMenu={(event) => event.preventDefault()}>
+                  <div className="lesson-pdf-fullscreen-topbar">
+                    <div className="lesson-pdf-file">
+                      <HiOutlineClipboardDocumentList />
+                      <span>{projectPdf.name}</span>
+                    </div>
+                    <button type="button" className="btn btn-primary" onClick={() => setProjectPdf(null)}>
+                      Back to Projects
+                    </button>
+                  </div>
+                  <LessonPdfViewer name={projectPdf.name} url={projectPdf.url} />
+                </section>
               ) : null}
 
               {activeTab === "certificate" ? (
