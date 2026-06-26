@@ -174,7 +174,11 @@ def _build_lms_payload(user, course: Course):
 
     modules = []
     module_numbers = range(1, 9)
-    lesson_count_for_module = lambda module_number: 5 if module_number <= 3 else 4
+    project_module_number = 9
+
+    def lesson_count_for_module(module_number):
+        return 5 if module_number <= 3 else 4
+
     total_lessons = sum(lesson_count_for_module(module_number) for module_number in module_numbers)
     completed_lessons = 0
 
@@ -201,6 +205,8 @@ def _build_lms_payload(user, course: Course):
                     "title": lesson.title if lesson else f"Lesson {lesson_number}",
                     "description": lesson.description if lesson else "",
                     "thumbnail_url": lesson.thumbnail_url if lesson else "",
+                    "has_pdf": has_pdf,
+                    "has_video": has_video,
                     "is_active": bool(is_active),
                     "is_completed": is_completed,
                     "is_unlocked": is_unlocked,
@@ -213,8 +219,48 @@ def _build_lms_payload(user, course: Course):
                 "title": f"Module {module_number}",
                 "lessons": module_lessons,
                 "is_completed": module_completed,
+                "is_project_section": False,
             }
         )
+
+    project_lessons = [lesson for lesson in db_lessons if lesson.module_number == project_module_number]
+    project_module_lessons = []
+    project_completed = True
+    for lesson in project_lessons:
+        has_video = bool(str(lesson.video_url or "").strip())
+        has_pdf = bool(str(lesson.pdf_url or "").strip())
+        is_active = bool(lesson.is_active)
+        is_unlocked = bool(has_pdf and is_active)
+        is_completed = lesson.id in completed_ids
+        if not is_completed:
+            project_completed = False
+
+        project_module_lessons.append(
+            {
+                "id": lesson.id,
+                "module_number": project_module_number,
+                "lesson_number": lesson.lesson_number,
+                "title": lesson.title,
+                "description": lesson.description,
+                "thumbnail_url": lesson.thumbnail_url,
+                "has_pdf": has_pdf,
+                "has_video": has_video,
+                "is_active": is_active,
+                "is_completed": is_completed,
+                "is_unlocked": is_unlocked,
+                "is_project": True,
+            }
+        )
+
+    modules.append(
+        {
+            "module_number": project_module_number,
+            "title": "Projects",
+            "lessons": project_module_lessons,
+            "is_completed": bool(project_module_lessons) and project_completed,
+            "is_project_section": True,
+        }
+    )
 
     progress_percent = round((completed_lessons / total_lessons) * 100) if total_lessons else 0
 

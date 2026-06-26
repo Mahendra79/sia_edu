@@ -761,15 +761,68 @@
   height: 100%;
   overflow: auto;
   background: #eef2f7;
-  padding: 1rem 0.75rem 2rem;
   -webkit-user-select: none;
   user-select: none;
   touch-action: pan-y pinch-zoom;
 }
 
+.lesson-pdf-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  background: rgba(238, 242, 247, 0.94);
+  border-bottom: 1px solid #d4dce8;
+  backdrop-filter: blur(8px);
+}
+
+.lesson-pdf-toolbar span {
+  min-width: 3.2rem;
+  text-align: center;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.lesson-pdf-toolbar .btn {
+  border-color: #b8c6d8;
+  background: #ffffff;
+  color: #1e3a66;
+}
+
+.lesson-pdf-toolbar .btn svg {
+  color: #1e3a66;
+  opacity: 1;
+}
+
+.lesson-pdf-toolbar .btn:hover:not(:disabled),
+.lesson-pdf-toolbar .btn:focus-visible:not(:disabled) {
+  border-color: #6f98d6;
+  background: #f8fbff;
+  color: #17345f;
+}
+
+.lesson-pdf-toolbar .btn:disabled {
+  border-color: #d7e0ec;
+  background: #edf2f8;
+  color: #8ca0b8;
+  opacity: 1;
+}
+
+.lesson-pdf-toolbar .btn:disabled svg {
+  color: #8ca0b8;
+}
+
+.lesson-pdf-pages {
+  min-width: 100%;
+  padding: 1rem 0.75rem 2rem;
+}
+
 .lesson-pdf-canvas {
   display: block;
-  max-width: 100%;
   height: auto;
   margin: 0 auto 1rem;
   background: #ffffff;

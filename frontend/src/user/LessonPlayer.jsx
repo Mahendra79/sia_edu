@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft, HiOutlineDocumentText, HiOutlinePlayCircle } from "react-icons/hi2";
+import {
+  HiOutlineArrowLeft,
+  HiOutlineDocumentText,
+  HiOutlineMagnifyingGlassMinus,
+  HiOutlineMagnifyingGlassPlus,
+  HiOutlinePlayCircle,
+} from "react-icons/hi2";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
@@ -16,7 +22,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
 
-function LessonPdfViewer({ name, url }) {
+export function LessonPdfViewer({ name, url }) {
   const containerRef = useRef(null);
   const canvasRefs = useRef(new Map());
   const renderRunRef = useRef(0);
@@ -24,6 +30,7 @@ function LessonPdfViewer({ name, url }) {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +41,7 @@ function LessonPdfViewer({ name, url }) {
       setError("");
       setPdfDoc(null);
       setPageCount(0);
+      setZoom(1);
       canvasRefs.current.clear();
 
       try {
@@ -82,7 +90,7 @@ function LessonPdfViewer({ name, url }) {
       const runId = renderRunRef.current + 1;
       renderRunRef.current = runId;
       const containerWidth = Math.max(260, Math.floor(containerRef.current?.clientWidth || 900));
-      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 4);
 
       try {
         for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
@@ -97,7 +105,7 @@ function LessonPdfViewer({ name, url }) {
           const page = await pdfDoc.getPage(pageNumber);
           const baseViewport = page.getViewport({ scale: 1 });
           const displayWidth = Math.min(containerWidth, baseViewport.width);
-          const cssScale = displayWidth / baseViewport.width;
+          const cssScale = (displayWidth / baseViewport.width) * zoom;
           const renderViewport = page.getViewport({ scale: cssScale * pixelRatio });
           const context = canvas.getContext("2d", { alpha: false });
 
@@ -128,7 +136,7 @@ function LessonPdfViewer({ name, url }) {
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", scheduleRender);
     };
-  }, [pdfDoc, pageCount]);
+  }, [pdfDoc, pageCount, zoom]);
 
   useEffect(
     () => () => {
@@ -140,32 +148,57 @@ function LessonPdfViewer({ name, url }) {
   );
 
   return (
-    <div className="lesson-pdf-renderer" ref={containerRef}>
-      {loading ? <LoadingSpinner label="Opening document..." /> : null}
-      {error ? (
-        <div className="lesson-pdf-error" role="alert">
-          <HiOutlineDocumentText />
-          <p>{error}</p>
-        </div>
-      ) : null}
-      {!loading && !error
-        ? Array.from({ length: pageCount }, (_, index) => {
-            const pageNumber = index + 1;
-            return (
-              <canvas
-                key={`${name}-${pageNumber}`}
-                className="lesson-pdf-canvas"
-                ref={(node) => {
-                  if (node) {
-                    canvasRefs.current.set(pageNumber, node);
-                  } else {
-                    canvasRefs.current.delete(pageNumber);
-                  }
-                }}
-              />
-            );
-          })
-        : null}
+    <div className="lesson-pdf-renderer">
+      <div className="lesson-pdf-toolbar">
+        <button
+          type="button"
+          className="btn btn-muted btn-icon"
+          onClick={() => setZoom((currentZoom) => Math.max(0.75, Number((currentZoom - 0.25).toFixed(2))))}
+          disabled={zoom <= 0.75}
+          aria-label="Zoom out"
+          title="Zoom out"
+        >
+          <HiOutlineMagnifyingGlassMinus />
+        </button>
+        <span>{Math.round(zoom * 100)}%</span>
+        <button
+          type="button"
+          className="btn btn-muted btn-icon"
+          onClick={() => setZoom((currentZoom) => Math.min(2.5, Number((currentZoom + 0.25).toFixed(2))))}
+          disabled={zoom >= 2.5}
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          <HiOutlineMagnifyingGlassPlus />
+        </button>
+      </div>
+      <div className="lesson-pdf-pages" ref={containerRef}>
+        {loading ? <LoadingSpinner label="Opening document..." /> : null}
+        {error ? (
+          <div className="lesson-pdf-error" role="alert">
+            <HiOutlineDocumentText />
+            <p>{error}</p>
+          </div>
+        ) : null}
+        {!loading && !error
+          ? Array.from({ length: pageCount }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <canvas
+                  key={`${name}-${pageNumber}`}
+                  className="lesson-pdf-canvas"
+                  ref={(node) => {
+                    if (node) {
+                      canvasRefs.current.set(pageNumber, node);
+                    } else {
+                      canvasRefs.current.delete(pageNumber);
+                    }
+                  }}
+                />
+              );
+            })
+          : null}
+      </div>
     </div>
   );
 }
@@ -223,6 +256,7 @@ export default function LessonPlayer() {
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
   const previousEnabled = isPlayableLesson(previousLesson);
   const nextEnabled = isPlayableLesson(nextLesson);
+  const lessonSectionLabel = Number(lesson?.module_number) === 9 ? "Projects" : `Module ${lesson?.module_number}`;
 
   const openLesson = (target) => {
     if (!target) {
@@ -289,7 +323,7 @@ export default function LessonPlayer() {
           <article className="lesson-card">
             <p className="lms-kicker">Lesson Player</p>
             <p className="lesson-breadcrumb">
-              {`Module ${lesson.module_number} > Lesson ${lesson.lesson_number} > Video`}
+              {`${lessonSectionLabel} > Lesson ${lesson.lesson_number} > ${videoUrl ? "Video" : "Document"}`}
             </p>
             <h1>{lesson.title || `Module ${moduleId} - Lesson ${lessonId}`}</h1>
             <p className="lesson-description">
