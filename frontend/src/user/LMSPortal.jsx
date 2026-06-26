@@ -28,8 +28,8 @@ const MODULE_TITLES = {
   2: "Quantum Gates and Circuit Design",
   3: "Entanglement, Correlation, and State Analysis",
   4: "Fundamental Quantum Algorithms",
-  5: "Variational and Hybrid Quantum Algorithms",
-  6: "Applied Quantum Modeling and Optimization",
+  5: "Advanced Quantum Algorithms",
+  6: "Variational Quantum Algorithms and Optimization",
   7: "Hyper Dimensional Quantum System Architecture",
   8: "Capstone Project",
 };
