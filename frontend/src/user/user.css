@@ -613,10 +613,196 @@
   background: #000;
 }
 
+.custom-video-player {
+  position: relative;
+  display: grid;
+}
+
+.custom-video-player.is-theater {
+  margin-inline: calc(50% - 50vw + 1rem);
+  border-radius: 0;
+}
+
+.custom-video-player:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+}
+
 .lesson-video {
   width: 100%;
   display: block;
   max-height: 70vh;
+  background: #000;
+  cursor: pointer;
+}
+
+.custom-video-player.is-theater .lesson-video {
+  max-height: 78vh;
+}
+
+.custom-video-player:fullscreen .lesson-video {
+  width: 100%;
+  height: calc(100vh - 124px);
+  max-height: none;
+  object-fit: contain;
+}
+
+.custom-video-controls {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem 0.8rem;
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.82), rgba(3, 7, 18, 0.98));
+  color: #f8fafc;
+}
+
+.custom-video-progress-row {
+  display: grid;
+}
+
+.custom-video-progress,
+.custom-video-volume {
+  width: 100%;
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.custom-video-progress {
+  --video-progress: 0%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-strong) var(--video-progress), rgba(148, 163, 184, 0.34) var(--video-progress));
+}
+
+.custom-video-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.custom-video-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.custom-video-control-group:last-child {
+  justify-self: end;
+}
+
+.custom-video-btn {
+  flex: 0 0 auto;
+  width: 2.45rem;
+  height: 2.45rem;
+  padding: 0;
+  border: 1px solid rgba(226, 232, 240, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.custom-video-btn:hover,
+.custom-video-btn.is-active {
+  background: color-mix(in srgb, var(--accent-strong) 78%, #0f172a);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.custom-video-btn:active {
+  transform: translateY(1px);
+}
+
+.custom-video-btn svg {
+  display: block;
+  width: 1.18rem;
+  height: 1.18rem;
+  flex: 0 0 auto;
+}
+
+.custom-video-time {
+  min-width: 8.6rem;
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.custom-video-volume {
+  flex: 0 0 7rem;
+  width: 7rem;
+}
+
+.custom-video-speed {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
+  height: 2.45rem;
+  box-sizing: border-box;
+  border: 1px solid rgba(226, 232, 240, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+  padding: 0 0.65rem;
+  font-weight: 700;
+}
+
+.custom-video-timestamps {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+}
+
+.custom-video-timestamps span,
+.custom-video-timestamps button {
+  flex: 0 0 auto;
+}
+
+.custom-video-timestamps span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: rgba(248, 250, 252, 0.78);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.custom-video-timestamps span svg {
+  display: block;
+  width: 0.92rem;
+  height: 0.92rem;
+  flex: 0 0 auto;
+}
+
+.custom-video-timestamps button {
+  border: 1px solid rgba(226, 232, 240, 0.16);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  padding: 0.4rem 0.62rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.custom-video-timestamps button:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(30, 41, 59, 0.96);
 }
 
 .lesson-video-placeholder {
@@ -1033,6 +1219,35 @@
 
   .lesson-video {
     max-height: 46vh;
+  }
+
+  .custom-video-player.is-theater {
+    margin-inline: 0;
+    border-radius: var(--radius-md);
+  }
+
+  .custom-video-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .custom-video-control-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .custom-video-control-group:last-child {
+    justify-self: stretch;
+  }
+
+  .custom-video-time {
+    min-width: auto;
+    margin-left: auto;
+  }
+
+  .custom-video-volume {
+    flex: 1 1 6rem;
+    min-width: 5rem;
   }
 
   .lesson-pdf-row {

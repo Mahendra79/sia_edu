@@ -2,10 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineArrowLeft,
+  HiOutlineArrowsPointingIn,
+  HiOutlineArrowsPointingOut,
+  HiOutlineBackward,
+  HiOutlineClock,
   HiOutlineDocumentText,
+  HiOutlineForward,
   HiOutlineMagnifyingGlassMinus,
   HiOutlineMagnifyingGlassPlus,
+  HiOutlinePause,
   HiOutlinePlayCircle,
+  HiOutlinePlay,
+  HiOutlineSpeakerWave,
+  HiOutlineSpeakerXMark,
+  HiOutlineViewColumns,
 } from "react-icons/hi2";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
@@ -21,6 +31,32 @@ import "./user.css";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
+const VIDEO_SKIP_SECONDS = 10;
+const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2];
+
+function formatVideoTime(value) {
+  const totalSeconds = Math.max(0, Math.floor(Number(value) || 0));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function buildTimestampMarkers(duration) {
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return [{ label: "Start", time: 0 }];
+  }
+
+  return [
+    { label: "Start", time: 0 },
+    { label: "25%", time: duration * 0.25 },
+    { label: "50%", time: duration * 0.5 },
+    { label: "75%", time: duration * 0.75 },
+  ].map((marker) => ({ ...marker, time: Math.max(0, Math.floor(marker.time)) }));
+}
 
 export function LessonPdfViewer({ name, url }) {
   const containerRef = useRef(null);
@@ -207,6 +243,7 @@ export default function LessonPlayer() {
   const { courseId, moduleId, lessonId } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const playerRef = useRef(null);
   const videoRef = useRef(null);
   const pendingVideoResumeRef = useRef(null);
   const refreshingVideoTokenRef = useRef(false);
@@ -218,6 +255,14 @@ export default function LessonPlayer() {
   const [, setMaxWatchedPercent] = useState(0);
   const [isAutoCompleted, setIsAutoCompleted] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const WATCH_THRESHOLD_PERCENT = 80;
 
   const loadLesson = useCallback(async () => {
@@ -231,6 +276,9 @@ export default function LessonPlayer() {
       setOverview(overviewResponse.data);
       setMaxWatchedPercent(0);
       setIsAutoCompleted(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
       videoRecoveryAttemptsRef.current = 0;
     } catch {
       addToast({ type: "error", message: "Unable to load lesson details." });
@@ -292,6 +340,10 @@ export default function LessonPlayer() {
     const media = event.currentTarget;
     const nextCurrentTime = Number(media.currentTime || 0);
     const nextDuration = Number(media.duration || 0);
+    setCurrentTime(nextCurrentTime);
+    if (Number.isFinite(nextDuration) && nextDuration > 0) {
+      setDuration(nextDuration);
+    }
     if (!Number.isFinite(nextDuration) || nextDuration <= 0) {
       return;
     }
@@ -315,17 +367,23 @@ export default function LessonPlayer() {
   };
 
   const handleVideoLoadedMetadata = (event) => {
+    const media = event.currentTarget;
+    const nextDuration = Number(media.duration || 0);
+    setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
+    media.volume = volume;
+    media.muted = isMuted;
+    media.playbackRate = playbackRate;
+
     const pendingResume = pendingVideoResumeRef.current;
     if (!pendingResume) {
       return;
     }
 
     pendingVideoResumeRef.current = null;
-    const media = event.currentTarget;
     const resumeTime = Number(pendingResume.time || 0);
-    const duration = Number(media.duration || 0);
-    if (Number.isFinite(resumeTime) && resumeTime > 0 && (!Number.isFinite(duration) || duration <= 0 || resumeTime < duration)) {
+    if (Number.isFinite(resumeTime) && resumeTime > 0 && (!Number.isFinite(nextDuration) || nextDuration <= 0 || resumeTime < nextDuration)) {
       media.currentTime = resumeTime;
+      setCurrentTime(resumeTime);
     }
     if (pendingResume.shouldResume) {
       media.play().catch(() => {
@@ -359,6 +417,85 @@ export default function LessonPlayer() {
     }
   };
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const togglePlay = () => {
+    const media = videoRef.current;
+    if (!media) {
+      return;
+    }
+    if (media.paused || media.ended) {
+      media.play().catch(() => {
+        addToast({ type: "error", message: "Unable to start video playback." });
+      });
+    } else {
+      media.pause();
+    }
+  };
+
+  const seekTo = (nextTime) => {
+    const media = videoRef.current;
+    if (!media) {
+      return;
+    }
+    const safeDuration = Number(media.duration || duration || 0);
+    const clampedTime = Math.min(Math.max(Number(nextTime) || 0, 0), safeDuration || Number(nextTime) || 0);
+    media.currentTime = clampedTime;
+    setCurrentTime(clampedTime);
+  };
+
+  const skipBy = (seconds) => {
+    seekTo((videoRef.current?.currentTime || currentTime) + seconds);
+  };
+
+  const handleVolumeChange = (event) => {
+    const nextVolume = Number(event.target.value);
+    const safeVolume = Math.min(Math.max(Number.isFinite(nextVolume) ? nextVolume : 1, 0), 1);
+    setVolume(safeVolume);
+    setIsMuted(safeVolume === 0);
+    if (videoRef.current) {
+      videoRef.current.volume = safeVolume;
+      videoRef.current.muted = safeVolume === 0;
+    }
+  };
+
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted;
+    }
+  };
+
+  const handlePlaybackRateChange = (event) => {
+    const nextRate = Number(event.target.value);
+    setPlaybackRate(nextRate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = nextRate;
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (playerRef.current?.requestFullscreen) {
+        await playerRef.current.requestFullscreen();
+      }
+    } catch {
+      addToast({ type: "error", message: "Fullscreen is not available in this browser." });
+    }
+  };
+
+  const timestampMarkers = buildTimestampMarkers(duration);
+  const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+
   return (
     <MainLayout>
       <section className="lesson-shell">
@@ -382,22 +519,101 @@ export default function LessonPlayer() {
             </p>
 
             {videoUrl && videoViewerUrl ? (
-              <div className="lesson-video-wrap">
+              <div className={`lesson-video-wrap custom-video-player${isTheaterMode ? " is-theater" : ""}`} ref={playerRef}>
                 <video
                   ref={videoRef}
-                  controls
                   controlsList="nodownload"
                   preload="metadata"
                   className="lesson-video"
                   src={videoViewerUrl}
                   poster={thumbnailViewerUrl || undefined}
                   onContextMenu={(event) => event.preventDefault()}
+                  onClick={togglePlay}
                   onLoadedMetadata={handleVideoLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
                   onError={handleVideoError}
                 >
                   Your browser does not support the video tag.
                 </video>
+                <div className="custom-video-controls">
+                  <div className="custom-video-progress-row">
+                    <input
+                      type="range"
+                      min="0"
+                      max={duration || 0}
+                      step="0.1"
+                      value={duration ? currentTime : 0}
+                      onChange={(event) => seekTo(event.target.value)}
+                      className="custom-video-progress"
+                      style={{ "--video-progress": `${progressPercent}%` }}
+                      aria-label="Video progress"
+                    />
+                  </div>
+                  <div className="custom-video-toolbar">
+                    <div className="custom-video-control-group">
+                      <button type="button" className="custom-video-btn" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"} title={isPlaying ? "Pause" : "Play"}>
+                        {isPlaying ? <HiOutlinePause /> : <HiOutlinePlay />}
+                      </button>
+                      <button type="button" className="custom-video-btn" onClick={() => skipBy(-VIDEO_SKIP_SECONDS)} aria-label="Back 10 seconds" title="Back 10 seconds">
+                        <HiOutlineBackward />
+                      </button>
+                      <button type="button" className="custom-video-btn" onClick={() => skipBy(VIDEO_SKIP_SECONDS)} aria-label="Forward 10 seconds" title="Forward 10 seconds">
+                        <HiOutlineForward />
+                      </button>
+                      <span className="custom-video-time">
+                        {formatVideoTime(currentTime)} / {formatVideoTime(duration)}
+                      </span>
+                    </div>
+                    <div className="custom-video-control-group">
+                      <button type="button" className="custom-video-btn" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} title={isMuted ? "Unmute" : "Mute"}>
+                        {isMuted || volume === 0 ? <HiOutlineSpeakerXMark /> : <HiOutlineSpeakerWave />}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={isMuted ? 0 : volume}
+                        onChange={handleVolumeChange}
+                        className="custom-video-volume"
+                        aria-label="Volume"
+                      />
+                      <select className="custom-video-speed" value={playbackRate} onChange={handlePlaybackRateChange} aria-label="Playback speed">
+                        {PLAYBACK_RATES.map((rate) => (
+                          <option key={rate} value={rate}>
+                            {rate}x
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className={`custom-video-btn${isTheaterMode ? " is-active" : ""}`}
+                        onClick={() => setIsTheaterMode((value) => !value)}
+                        aria-label="Toggle theater mode"
+                        title="Theater mode"
+                      >
+                        <HiOutlineViewColumns />
+                      </button>
+                      <button type="button" className="custom-video-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen" title="Fullscreen">
+                        {isFullscreen ? <HiOutlineArrowsPointingIn /> : <HiOutlineArrowsPointingOut />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="custom-video-timestamps" aria-label="Video timestamps">
+                    <span>
+                      <HiOutlineClock />
+                      Jump
+                    </span>
+                    {timestampMarkers.map((marker) => (
+                      <button type="button" key={`${marker.label}-${marker.time}`} onClick={() => seekTo(marker.time)}>
+                        {marker.label} · {formatVideoTime(marker.time)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : videoUrl ? (
               <div className="lesson-video-placeholder">
