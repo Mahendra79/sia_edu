@@ -348,6 +348,8 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": True,
 }
 
+LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS = int(os.getenv("LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS", str(60 * 60 * 12)))
+
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@sia-edu.local")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")

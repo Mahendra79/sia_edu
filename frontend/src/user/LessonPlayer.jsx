@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineArrowLeft,
@@ -207,6 +207,10 @@ export default function LessonPlayer() {
   const { courseId, moduleId, lessonId } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const videoRef = useRef(null);
+  const pendingVideoResumeRef = useRef(null);
+  const refreshingVideoTokenRef = useRef(false);
+  const videoRecoveryAttemptsRef = useRef(0);
   const [lesson, setLesson] = useState(null);
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -216,26 +220,28 @@ export default function LessonPlayer() {
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const WATCH_THRESHOLD_PERCENT = 80;
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [lessonResponse, overviewResponse] = await Promise.all([
-          courseService.getLessonDetail(lessonId),
-          courseService.getLmsOverview(courseId),
-        ]);
-        setLesson(lessonResponse.data);
-        setOverview(overviewResponse.data);
-        setMaxWatchedPercent(0);
-        setIsAutoCompleted(false);
-      } catch {
-        addToast({ type: "error", message: "Unable to load lesson details." });
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadLesson = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [lessonResponse, overviewResponse] = await Promise.all([
+        courseService.getLessonDetail(lessonId),
+        courseService.getLmsOverview(courseId),
+      ]);
+      setLesson(lessonResponse.data);
+      setOverview(overviewResponse.data);
+      setMaxWatchedPercent(0);
+      setIsAutoCompleted(false);
+      videoRecoveryAttemptsRef.current = 0;
+    } catch {
+      addToast({ type: "error", message: "Unable to load lesson details." });
+    } finally {
+      setLoading(false);
+    }
   }, [lessonId, courseId, addToast]);
+
+  useEffect(() => {
+    loadLesson();
+  }, [loadLesson]);
 
   const allLessons = (overview?.modules || []).flatMap((module) =>
     (module.lessons || []).map((item) => ({ ...item, module_number: module.module_number })),
@@ -308,6 +314,51 @@ export default function LessonPlayer() {
     });
   };
 
+  const handleVideoLoadedMetadata = (event) => {
+    const pendingResume = pendingVideoResumeRef.current;
+    if (!pendingResume) {
+      return;
+    }
+
+    pendingVideoResumeRef.current = null;
+    const media = event.currentTarget;
+    const resumeTime = Number(pendingResume.time || 0);
+    const duration = Number(media.duration || 0);
+    if (Number.isFinite(resumeTime) && resumeTime > 0 && (!Number.isFinite(duration) || duration <= 0 || resumeTime < duration)) {
+      media.currentTime = resumeTime;
+    }
+    if (pendingResume.shouldResume) {
+      media.play().catch(() => {
+        // Browser autoplay policies can block resume until the learner presses play.
+      });
+    }
+  };
+
+  const handleVideoError = async (event) => {
+    if (refreshingVideoTokenRef.current || videoRecoveryAttemptsRef.current >= 2) {
+      addToast({ type: "error", message: "Video playback stopped. Please reload the lesson and try again." });
+      return;
+    }
+
+    const media = event.currentTarget;
+    pendingVideoResumeRef.current = {
+      time: Number(media.currentTime || 0),
+      shouldResume: Boolean(!media.paused && !media.ended),
+    };
+    refreshingVideoTokenRef.current = true;
+    videoRecoveryAttemptsRef.current += 1;
+
+    try {
+      const response = await courseService.getLessonDetail(lessonId);
+      setLesson(response.data);
+    } catch {
+      pendingVideoResumeRef.current = null;
+      addToast({ type: "error", message: "Unable to refresh video access. Please reload the lesson." });
+    } finally {
+      refreshingVideoTokenRef.current = false;
+    }
+  };
+
   return (
     <MainLayout>
       <section className="lesson-shell">
@@ -333,6 +384,7 @@ export default function LessonPlayer() {
             {videoUrl && videoViewerUrl ? (
               <div className="lesson-video-wrap">
                 <video
+                  ref={videoRef}
                   controls
                   controlsList="nodownload"
                   preload="metadata"
@@ -340,7 +392,9 @@ export default function LessonPlayer() {
                   src={videoViewerUrl}
                   poster={thumbnailViewerUrl || undefined}
                   onContextMenu={(event) => event.preventDefault()}
+                  onLoadedMetadata={handleVideoLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
+                  onError={handleVideoError}
                 >
                   Your browser does not support the video tag.
                 </video>

@@ -196,6 +196,12 @@
   width: 100%;
 }
 
+.table-inline-field textarea {
+  min-height: 180px;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
 .table-inline-field-wide {
   grid-column: span 2;
 }
