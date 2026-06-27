@@ -187,9 +187,10 @@ function InlineCourseForm({
       </InlineField>
 
       <InlineField label="Full Description" className="table-inline-field-wide">
-        <input
+        <textarea
           aria-label="Description"
           placeholder="Description"
+          rows={8}
           value={form.description}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
           required

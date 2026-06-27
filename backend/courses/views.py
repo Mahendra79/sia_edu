@@ -4,6 +4,7 @@ import io
 from decimal import Decimal
 
 import requests
+from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.http import HttpResponse, StreamingHttpResponse
 from django.core.cache import cache
@@ -45,7 +46,7 @@ from payments.models import PaymentTransaction
 COURSE_CACHE_VERSION_KEY = "courses:cache_version"
 CATEGORY_CACHE_TTL = 120
 COURSE_CACHE_TTL = 60
-LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS = 60 * 60
+LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS = getattr(settings, "LESSON_MEDIA_TOKEN_MAX_AGE_SECONDS", 60 * 60 * 12)
 
 
 def _make_lesson_media_token(lesson_id: int) -> str:

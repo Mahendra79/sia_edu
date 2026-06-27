@@ -83,7 +83,10 @@ api.interceptors.response.use(
           return res.data.access;
         })
         .catch((refreshError) => {
-          clearStoredAuth();
+          const refreshStatus = refreshError.response?.status;
+          if ([400, 401, 403].includes(refreshStatus)) {
+            clearStoredAuth();
+          }
           throw refreshError;
         })
         .finally(() => {
