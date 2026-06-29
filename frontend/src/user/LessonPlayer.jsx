@@ -472,7 +472,7 @@ export default function LessonPlayer() {
           {lesson ? (
             <button
               type="button"
-              className={`btn ${showNotes ? "btn-muted" : "btn-primary"} btn-icon`}
+              className={`btn ${showNotes ? "btn-muted" : "btn-primary"} btn-icon toggle-notes-btn`}
               onClick={() => setShowNotes(!showNotes)}
               style={{ marginLeft: "auto" }}
             >
