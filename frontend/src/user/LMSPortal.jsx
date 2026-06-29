@@ -9,6 +9,7 @@ import {
   HiOutlineXMark,
   HiOutlineChevronDown,
   HiOutlineChevronUp,
+  HiOutlineDocumentArrowDown,
   HiOutlineLockClosed,
   HiOutlineBars3,
   HiOutlinePlayCircle,
@@ -52,6 +53,7 @@ export default function LMSPortal() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quizzes, setQuizzes] = useState([]);
   const [projectPdf, setProjectPdf] = useState(null);
+  const [downloadingProjectPdfId, setDownloadingProjectPdfId] = useState(null);
 
   useEffect(() => {
     try {
@@ -170,6 +172,31 @@ export default function LMSPortal() {
       name: `${String(lesson.title || "Project").trim()}.pdf`,
       url: `${API_BASE_URL}/courses/lms/lessons/${lesson.id}/pdf/`,
     });
+  };
+
+  const downloadProjectPdf = async (lesson) => {
+    if (!lesson?.id || downloadingProjectPdfId) {
+      return;
+    }
+
+    const pdfName = `${String(lesson.title || "Project").trim()}.pdf`.replace(/[\\/:*?"<>|]+/g, "-");
+    setDownloadingProjectPdfId(lesson.id);
+    try {
+      const response = await courseService.downloadLessonPdf(lesson.id);
+      const blob = new Blob([response.data], { type: response.headers?.["content-type"] || "application/pdf" });
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = pdfName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch {
+      addToast({ type: "error", message: "Unable to download this project PDF." });
+    } finally {
+      setDownloadingProjectPdfId(null);
+    }
   };
 
   const handleLessonAction = (moduleNumber, lesson) => {
@@ -410,13 +437,34 @@ export default function LMSPortal() {
                                       <small>{durationByLessonId[lesson.id] || "-"}</small>
                                     </div>
                                     {isPlayable ? (
-                                      <button
-                                        type="button"
-                                        className={`btn lms-lesson-cta ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"}`}
-                                        onClick={() => handleLessonAction(module.module_number, lesson)}
-                                      >
-                                        {isProjectLesson ? "View PDF" : lessonStatus}
-                                      </button>
+                                      isProjectLesson ? (
+                                        <div className="lms-lesson-actions">
+                                          <button
+                                            type="button"
+                                            className={`btn lms-lesson-cta ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"}`}
+                                            onClick={() => handleLessonAction(module.module_number, lesson)}
+                                          >
+                                            View PDF
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn btn-muted lms-lesson-cta btn-icon"
+                                            onClick={() => downloadProjectPdf(lesson)}
+                                            disabled={downloadingProjectPdfId === lesson.id}
+                                          >
+                                            <HiOutlineDocumentArrowDown />
+                                            {downloadingProjectPdfId === lesson.id ? "Downloading..." : "Download"}
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className={`btn lms-lesson-cta ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"}`}
+                                          onClick={() => handleLessonAction(module.module_number, lesson)}
+                                        >
+                                          {lessonStatus}
+                                        </button>
+                                      )
                                     ) : (
                                       <span className={`lms-lesson-status ${lessonStatus === "Completed" ? "is-completed" : "is-locked"}`}>
                                         {lessonStatus}
