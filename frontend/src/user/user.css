@@ -1272,27 +1272,57 @@
   }
 
   .custom-video-toolbar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
   }
 
   .custom-video-control-group {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    gap: 0.35rem;
+    justify-content: flex-start;
+    flex: 0 1 auto;
   }
 
   .custom-video-control-group:last-child {
-    justify-self: stretch;
+    justify-self: auto;
+    margin-left: auto;
   }
 
   .custom-video-time {
     min-width: auto;
-    margin-left: auto;
+    margin-left: 0;
+    font-size: 0.82rem;
+  }
+
+  .custom-video-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .custom-video-btn svg {
+    width: 1rem;
+    height: 1rem;
   }
 
   .custom-video-volume {
-    flex: 1 1 6rem;
-    min-width: 5rem;
+    display: none;
+  }
+
+  .custom-video-control-group:last-child .custom-video-btn:first-child,
+  .custom-video-control-group:last-child .custom-video-btn:nth-of-type(2) {
+    display: none;
+  }
+
+  .custom-video-speed {
+    width: 4.2rem;
+    min-width: 4.2rem;
+    max-width: 4.2rem;
+    height: 2rem;
+    padding: 0 0.35rem;
+    font-size: 0.82rem;
   }
 
   .lesson-pdf-row {
