@@ -5,7 +5,7 @@ import {
   HiOutlineArrowsPointingIn,
   HiOutlineArrowsPointingOut,
   HiOutlineBackward,
-  HiOutlineClock,
+  HiOutlineDocumentArrowDown,
   HiOutlineDocumentText,
   HiOutlineForward,
   HiOutlineMagnifyingGlassMinus,
@@ -43,19 +43,6 @@ function formatVideoTime(value) {
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function buildTimestampMarkers(duration) {
-  if (!Number.isFinite(duration) || duration <= 0) {
-    return [{ label: "Start", time: 0 }];
-  }
-
-  return [
-    { label: "Start", time: 0 },
-    { label: "25%", time: duration * 0.25 },
-    { label: "50%", time: duration * 0.5 },
-    { label: "75%", time: duration * 0.75 },
-  ].map((marker) => ({ ...marker, time: Math.max(0, Math.floor(marker.time)) }));
 }
 
 export function LessonPdfViewer({ name, url }) {
@@ -248,10 +235,12 @@ export default function LessonPlayer() {
   const pendingVideoResumeRef = useRef(null);
   const refreshingVideoTokenRef = useRef(false);
   const videoRecoveryAttemptsRef = useRef(0);
+  const controlsHideTimerRef = useRef(0);
   const [lesson, setLesson] = useState(null);
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [, setMaxWatchedPercent] = useState(0);
   const [isAutoCompleted, setIsAutoCompleted] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
@@ -263,6 +252,7 @@ export default function LessonPlayer() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const WATCH_THRESHOLD_PERCENT = 80;
 
   const loadLesson = useCallback(async () => {
@@ -311,6 +301,7 @@ export default function LessonPlayer() {
   const previousEnabled = isPlayableLesson(previousLesson);
   const nextEnabled = isPlayableLesson(nextLesson);
   const lessonSectionLabel = Number(lesson?.module_number) === 9 ? "Projects" : `Module ${lesson?.module_number}`;
+  const isProjectLesson = Number(lesson?.module_number) === 9;
 
   const openLesson = (target) => {
     if (!target) {
@@ -419,11 +410,39 @@ export default function LessonPlayer() {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      const nextIsFullscreen = Boolean(document.fullscreenElement);
+      setIsFullscreen(nextIsFullscreen);
+      setControlsVisible(true);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  const revealFullscreenControls = useCallback(() => {
+    window.clearTimeout(controlsHideTimerRef.current);
+    setControlsVisible(true);
+
+    if (document.fullscreenElement && !videoRef.current?.paused && !videoRef.current?.ended) {
+      controlsHideTimerRef.current = window.setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.clearTimeout(controlsHideTimerRef.current);
+    if (!isFullscreen || !isPlaying) {
+      setControlsVisible(true);
+      return undefined;
+    }
+
+    setControlsVisible(true);
+    controlsHideTimerRef.current = window.setTimeout(() => {
+      setControlsVisible(false);
+    }, 2500);
+
+    return () => window.clearTimeout(controlsHideTimerRef.current);
+  }, [isFullscreen, isPlaying]);
 
   const togglePlay = () => {
     const media = videoRef.current;
@@ -493,8 +512,68 @@ export default function LessonPlayer() {
     }
   };
 
-  const timestampMarkers = buildTimestampMarkers(duration);
+  useEffect(() => {
+    if (!videoUrl || !videoViewerUrl || showPdfViewer) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      const target = event.target;
+      const tagName = String(target?.tagName || "").toLowerCase();
+      const isTypingTarget =
+        ["input", "textarea", "select", "button"].includes(tagName) || Boolean(target?.isContentEditable);
+      if (isTypingTarget || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        revealFullscreenControls();
+        togglePlay();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        revealFullscreenControls();
+        skipBy(-VIDEO_SKIP_SECONDS);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        revealFullscreenControls();
+        skipBy(VIDEO_SKIP_SECONDS);
+      } else if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        revealFullscreenControls();
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [videoUrl, videoViewerUrl, showPdfViewer, currentTime, duration, isPlaying, addToast, revealFullscreenControls]);
+
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+
+  const downloadProjectPdf = async () => {
+    if (!lesson?.id || !isProjectLesson || downloadingPdf) {
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      const response = await courseService.downloadLessonPdf(lesson.id);
+      const blob = new Blob([response.data], { type: response.headers?.["content-type"] || "application/pdf" });
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = pdfName.replace(/[\\/:*?"<>|]+/g, "-");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch {
+      addToast({ type: "error", message: "Unable to download this project PDF." });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   return (
     <MainLayout>
@@ -519,7 +598,13 @@ export default function LessonPlayer() {
             </p>
 
             {videoUrl && videoViewerUrl ? (
-              <div className={`lesson-video-wrap custom-video-player${isTheaterMode ? " is-theater" : ""}`} ref={playerRef}>
+              <div
+                className={`lesson-video-wrap custom-video-player${isTheaterMode ? " is-theater" : ""}${isFullscreen && isPlaying && !controlsVisible ? " controls-hidden" : ""}`}
+                ref={playerRef}
+                onMouseMove={revealFullscreenControls}
+                onMouseDown={revealFullscreenControls}
+                onTouchStart={revealFullscreenControls}
+              >
                 <video
                   ref={videoRef}
                   controlsList="nodownload"
@@ -531,8 +616,14 @@ export default function LessonPlayer() {
                   onClick={togglePlay}
                   onLoadedMetadata={handleVideoLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
+                  onPlay={() => {
+                    setIsPlaying(true);
+                    revealFullscreenControls();
+                  }}
+                  onPause={() => {
+                    setIsPlaying(false);
+                    setControlsVisible(true);
+                  }}
                   onEnded={() => setIsPlaying(false)}
                   onError={handleVideoError}
                 >
@@ -602,17 +693,6 @@ export default function LessonPlayer() {
                       </button>
                     </div>
                   </div>
-                  <div className="custom-video-timestamps" aria-label="Video timestamps">
-                    <span>
-                      <HiOutlineClock />
-                      Jump
-                    </span>
-                    {timestampMarkers.map((marker) => (
-                      <button type="button" key={`${marker.label}-${marker.time}`} onClick={() => seekTo(marker.time)}>
-                        {marker.label} · {formatVideoTime(marker.time)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             ) : videoUrl ? (
@@ -640,9 +720,17 @@ export default function LessonPlayer() {
                     <HiOutlineDocumentText />
                     <span>{pdfName}</span>
                   </div>
-                  <button type="button" className="btn btn-muted lesson-pdf-view" onClick={() => setShowPdfViewer(true)}>
-                    View
-                  </button>
+                  <div className="lesson-pdf-actions">
+                    <button type="button" className="btn btn-muted lesson-pdf-view" onClick={() => setShowPdfViewer(true)}>
+                      View
+                    </button>
+                    {isProjectLesson ? (
+                      <button type="button" className="btn btn-primary lesson-pdf-view" onClick={downloadProjectPdf} disabled={downloadingPdf}>
+                        <HiOutlineDocumentArrowDown />
+                        {downloadingPdf ? "Downloading..." : "Download"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </section>
             ) : null}

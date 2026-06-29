@@ -79,6 +79,9 @@ export const courseService = {
   getLessonDetail(lessonId) {
     return api.get(`/courses/lms/lessons/${lessonId}/`);
   },
+  downloadLessonPdf(lessonId) {
+    return api.get(`/courses/lms/lessons/${lessonId}/pdf/`, { responseType: "blob" });
+  },
   updateLessonProgress(lessonId, payload) {
     return api.post(`/courses/lms/lessons/${lessonId}/progress/`, payload);
   },

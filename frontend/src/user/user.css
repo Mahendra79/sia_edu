@@ -410,6 +410,14 @@
   min-width: 112px;
 }
 
+.lms-lesson-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
 .lms-placeholder-message {
   margin: 0;
   color: color-mix(in srgb, var(--text-secondary) 82%, white);
@@ -570,6 +578,17 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .lms-lesson-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lms-lesson-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .lesson-shell {
@@ -631,6 +650,10 @@
   background: #000;
 }
 
+.custom-video-player:fullscreen.controls-hidden {
+  cursor: none;
+}
+
 .lesson-video {
   width: 100%;
   display: block;
@@ -645,7 +668,7 @@
 
 .custom-video-player:fullscreen .lesson-video {
   width: 100%;
-  height: calc(100vh - 124px);
+  height: 100vh;
   max-height: none;
   object-fit: contain;
 }
@@ -656,10 +679,30 @@
   padding: 0.75rem 0.85rem 0.8rem;
   background: linear-gradient(180deg, rgba(3, 7, 18, 0.82), rgba(3, 7, 18, 0.98));
   color: #f8fafc;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.custom-video-player:fullscreen .custom-video-controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  padding: 1rem 1.2rem 1.15rem;
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0), rgba(3, 7, 18, 0.92) 34%, rgba(3, 7, 18, 0.98));
+}
+
+.custom-video-player:fullscreen.controls-hidden .custom-video-controls {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(14px);
 }
 
 .custom-video-progress-row {
   display: grid;
+  padding: 0 8px;
 }
 
 .custom-video-progress,
@@ -671,9 +714,50 @@
 
 .custom-video-progress {
   --video-progress: 0%;
+  width: calc(100% + 16px);
+  height: 18px;
+  margin: 0 -8px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.custom-video-progress::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent-strong) var(--video-progress), rgba(148, 163, 184, 0.34) var(--video-progress));
+}
+
+.custom-video-progress::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+.custom-video-progress::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.34);
+}
+
+.custom-video-progress::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+}
+
+.custom-video-progress::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  cursor: pointer;
 }
 
 .custom-video-toolbar {
@@ -759,52 +843,6 @@
   font-weight: 700;
 }
 
-.custom-video-timestamps {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  overflow-x: auto;
-  padding-bottom: 0.1rem;
-}
-
-.custom-video-timestamps span,
-.custom-video-timestamps button {
-  flex: 0 0 auto;
-}
-
-.custom-video-timestamps span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: rgba(248, 250, 252, 0.78);
-  font-size: 0.84rem;
-  font-weight: 800;
-}
-
-.custom-video-timestamps span svg {
-  display: block;
-  width: 0.92rem;
-  height: 0.92rem;
-  flex: 0 0 auto;
-}
-
-.custom-video-timestamps button {
-  border: 1px solid rgba(226, 232, 240, 0.16);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.8);
-  color: #f8fafc;
-  padding: 0.4rem 0.62rem;
-  font-size: 0.82rem;
-  font-weight: 800;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.custom-video-timestamps button:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(30, 41, 59, 0.96);
-}
-
 .lesson-video-placeholder {
   min-height: 260px;
   border: 1px solid color-mix(in srgb, var(--soft-border) 90%, #152f59);
@@ -883,6 +921,13 @@
 
 .lesson-pdf-view {
   flex: 0 0 auto;
+}
+
+.lesson-pdf-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 [data-theme="light"] .lesson-pdf-section {
@@ -1257,6 +1302,12 @@
 
   .lesson-pdf-view {
     justify-content: center;
+  }
+
+  .lesson-pdf-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .quiz-attempt-head,
