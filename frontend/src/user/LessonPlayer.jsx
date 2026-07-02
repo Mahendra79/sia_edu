@@ -19,6 +19,8 @@ import {
   HiOutlineTrash,
   HiOutlineClipboard,
   HiOutlineListBullet,
+  HiOutlineLightBulb,
+  HiOutlineXMark,
 } from "react-icons/hi2";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
@@ -351,7 +353,7 @@ export default function LessonPlayer() {
     } catch {
       // Ignore local storage errors
     }
-  }, [lessonId, loading]);
+  }, [lessonId, loading, isFullscreen]);
 
   const handleInput = () => {
     const htmlVal = editorRef.current?.innerHTML || "";
@@ -727,6 +729,130 @@ export default function LessonPlayer() {
     }
   };
 
+  const renderStickyNote = () => {
+    return (
+      <aside className={`lesson-sticky-note ${showNotes ? "open" : "closed"}${isFullscreen ? " is-fullscreen" : ""}`}>
+        <div className="sticky-note-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+          <div className="sticky-note-title" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <span className="note-emoji">🧠</span>
+            <span>Brain Dump</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <span className="sticky-note-autosave-label">Auto-saved</span>
+            {isFullscreen && (
+              <button
+                type="button"
+                className="btn btn-muted btn-icon notes-close-btn"
+                onClick={() => setShowNotes(false)}
+                aria-label="Close Brain Dump"
+                title="Close Brain Dump"
+                style={{ padding: "0.2rem", minWidth: "auto", border: "none", background: "none", color: "rgba(255, 255, 255, 0.6)", cursor: "pointer", display: "flex", alignItems: "center" }}
+              >
+                <HiOutlineXMark style={{ width: "1.2rem", height: "1.2rem" }} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="sticky-note-toolbar">
+          <button
+            type="button"
+            className="toolbar-btn bold-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat("bold");
+            }}
+            title="Bold"
+          >
+            B
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn underline-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat("underline");
+            }}
+            title="Underline"
+          >
+            U
+          </button>
+
+          {/* List Options Dropdown */}
+          <div className="toolbar-dropdown-container" ref={dropdownRef}>
+            <button
+              type="button"
+              className={`toolbar-btn btn-icon ${showListMenu ? "active" : ""}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setShowListMenu(!showListMenu);
+              }}
+              title="List Options"
+            >
+              <HiOutlineListBullet />
+            </button>
+            {showListMenu && (
+              <div className="toolbar-dropdown-menu">
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyFormat("insertUnorderedList");
+                    setShowListMenu(false);
+                  }}
+                >
+                  • Bullet List
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyFormat("insertOrderedList");
+                    setShowListMenu(false);
+                  }}
+                >
+                  1. Numbered List
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="sticky-note-body">
+          <div
+            ref={editorRef}
+            contentEditable
+            className="sticky-note-editor"
+            onInput={handleInput}
+            onBlur={() => savePendingChanges()}
+            data-placeholder="Jot down quick ideas, key formulas, or doubts..."
+          />
+        </div>
+        <div className="sticky-note-footer">
+          <button
+            type="button"
+            className="btn btn-muted btn-small note-action-btn btn-icon"
+            onClick={copyNotesToClipboard}
+            title="Copy Notes to Clipboard"
+          >
+            <HiOutlineClipboard /> Copy
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger btn-small note-action-btn btn-icon"
+            onClick={clearNotes}
+            title="Clear Notes"
+            disabled={!hasText}
+          >
+            <HiOutlineTrash /> Clear
+          </button>
+        </div>
+      </aside>
+    );
+  };
+
   return (
     <MainLayout>
       <section className="lesson-shell">
@@ -735,7 +861,7 @@ export default function LessonPlayer() {
             <HiOutlineArrowLeft />
             Back to LMS
           </Link>
-          {lesson ? (
+          {lesson && !videoUrl ? (
             <button
               type="button"
               className={`btn ${showNotes ? "btn-muted" : "btn-primary"} btn-icon toggle-notes-btn`}
@@ -844,6 +970,15 @@ export default function LessonPlayer() {
                       </select>
                       <button
                         type="button"
+                        className={`custom-video-btn${showNotes ? " is-active" : ""}`}
+                        onClick={() => setShowNotes((value) => !value)}
+                        aria-label="Toggle Brain Dump"
+                        title={showNotes ? "Hide Brain Dump" : "Show Brain Dump"}
+                      >
+                        <HiOutlineLightBulb />
+                      </button>
+                      <button
+                        type="button"
                         className={`custom-video-btn${isTheaterMode ? " is-active" : ""}`}
                         onClick={() => setIsTheaterMode((value) => !value)}
                         aria-label="Toggle theater mode"
@@ -857,6 +992,7 @@ export default function LessonPlayer() {
                     </div>
                   </div>
                 </div>
+                {isFullscreen && renderStickyNote()}
               </div>
             ) : videoUrl ? (
               <div className="lesson-video-placeholder">
@@ -919,111 +1055,7 @@ export default function LessonPlayer() {
               </div>
             </article>
 
-            <aside className={`lesson-sticky-note ${showNotes ? "open" : "closed"}`}>
-              <div className="sticky-note-header">
-                <div className="sticky-note-title">
-                  <span className="note-emoji">🧠</span>
-                  <span>Brain Dump</span>
-                </div>
-                <span className="sticky-note-autosave-label">Auto-saved</span>
-              </div>
-
-              <div className="sticky-note-toolbar">
-                <button
-                  type="button"
-                  className="toolbar-btn bold-btn"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applyFormat("bold");
-                  }}
-                  title="Bold"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  className="toolbar-btn underline-btn"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applyFormat("underline");
-                  }}
-                  title="Underline"
-                >
-                  U
-                </button>
-
-                {/* List Options Dropdown */}
-                <div className="toolbar-dropdown-container" ref={dropdownRef}>
-                  <button
-                    type="button"
-                    className={`toolbar-btn btn-icon ${showListMenu ? "active" : ""}`}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setShowListMenu(!showListMenu);
-                    }}
-                    title="List Options"
-                  >
-                    <HiOutlineListBullet />
-                  </button>
-                  {showListMenu && (
-                    <div className="toolbar-dropdown-menu">
-                      <button
-                        type="button"
-                        className="dropdown-item"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          applyFormat("insertUnorderedList");
-                          setShowListMenu(false);
-                        }}
-                      >
-                        • Bullet List
-                      </button>
-                      <button
-                        type="button"
-                        className="dropdown-item"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          applyFormat("insertOrderedList");
-                          setShowListMenu(false);
-                        }}
-                      >
-                        1. Numbered List
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="sticky-note-body">
-                <div
-                  ref={editorRef}
-                  contentEditable
-                  className="sticky-note-editor"
-                  onInput={handleInput}
-                  onBlur={() => savePendingChanges()}
-                  data-placeholder="Jot down quick ideas, key formulas, or doubts..."
-                />
-              </div>
-              <div className="sticky-note-footer">
-                <button
-                  type="button"
-                  className="btn btn-muted btn-small note-action-btn btn-icon"
-                  onClick={copyNotesToClipboard}
-                  title="Copy Notes to Clipboard"
-                >
-                  <HiOutlineClipboard /> Copy
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-small note-action-btn btn-icon"
-                  onClick={clearNotes}
-                  title="Clear Notes"
-                  disabled={!hasText}
-                >
-                  <HiOutlineTrash /> Clear
-                </button>
-              </div>
-            </aside>
+            {!isFullscreen && renderStickyNote()}
           </div>
         ) : null}
         {showPdfViewer ? (
