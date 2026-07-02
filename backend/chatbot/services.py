@@ -18,7 +18,20 @@ from courses.models import Course, Enrollment
 
 logger = logging.getLogger(__name__)
 
+_embeddings_model = None
+
+def _get_embeddings_model():
+    global _embeddings_model
+    if _embeddings_model is None:
+        try:
+            from langchain_huggingface import HuggingFaceEmbeddings
+            _embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        except Exception:
+            logger.exception("Failed to initialize HuggingFaceEmbeddings globally.")
+    return _embeddings_model
+
 CHATBOT_RAG_CACHE_PREFIX = "chatbot:rag:v2"
+
 
 EDUCATION_ONLY_REPLY = (
     "I can help only with SIA education and course-related questions in AI, ML, DL, Data Science, "
@@ -698,6 +711,35 @@ def _retrieve_grounded_chunks(
     history_course_ids: list[int],
     limit: int = 8,
 ) -> tuple[list[dict], dict[int, str]]:
+    from chatbot.models import DocumentEmbedding
+    from pgvector.django import CosineDistance
+
+    # Try executing vector similarity search on Neon (vector_db)
+    try:
+        if DocumentEmbedding.objects.using('vector_db').exists():
+            embeddings_model = _get_embeddings_model()
+            if embeddings_model is not None:
+                query_vector = embeddings_model.embed_query(message)
+
+                hits = DocumentEmbedding.objects.using('vector_db').order_by(
+                    CosineDistance('embedding', query_vector)
+                )[:limit]
+
+
+            selected = []
+            for hit in hits:
+                selected.append({
+                    "score": 1.0,
+                    "course_id": None,
+                    "section": "Document",
+                    "visibility": "public",
+                    "text": hit.content,
+                    "course_title": hit.title,
+                })
+            return selected, {}
+    except Exception as exc:
+        logger.exception("pgvector retrieval from Neon failed. Falling back to default RAG.")
+
     corpus = _load_retrieval_corpus()
     chunks: list[dict] = corpus.get("chunks", [])
     if not chunks:
@@ -712,6 +754,7 @@ def _retrieve_grounded_chunks(
     doc_count = max(int(corpus.get("doc_count") or len(chunks) or 1), 1)
     doc_freq = corpus.get("doc_freq", {})
     idf_map: dict[str, float] = {}
+
     for token in query_terms:
         df = float(doc_freq.get(token, 0))
         idf_map[token] = math.log(((doc_count - df + 0.5) / (df + 0.5)) + 1.0)
@@ -849,7 +892,7 @@ def _build_system_prompt(context: ChatContext) -> str:
         "3) Use the provided internal context for course details and pricing.\n"
         "4) If a requested fact is missing, say you do not have that information yet.\n"
         "5) Never provide medical, legal, financial, political, or unrelated advice.\n"
-        "6) Keep answers concise, practical, and student-friendly.\n"
+        "6) Keep answers extremely brief, concise, and student-friendly. Avoid long explanations.\n"
         "7) If course_access is public, do not reveal paid/private lesson-level details.\n"
         "8) If user asks career details, summarize relevant courses from context with likely career outcomes.\n"
         "9) Do not ask for another course id when relevant context already includes enough details.\n"
@@ -859,6 +902,10 @@ def _build_system_prompt(context: ChatContext) -> str:
         "   - Keep each line short and readable for students.\n"
         "11) Never expose raw source IDs (example: course:34 or Course #34) to students.\n"
         "12) Keep tone friendly, specific, and actionable.\n"
+        "13) ALWAYS format all mathematical equations, variables, vectors, and matrices in standard LaTeX delimiters:\n"
+        "   - Wrap block equations, multi-line formulas, and matrices in \\[ ... \\] (do NOT output raw math without delimiters).\n"
+        "   - Wrap inline math expressions, variables, and symbols in \\( ... \\).\n"
+        "14) Limit responses to a maximum of 2-3 short, clear sentences or brief bullet points when possible. Do not write lengthy paragraphs unless explicitly requested.\n"
         f"Current course_access: {context.course_access}\n"
         f"Focused course id: {context.focused_course_id or 'none'}\n"
         f"Retrieval mode: {context.retrieval_mode}\n"
@@ -881,52 +928,155 @@ def _normalize_history(history: list[dict] | None) -> list[dict]:
 
 
 def generate_reply(message: str, history: list[dict] | None, context: ChatContext) -> str:
-    api_key = str(getattr(settings, "GROQ_API_KEY", "")).strip()
-    if not api_key:
-        raise ChatbotConfigError("GROQ_API_KEY is not configured.")
+    provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
 
-    api_url = str(
-        getattr(settings, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
-    ).strip()
-    model_name = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+    if provider == "gemini":
+        from chatbot.llm_manager import GeminiKeyRotationManager
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+            from langchain_core.output_parsers import StrOutputParser
+        except ImportError as exc:
+            logger.error("Failed to import langchain-google-genai. Check dependencies.")
+            raise ChatbotConfigError("langchain-google-genai dependencies are not installed correctly.") from exc
+
+        keys = GeminiKeyRotationManager.get_keys()
+        if not keys:
+            raise ChatbotConfigError("No Gemini API keys configured.")
+
+        model_name = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+        max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
+
+        system_prompt = _build_system_prompt(context)
+        context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            SystemMessage(content=context_prompt),
+        ]
+
+        for item in _normalize_history(history):
+            if item["role"] == "user":
+                messages.append(HumanMessage(content=item["content"]))
+            else:
+                messages.append(AIMessage(content=item["content"]))
+
+        messages.append(HumanMessage(content=message))
+
+        num_keys = len(keys)
+        last_exception = None
+
+        for attempt in range(num_keys):
+            try:
+                api_key, active_idx = GeminiKeyRotationManager.get_next_available_key()
+            except ValueError as exc:
+                raise ChatbotConfigError(str(exc)) from exc
+
+            logger.info(f"Invoking Gemini LLM using key index {active_idx} (attempt {attempt + 1}/{num_keys})")
+
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                api_key=api_key,
+                temperature=0.2,
+                max_tokens=max_tokens,
+            )
+
+            try:
+                chain = llm | StrOutputParser()
+                reply = chain.invoke(messages).strip()
+                if reply:
+                    return reply
+                else:
+                    logger.warning(f"Empty response from Gemini with key index {active_idx}")
+                    raise ChatbotServiceError("Empty response from LLM.")
+            except Exception as exc:
+                last_exception = exc
+                err_msg = str(exc).lower()
+                err_type = type(exc).__name__
+
+                # Check if it's a rate limit, credential, server, or connection error
+                is_rotatable = False
+                if err_type in ("RateLimitError", "AuthenticationError", "APIConnectionError", "InternalServerError", "ResourceExhausted", "APIError"):
+                    is_rotatable = True
+                elif any(marker in err_msg for marker in ("429", "rate limit", "quota", "exhausted", "401", "invalid api key", "unauthorized", "503", "500", "bad gateway")):
+                    is_rotatable = True
+
+                if is_rotatable:
+                    logger.warning(
+                        f"Temporary Gemini error with key index {active_idx}: {err_type} - {exc}. Rotating key..."
+                    )
+                    GeminiKeyRotationManager.mark_key_rate_limited(api_key)
+                else:
+                    logger.error(f"Permanent/Non-rotatable error with Gemini LLM: {exc}")
+                    raise ChatbotServiceError(f"Failed to generate response from Gemini LLM: {exc}") from exc
+
+        logger.error("All Gemini API keys and fallbacks have been exhausted and failed.")
+        raise ChatbotServiceError("Failed to generate response from Gemini LLM. All keys exhausted.") from last_exception
+
+    # Non-Gemini Providers
+    if provider == "groq":
+        api_key = str(getattr(settings, "GROQ_API_KEY", "")).strip()
+        if not api_key:
+            raise ChatbotConfigError("GROQ_API_KEY is not configured.")
+        api_url = str(
+            getattr(settings, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+        ).strip()
+        # ChatOpenAI expects base_url without the "/chat/completions" path suffix
+        base_url = api_url.replace("/chat/completions", "")
+        model_name = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+    else:
+        # Local LLM (Ollama or LM Studio)
+        base_url = str(getattr(settings, "LOCAL_LLM_BASE_URL", "http://localhost:11434/v1")).strip()
+        api_key = str(getattr(settings, "LOCAL_LLM_API_KEY", "ollama")).strip() or "ollama"
+        model_name = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
+
     max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
 
+    try:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+        from langchain_core.output_parsers import StrOutputParser
+    except ImportError as exc:
+        logger.error("Failed to import LangChain classes. Check dependencies.")
+        raise ChatbotConfigError("LangChain dependencies are not installed correctly.") from exc
+
+    # Initialize LangChain model pointing to either Groq or local LLM server
+    llm = ChatOpenAI(
+        base_url=base_url,
+        api_key=api_key,
+        model=model_name,
+        temperature=0.2,
+        max_tokens=max_tokens,
+    )
+
+    system_prompt = _build_system_prompt(context)
+    context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
+
     messages = [
-        {"role": "system", "content": _build_system_prompt(context)},
-        {"role": "system", "content": context.context_text},
-        *_normalize_history(history),
-        {"role": "user", "content": message},
+        SystemMessage(content=system_prompt),
+        SystemMessage(content=context_prompt),
     ]
 
-    payload = {
-        "model": model_name,
-        "temperature": 0.2,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    for item in _normalize_history(history):
+        if item["role"] == "user":
+            messages.append(HumanMessage(content=item["content"]))
+        else:
+            messages.append(AIMessage(content=item["content"]))
+
+    messages.append(HumanMessage(content=message))
 
     try:
-        response = requests.post(api_url, json=payload, headers=headers, timeout=25)
-    except requests.RequestException as exc:
-        raise ChatbotServiceError("Unable to contact Groq API.") from exc
-
-    if response.status_code >= 400:
-        logger.warning("Groq API error status=%s body=%s", response.status_code, response.text[:500])
-        raise ChatbotServiceError("Groq API returned an error response.")
-
-    try:
-        data = response.json()
-        reply = data["choices"][0]["message"]["content"].strip()
-    except (ValueError, KeyError, IndexError, TypeError) as exc:
-        raise ChatbotServiceError("Invalid response payload from Groq API.") from exc
+        chain = llm | StrOutputParser()
+        reply = chain.invoke(messages).strip()
+    except Exception as exc:
+        logger.exception("LangChain LLM invocation failed")
+        raise ChatbotServiceError("Failed to generate response from local LLM.") from exc
 
     if not reply:
-        raise ChatbotServiceError("Empty response from Groq API.")
+        raise ChatbotServiceError("Empty response from LLM.")
     return reply
+
+
 
 
 def fallback_reply(message: str, context: ChatContext) -> str:
@@ -981,19 +1131,24 @@ def _answer_for_message(
             degraded = False
         elif use_model:
             reply = generate_reply(message=message, history=history, context=context)
-            provider = "groq"
-            model = "configured"
+            provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
+            if provider == "gemini":
+                model = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+            elif provider == "groq":
+                model = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+            else:
+                model = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
             degraded = False
         else:
             raise ChatbotServiceError("Model usage disabled for this evaluation run.")
     except (ChatbotConfigError, ChatbotServiceError):
-        reply = fallback_reply(message=message, context=context)
+        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
         provider = "fallback"
         model = "fallback"
         degraded = True
     except Exception:
         logger.exception("Unhandled chatbot execution error during evaluation")
-        reply = fallback_reply(message=message, context=context)
+        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
         provider = "fallback"
         model = "fallback"
         degraded = True
