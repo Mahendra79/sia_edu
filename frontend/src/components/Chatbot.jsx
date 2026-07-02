@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { HiOutlinePaperAirplane, HiOutlineSparkles, HiOutlineXMark } from "react-icons/hi2";
 import { FaRobot } from "react-icons/fa6";
 import { chatbotService } from "../services/chatbotService";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 const QUICK_SUGGESTIONS = [
   { label: "Roadmap", query: "Give me AI learning roadmap for beginners" },
@@ -25,6 +27,43 @@ function renderInlineBold(text) {
     );
 }
 
+function renderInlineBoldAndMath(text) {
+  if (!text) return null;
+
+  // Split by LaTeX math block delimiters \[ ... \], $$ ... $$ or inline delimiters \( ... \), $ ... $
+  const regex = /(\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\(.*?\\\)|\\$.*?\\$|\$.*?\$)/g;
+  const parts = String(text).split(regex);
+
+  return parts.map((part, index) => {
+    if (!part) return null;
+
+    // Block math \[ ... \] or $$ ... $$
+    if ((part.startsWith("\\[") && part.endsWith("\\]")) || (part.startsWith("$$") && part.endsWith("$$"))) {
+      const math = part.slice(2, -2).trim().replace(/√/g, "\\sqrt ");
+      try {
+        const html = katex.renderToString(math, { displayMode: true, throwOnError: false });
+        return <div key={`math-block-${index}`} dangerouslySetInnerHTML={{ __html: html }} className="math-block" />;
+      } catch (err) {
+        return <pre key={`math-error-${index}`} style={{ whiteSpace: "pre-wrap" }}>{part}</pre>;
+      }
+    }
+
+    // Inline math \( ... \) or $ ... $
+    if ((part.startsWith("\\(") && part.endsWith("\\)")) || (part.startsWith("$") && part.endsWith("$"))) {
+      const math = (part.startsWith("\\(") ? part.slice(2, -2) : part.slice(1, -1)).trim().replace(/√/g, "\\sqrt ");
+      try {
+        const html = katex.renderToString(math, { displayMode: false, throwOnError: false });
+        return <span key={`math-inline-${index}`} dangerouslySetInnerHTML={{ __html: html }} className="math-inline" />;
+      } catch (err) {
+        return <code key={`math-error-${index}`}>{part}</code>;
+      }
+    }
+
+    // Otherwise standard inline bold formatting
+    return renderInlineBold(part);
+  });
+}
+
 function renderMessageText(text) {
   const lines = String(text || "").split(/\r?\n/);
   const blocks = [];
@@ -37,7 +76,7 @@ function renderMessageText(text) {
       blocks.push(
         <ol key={`ol-${blocks.length}`} className="chat-msg-list ordered">
           {listItems.map((item, index) => (
-            <li key={`ol-item-${index}`}>{renderInlineBold(item)}</li>
+            <li key={`ol-item-${index}`}>{renderInlineBoldAndMath(item)}</li>
           ))}
         </ol>,
       );
@@ -45,7 +84,7 @@ function renderMessageText(text) {
       blocks.push(
         <ul key={`ul-${blocks.length}`} className="chat-msg-list unordered">
           {listItems.map((item, index) => (
-            <li key={`ul-item-${index}`}>{renderInlineBold(item)}</li>
+            <li key={`ul-item-${index}`}>{renderInlineBoldAndMath(item)}</li>
           ))}
         </ul>,
       );
@@ -59,6 +98,27 @@ function renderMessageText(text) {
     if (!trimmed) {
       flushList();
       return;
+    }
+
+    // Direct check: If this entire line is a raw LaTeX math block without delimiters
+    const hasMathKeywords = /\\(frac|begin|end|pmatrix|matrix|sqrt|langle|rangle|psi|phi|alpha|beta|theta|lambda|sigma|cdot|times)/i.test(trimmed);
+    const hasDelimiters = trimmed.startsWith("\\[") || trimmed.startsWith("$$") || trimmed.startsWith("\\(") || trimmed.startsWith("$");
+    
+    if (hasMathKeywords && !hasDelimiters) {
+      const cleanTextForWords = trimmed.replace(/\\(frac|begin|end|pmatrix|matrix|sqrt|langle|rangle|psi|phi|alpha|beta|theta|lambda|sigma|cdot|times|left|right)/g, "");
+      const wordCount = (cleanTextForWords.match(/[a-zA-Z]{3,}/g) || []).length;
+      
+      if (wordCount <= 1 || trimmed.startsWith("\\begin") || trimmed.startsWith("H =") || trimmed.startsWith("X =") || trimmed.startsWith("Y =") || trimmed.startsWith("Z =")) {
+        flushList();
+        try {
+          const math = trimmed.replace(/√/g, "\\sqrt ");
+          const html = katex.renderToString(math, { displayMode: true, throwOnError: false });
+          blocks.push(<div key={`math-raw-line-${index}`} dangerouslySetInnerHTML={{ __html: html }} className="math-block" />);
+          return;
+        } catch (err) {
+          // Fall back to standard rendering if KaTeX fails
+        }
+      }
     }
 
     const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
@@ -84,7 +144,7 @@ function renderMessageText(text) {
     flushList();
     blocks.push(
       <p key={`p-${index}`} className="chat-msg-paragraph">
-        {renderInlineBold(trimmed)}
+        {renderInlineBoldAndMath(trimmed)}
       </p>,
     );
   });
@@ -93,12 +153,14 @@ function renderMessageText(text) {
   if (blocks.length === 0) {
     return (
       <p className="chat-msg-paragraph">
-        {renderInlineBold(text)}
+        {renderInlineBoldAndMath(text)}
       </p>
     );
   }
   return blocks;
 }
+
+
 
 export default function Chatbot() {
   const location = useLocation();
@@ -187,62 +249,66 @@ export default function Chatbot() {
 
   return (
     <div className="chatbot-wrapper">
-      {open && (
-        <div className="chatbot-modal">
-          <header>
-            <div className="chatbot-title-wrap">
-              <h4>
-                <FaRobot />
-                Support Chat
-              </h4>
-              <p>
-                24x7 student doubt support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum tracks.
-                {activeCourseId ? " Focused on selected course." : ""}
-              </p>
+      <div className={`chatbot-modal ${open ? "open" : ""}`}>
+        <header>
+          <div className="chatbot-title-wrap">
+            <h4>
+              <FaRobot />
+              Support Chat
+            </h4>
+            <p>
+              24x7 student doubt support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum tracks.
+              {activeCourseId ? " Focused on selected course." : ""}
+            </p>
+          </div>
+          <button type="button" className="btn btn-muted chat-close-btn" onClick={() => setOpen(false)}>
+            <HiOutlineXMark />
+          </button>
+        </header>
+        <div className="chatbot-messages" ref={messagesRef}>
+          {messages.map((message, index) => (
+            <div key={`${message.role}-${index}`} className={`chat-msg ${message.role}`}>
+              <div className="chat-msg-body">{renderMessageText(message.text)}</div>
             </div>
-            <button type="button" className="btn btn-muted chat-close-btn" onClick={() => setOpen(false)}>
-              <HiOutlineXMark />
-            </button>
-          </header>
-          <div className="chatbot-messages" ref={messagesRef}>
-            {messages.map((message, index) => (
-              <div key={`${message.role}-${index}`} className={`chat-msg ${message.role}`}>
-                <div className="chat-msg-body">{renderMessageText(message.text)}</div>
-              </div>
-            ))}
-            {botTyping ? <div className="chat-msg bot">Support chat is preparing your answer...</div> : null}
-          </div>
-          <div className="chatbot-suggestions">
-            {QUICK_SUGGESTIONS.map((item) => (
-              <button key={item.label} type="button" className="chat-suggestion-btn" onClick={() => askBot(item.query)}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="chatbot-input">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder={activeCourseId ? "Ask your doubt about this course..." : "Ask about AI, ML, DL, Prompt Engineering, or Quantum..."}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSend();
-                }
-              }}
-            />
-            <button type="button" className="btn btn-primary btn-icon" onClick={handleSend} disabled={botTyping}>
-              <HiOutlinePaperAirplane />
-              Send
-            </button>
-          </div>
+          ))}
+          {botTyping ? <div className="chat-msg bot">Support chat is preparing your answer...</div> : null}
         </div>
-      )}
-      <button type="button" className="chatbot-fab" onClick={() => setOpen((prev) => !prev)} aria-label="Open chatbot">
-        <FaRobot />
-        <span>Support Chat</span>
-        <HiOutlineSparkles />
+        <div className="chatbot-suggestions">
+          {QUICK_SUGGESTIONS.map((item) => (
+            <button key={item.label} type="button" className="chat-suggestion-btn" onClick={() => askBot(item.query)}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="chatbot-input">
+          <input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder={activeCourseId ? "Ask your doubt about this course..." : "Ask about AI, ML, DL, Prompt Engineering, or Quantum..."}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <button type="button" className="btn btn-primary btn-icon" onClick={handleSend} disabled={botTyping}>
+            <HiOutlinePaperAirplane />
+            Send
+          </button>
+        </div>
+      </div>
+      
+      <button
+        type="button"
+        className={`chatbot-fab ${open ? "hidden" : ""}`}
+        onClick={() => setOpen(true)}
+        aria-label="Open chatbot"
+      >
+        <FaRobot className="chatbot-fab-icon" />
       </button>
+
     </div>
   );
+
 }

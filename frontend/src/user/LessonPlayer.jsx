@@ -16,6 +16,9 @@ import {
   HiOutlineSpeakerWave,
   HiOutlineSpeakerXMark,
   HiOutlineViewColumns,
+  HiOutlineTrash,
+  HiOutlineClipboard,
+  HiOutlineListBullet,
 } from "react-icons/hi2";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
@@ -253,7 +256,165 @@ export default function LessonPlayer() {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [videoLoading, setVideoLoading] = useState(false);
+
+  const videoUrl = String(lesson?.video_url || "").trim();
+  const pdfUrl = String(lesson?.pdf_url || "").trim();
+  const mediaToken = String(lesson?.media_token || "");
+  const mediaTokenQuery = mediaToken ? `?token=${encodeURIComponent(mediaToken)}` : "";
+  const pdfViewerUrl = pdfUrl ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/pdf/` : "";
+  const videoViewerUrl = videoUrl && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/video/${mediaTokenQuery}` : "";
+  const thumbnailViewerUrl =
+    lesson?.thumbnail_url && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/thumbnail/${mediaTokenQuery}` : "";
+  const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
+
+  // Reset video loading state when lesson details or video URL change
+  useEffect(() => {
+    if (videoUrl && videoViewerUrl) {
+      setVideoLoading(true);
+    } else {
+      setVideoLoading(false);
+    }
+  }, [lessonId, videoUrl, videoViewerUrl]);
+
+  // Sticky Notes States
+  const [showNotes, setShowNotes] = useState(true);
+  const [hasText, setHasText] = useState(false);
+  const [showListMenu, setShowListMenu] = useState(false);
+  const editorRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Refs for tracking changes synchronously to avoid race conditions on page load/navigation
+  const latestHtmlRef = useRef("");
+  const hasPendingChangesRef = useRef(false);
+  const lessonIdRef = useRef(lessonId);
+
   const WATCH_THRESHOLD_PERCENT = 80;
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowListMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Save pending changes synchronously
+  const savePendingChanges = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    if (hasPendingChangesRef.current) {
+      try {
+        const { user } = getStoredAuth();
+        const targetLessonId = lessonIdRef.current;
+        if (targetLessonId) {
+          const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${targetLessonId}`;
+          localStorage.setItem(storageKey, latestHtmlRef.current);
+        }
+      } catch {
+        // Ignore local storage errors
+      }
+      hasPendingChangesRef.current = false;
+    }
+  };
+
+  // Sync lessonIdRef and save pending changes of previous lesson on lesson navigation or unmount
+  useEffect(() => {
+    return () => {
+      savePendingChanges();
+    };
+  }, [lessonId]);
+
+  // Load Saved Notes HTML
+  useEffect(() => {
+    if (!lessonId) return;
+    try {
+      const { user } = getStoredAuth();
+      const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
+      const saved = localStorage.getItem(storageKey) || "";
+      if (editorRef.current) {
+        editorRef.current.innerHTML = saved;
+      }
+      setHasText(!!editorRef.current?.innerText?.trim());
+      latestHtmlRef.current = saved;
+      hasPendingChangesRef.current = false;
+      lessonIdRef.current = lessonId;
+    } catch {
+      // Ignore local storage errors
+    }
+  }, [lessonId, loading]);
+
+  const handleInput = () => {
+    const htmlVal = editorRef.current?.innerHTML || "";
+    const textVal = editorRef.current?.innerText || "";
+    setHasText(!!textVal.trim());
+
+    latestHtmlRef.current = htmlVal;
+    hasPendingChangesRef.current = true;
+    lessonIdRef.current = lessonId;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      savePendingChanges();
+    }, 600);
+  };
+
+  const applyFormat = (command, value = null) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    handleInput();
+  };
+
+  const copyNotesToClipboard = async () => {
+    const plainText = editorRef.current?.innerText || "";
+    if (!plainText.trim()) {
+      addToast({ type: "info", message: "Brain Dump is empty." });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(plainText);
+      addToast({ type: "success", message: "Copied to clipboard!" });
+    } catch {
+      addToast({ type: "error", message: "Failed to copy notes." });
+    }
+  };
+
+  const clearNotes = () => {
+    const plainText = editorRef.current?.innerText || "";
+    if (!plainText.trim()) return;
+    if (window.confirm("Are you sure you want to clear your notes for this lesson? This cannot be undone.")) {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = "";
+      }
+      setHasText(false);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      latestHtmlRef.current = "";
+      hasPendingChangesRef.current = false;
+      try {
+        const { user } = getStoredAuth();
+        const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
+        localStorage.removeItem(storageKey);
+        addToast({ type: "success", message: "Brain Dump cleared." });
+      } catch {
+        // Ignore errors
+      }
+    }
+  };
 
   const loadLesson = useCallback(async () => {
     setLoading(true);
@@ -279,7 +440,7 @@ export default function LessonPlayer() {
 
   useEffect(() => {
     loadLesson();
-  }, [loadLesson]);
+  }, [lessonId, loadLesson]);
 
   const allLessons = (overview?.modules || []).flatMap((module) =>
     (module.lessons || []).map((item) => ({ ...item, module_number: module.module_number })),
@@ -287,15 +448,6 @@ export default function LessonPlayer() {
   const lessonIndex = allLessons.findIndex((item) => String(item.id) === String(lessonId));
   const previousLesson = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex >= 0 && lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
-  const videoUrl = String(lesson?.video_url || "").trim();
-  const pdfUrl = String(lesson?.pdf_url || "").trim();
-  const mediaToken = String(lesson?.media_token || "");
-  const mediaTokenQuery = mediaToken ? `?token=${encodeURIComponent(mediaToken)}` : "";
-  const pdfViewerUrl = pdfUrl ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/pdf/` : "";
-  const videoViewerUrl = videoUrl && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/video/${mediaTokenQuery}` : "";
-  const thumbnailViewerUrl =
-    lesson?.thumbnail_url && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/thumbnail/${mediaTokenQuery}` : "";
-  const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
   const previousEnabled = isPlayableLesson(previousLesson);
@@ -583,19 +735,30 @@ export default function LessonPlayer() {
             <HiOutlineArrowLeft />
             Back to LMS
           </Link>
+          {lesson ? (
+            <button
+              type="button"
+              className={`btn ${showNotes ? "btn-muted" : "btn-primary"} btn-icon toggle-notes-btn`}
+              onClick={() => setShowNotes(!showNotes)}
+              style={{ marginLeft: "auto" }}
+            >
+              💡 {showNotes ? "Hide Brain Dump" : "Show Brain Dump"}
+            </button>
+          ) : null}
         </div>
 
         {loading ? <LoadingSpinner label="Loading lesson..." /> : null}
         {!loading && lesson ? (
-          <article className="lesson-card">
-            <p className="lms-kicker">Lesson Player</p>
-            <p className="lesson-breadcrumb">
-              {`${lessonSectionLabel} > Lesson ${lesson.lesson_number} > ${videoUrl ? "Video" : "Document"}`}
-            </p>
-            <h1>{lesson.title || `Module ${moduleId} - Lesson ${lessonId}`}</h1>
-            <p className="lesson-description">
-              {lesson.description || "Watch this lesson to complete it and unlock the next lesson."}
-            </p>
+          <div className="lesson-layout-container">
+            <article className="lesson-card">
+              <p className="lms-kicker">Lesson Player</p>
+              <p className="lesson-breadcrumb">
+                {`${lessonSectionLabel} > Lesson ${lesson.lesson_number} > ${videoUrl ? "Video" : "Document"}`}
+              </p>
+              <h1>{lesson.title || `Module ${moduleId} - Lesson ${lessonId}`}</h1>
+              <p className="lesson-description">
+                {lesson.description || "Watch this lesson to complete it and unlock the next lesson."}
+              </p>
 
             {videoUrl && videoViewerUrl ? (
               <div
@@ -734,27 +897,134 @@ export default function LessonPlayer() {
                 </div>
               </section>
             ) : null}
-            <div className="lesson-nav-row">
-              <button
-                type="button"
-                className="btn btn-muted"
-                onClick={() => openLesson(previousLesson)}
-                disabled={!previousEnabled}
-                title={!previousLesson ? "No previous lesson." : !previousEnabled ? "Previous lesson is locked." : ""}
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openLesson(nextLesson)}
-                disabled={!nextEnabled}
-                title={!nextLesson ? "No next lesson." : !nextEnabled ? "Next lesson is locked." : ""}
-              >
-                Next
-              </button>
-            </div>
-          </article>
+              <div className="lesson-nav-row">
+                <button
+                  type="button"
+                  className="btn btn-muted"
+                  onClick={() => openLesson(previousLesson)}
+                  disabled={!previousEnabled}
+                  title={!previousLesson ? "No previous lesson." : !previousEnabled ? "Previous lesson is locked." : ""}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => openLesson(nextLesson)}
+                  disabled={!nextEnabled}
+                  title={!nextLesson ? "No next lesson." : !nextEnabled ? "Next lesson is locked." : ""}
+                >
+                  Next
+                </button>
+              </div>
+            </article>
+
+            <aside className={`lesson-sticky-note ${showNotes ? "open" : "closed"}`}>
+              <div className="sticky-note-header">
+                <div className="sticky-note-title">
+                  <span className="note-emoji">🧠</span>
+                  <span>Brain Dump</span>
+                </div>
+                <span className="sticky-note-autosave-label">Auto-saved</span>
+              </div>
+
+              <div className="sticky-note-toolbar">
+                <button
+                  type="button"
+                  className="toolbar-btn bold-btn"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyFormat("bold");
+                  }}
+                  title="Bold"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  className="toolbar-btn underline-btn"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyFormat("underline");
+                  }}
+                  title="Underline"
+                >
+                  U
+                </button>
+
+                {/* List Options Dropdown */}
+                <div className="toolbar-dropdown-container" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    className={`toolbar-btn btn-icon ${showListMenu ? "active" : ""}`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setShowListMenu(!showListMenu);
+                    }}
+                    title="List Options"
+                  >
+                    <HiOutlineListBullet />
+                  </button>
+                  {showListMenu && (
+                    <div className="toolbar-dropdown-menu">
+                      <button
+                        type="button"
+                        className="dropdown-item"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          applyFormat("insertUnorderedList");
+                          setShowListMenu(false);
+                        }}
+                      >
+                        • Bullet List
+                      </button>
+                      <button
+                        type="button"
+                        className="dropdown-item"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          applyFormat("insertOrderedList");
+                          setShowListMenu(false);
+                        }}
+                      >
+                        1. Numbered List
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="sticky-note-body">
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className="sticky-note-editor"
+                  onInput={handleInput}
+                  onBlur={() => savePendingChanges()}
+                  data-placeholder="Jot down quick ideas, key formulas, or doubts..."
+                />
+              </div>
+              <div className="sticky-note-footer">
+                <button
+                  type="button"
+                  className="btn btn-muted btn-small note-action-btn btn-icon"
+                  onClick={copyNotesToClipboard}
+                  title="Copy Notes to Clipboard"
+                >
+                  <HiOutlineClipboard /> Copy
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-small note-action-btn btn-icon"
+                  onClick={clearNotes}
+                  title="Clear Notes"
+                  disabled={!hasText}
+                >
+                  <HiOutlineTrash /> Clear
+                </button>
+              </div>
+            </aside>
+          </div>
         ) : null}
         {showPdfViewer ? (
           <section className="lesson-pdf-fullscreen" onContextMenu={(event) => event.preventDefault()}>
