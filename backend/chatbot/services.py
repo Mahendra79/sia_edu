@@ -195,6 +195,7 @@ class ChatContext:
     focused_course_id: int | None
     retrieval_mode: str = "keyword_rag"
     retrieval_hits: int = 0
+    material_sources: list[str] = None
 
 
 @dataclass(frozen=True)
@@ -872,6 +873,28 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         context_rows.append("No active courses were available in the catalog context.")
 
     context_text = "Internal SIA EDU course context:\n" + "\n\n".join(context_rows)
+
+    material_sources = []
+    for hit in hits:
+        title = hit.get("course_title")
+        if title:
+            if title.lower().endswith(".pdf"):
+                title = title[:-4]
+            title = re.sub(r"\(\d+\)", "", title)
+            title = title.replace("_", " ").replace("-", " ").strip()
+            title = title.title()
+            if title not in material_sources:
+                material_sources.append(title)
+
+    if focused_course:
+        fc_title = focused_course.title.strip()
+        if fc_title.lower().endswith(".pdf"):
+            fc_title = fc_title[:-4]
+        fc_title = re.sub(r"\(\d+\)", "", fc_title)
+        fc_title = fc_title.replace("_", " ").replace("-", " ").strip().title()
+        if fc_title not in material_sources:
+            material_sources.insert(0, fc_title)
+
     return ChatContext(
         context_text=context_text,
         sources=sources[:8],
@@ -879,6 +902,7 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         focused_course_id=focused_course_id,
         retrieval_mode="lexical_bm25_rag",
         retrieval_hits=len(hits),
+        material_sources=material_sources,
     )
 
 
@@ -889,11 +913,11 @@ def _build_system_prompt(context: ChatContext) -> str:
         "1) Answer only education and SIA course-related questions.\n"
         "2) If user asks outside education scope, reply exactly:\n"
         f"\"{EDUCATION_ONLY_REPLY}\"\n"
-        "3) Use the provided internal context for course details and pricing.\n"
-        "4) If a requested fact is missing, say you do not have that information yet.\n"
+        "3) Use the provided internal context (including course details, pricing, syllabus, and lesson document materials) to answer user questions completely and accurately.\n"
+        "4) If a requested fact is missing from the context, say you do not have that information yet, but you can always explain general educational topics, terms, definitions, and quantum computing concepts using the retrieved document context.\n"
         "5) Never provide medical, legal, financial, political, or unrelated advice.\n"
-        "6) Keep answers extremely brief, concise, and student-friendly. Avoid long explanations.\n"
-        "7) If course_access is public, do not reveal paid/private lesson-level details.\n"
+        "6) Keep answers brief, concise, and student-friendly, but ensure they are factually complete and do not end abruptly.\n"
+        "7) If course_access is public, do not reveal paid/private course lessons or full download materials, but you should explain general educational topics, terms, definitions, and concepts (like Decoherence, Superposition, etc.) present in the retrieved context clearly and fully.\n"
         "8) If user asks career details, summarize relevant courses from context with likely career outcomes.\n"
         "9) Do not ask for another course id when relevant context already includes enough details.\n"
         "10) Prefer markdown with short structure:\n"
@@ -905,7 +929,7 @@ def _build_system_prompt(context: ChatContext) -> str:
         "13) ALWAYS format all mathematical equations, variables, vectors, and matrices in standard LaTeX delimiters:\n"
         "   - Wrap block equations, multi-line formulas, and matrices in \\[ ... \\] (do NOT output raw math without delimiters).\n"
         "   - Wrap inline math expressions, variables, and symbols in \\( ... \\).\n"
-        "14) Limit responses to a maximum of 2-3 short, clear sentences or brief bullet points when possible. Do not write lengthy paragraphs unless explicitly requested.\n"
+        "14) Limit responses to a maximum of 3-4 clear, complete sentences or well-structured bullet points. Do not write lengthy paragraphs, but ensure the final point is fully explained and complete.\n"
         f"Current course_access: {context.course_access}\n"
         f"Focused course id: {context.focused_course_id or 'none'}\n"
         f"Retrieval mode: {context.retrieval_mode}\n"
@@ -945,7 +969,7 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
             raise ChatbotConfigError("No Gemini API keys configured.")
 
         model_name = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
-        max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
+        max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 900))
 
         system_prompt = _build_system_prompt(context)
         context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
@@ -1154,7 +1178,7 @@ def _answer_for_message(
         degraded = True
 
     elapsed_ms = max(int((time.perf_counter() - started) * 1000), 0)
-    return format_chat_reply(reply), provider, model, degraded, context, elapsed_ms
+    return format_chat_reply(reply, context), provider, model, degraded, context, elapsed_ms
 
 
 def _evaluate_case_quality(reply: str, context: ChatContext, case: ChatEvaluationCase) -> tuple[int, dict]:
@@ -1232,7 +1256,7 @@ def evaluate_chatbot_suite(*, user=None, use_model: bool = False, max_cases: int
     }
 
 
-def format_chat_reply(reply: str) -> str:
+def format_chat_reply(reply: str, context: ChatContext | None = None) -> str:
     cleaned = (reply or "").strip()
     if not cleaned:
         return cleaned
@@ -1246,17 +1270,20 @@ def format_chat_reply(reply: str) -> str:
     already_structured = any(
         marker in cleaned for marker in ("\n- ", "\n1.", "\n2.", "**")
     )
-    if already_structured:
-        return cleaned
+    if not already_structured and len(cleaned) >= 180:
+        sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", cleaned) if item.strip()]
+        if len(sentences) >= 2:
+            lines = ["**Answer**"]
+            for sentence in sentences[:5]:
+                lines.append(f"- {sentence}")
+            cleaned = "\n".join(lines)
 
-    if len(cleaned) < 180:
-        return cleaned
+    if context and getattr(context, "material_sources", None):
+        sources_list = context.material_sources[:2]
+        if len(sources_list) == 1:
+            cleaned += f"\n\n**Source:** {sources_list[0]}"
+        elif len(sources_list) > 1:
+            sources_markdown = "\n".join([f"- {src}" for src in sources_list])
+            cleaned += f"\n\n**Sources:**\n{sources_markdown}"
 
-    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", cleaned) if item.strip()]
-    if len(sentences) < 2:
-        return cleaned
-
-    lines = ["**Answer**"]
-    for sentence in sentences[:5]:
-        lines.append(f"- {sentence}")
-    return "\n".join(lines)
+    return cleaned

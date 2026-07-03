@@ -113,7 +113,7 @@ class ChatbotMessageView(APIView):
 
         return Response(
             {
-                "reply": format_chat_reply(reply),
+                "reply": format_chat_reply(reply, context),
                 "scope": "education_only",
                 "provider": provider,
                 "model": model,
