@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import Pagination from "../components/Pagination";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import { usePaginatedList } from "../hooks/usePaginatedList";
 import AdminLayout from "../layouts/AdminLayout";
@@ -54,6 +54,7 @@ export default function Payments() {
     queryKey,
     fetchPage,
     onError: handleLoadError,
+    cacheNamespace: "admin-payments",
   });
 
   useEffect(() => {
@@ -172,7 +173,7 @@ export default function Payments() {
           />
         </div>
         {loading ? (
-          <LoadingSpinner />
+          <SkeletonTable rows={6} columns={5} />
         ) : (
           <>
             <div className="table-wrap">

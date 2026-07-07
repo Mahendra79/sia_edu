@@ -1,6 +1,6 @@
 .user-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 0.9rem;
 }
 
@@ -426,7 +426,7 @@
 .lms-quiz-grid {
   margin-top: 0.8rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 0.72rem;
 }
 
@@ -626,6 +626,10 @@
 }
 
 .lesson-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
   border: 1px solid color-mix(in srgb, var(--soft-border) 90%, #152f59);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -633,8 +637,7 @@
 }
 
 .custom-video-player {
-  position: relative;
-  display: grid;
+  display: block;
 }
 
 .custom-video-player.is-theater {
@@ -645,6 +648,7 @@
 .custom-video-player:fullscreen {
   width: 100vw;
   height: 100vh;
+  aspect-ratio: auto;
   border: 0;
   border-radius: 0;
   background: #000;
@@ -655,15 +659,19 @@
 }
 
 .lesson-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
   display: block;
-  max-height: 70vh;
+  max-height: none;
+  object-fit: contain;
   background: #000;
   cursor: pointer;
 }
 
 .custom-video-player.is-theater .lesson-video {
-  max-height: 78vh;
+  max-height: none;
 }
 
 .custom-video-player:fullscreen .lesson-video {
@@ -674,6 +682,11 @@
 }
 
 .custom-video-controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
   display: grid;
   gap: 0.65rem;
   padding: 0.75rem 0.85rem 0.8rem;
@@ -685,11 +698,6 @@
 }
 
 .custom-video-player:fullscreen .custom-video-controls {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 2;
   padding: 1rem 1.2rem 1.15rem;
   background: linear-gradient(180deg, rgba(3, 7, 18, 0), rgba(3, 7, 18, 0.92) 34%, rgba(3, 7, 18, 0.98));
 }
@@ -843,8 +851,27 @@
   font-weight: 700;
 }
 
+.lesson-video-loading,
+.lesson-video-skeleton-frame {
+  display: block;
+  background: #020617;
+}
+
+.lesson-video-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.lesson-video-skeleton {
+  width: 100%;
+  height: 100%;
+}
+
 .lesson-video-placeholder {
-  min-height: 260px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
   border: 1px solid color-mix(in srgb, var(--soft-border) 90%, #152f59);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--surface-muted-soft) 58%, #07142e);
@@ -1208,7 +1235,7 @@
 .quiz-review-counts,
 .quiz-result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 0.7rem;
 }
 
@@ -1263,7 +1290,7 @@
   }
 
   .lesson-video {
-    max-height: 46vh;
+    max-height: none;
   }
 
   .custom-video-player.is-theater {

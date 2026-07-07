@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { getCached, setCached } from "../utils/sessionCache";
+
 function normalizePaginatedPayload(payload) {
   if (Array.isArray(payload)) {
     return { results: payload, count: payload.length };
@@ -10,11 +12,14 @@ function normalizePaginatedPayload(payload) {
   return { results, count };
 }
 
-export function usePaginatedList({ queryKey, fetchPage, onError }) {
-  const [items, setItems] = useState([]);
-  const [count, setCount] = useState(0);
+export function usePaginatedList({ queryKey, fetchPage, onError, cacheNamespace }) {
+  const initialCacheKey = cacheNamespace ? `${cacheNamespace}:${queryKey}:1` : null;
+  const initialCached = initialCacheKey ? getCached(initialCacheKey) : undefined;
+
+  const [items, setItems] = useState(() => initialCached?.results || []);
+  const [count, setCount] = useState(() => initialCached?.count || 0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !initialCached);
   const latestQueryKeyRef = useRef(queryKey);
   const requestSequenceRef = useRef(0);
   const mountedRef = useRef(true);
@@ -30,7 +35,16 @@ export function usePaginatedList({ queryKey, fetchPage, onError }) {
     async (targetPage) => {
       const requestId = requestSequenceRef.current + 1;
       requestSequenceRef.current = requestId;
-      setLoading(true);
+      const cacheKey = cacheNamespace ? `${cacheNamespace}:${queryKey}:${targetPage}` : null;
+      const cached = cacheKey ? getCached(cacheKey) : undefined;
+      if (cached) {
+        setItems(cached.results);
+        setCount(cached.count);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       try {
         const response = await fetchPage(targetPage);
         if (!mountedRef.current || requestId !== requestSequenceRef.current) {
@@ -40,18 +54,23 @@ export function usePaginatedList({ queryKey, fetchPage, onError }) {
         const normalized = normalizePaginatedPayload(payload);
         setItems(normalized.results);
         setCount(normalized.count);
+        if (cacheKey) {
+          setCached(cacheKey, normalized);
+        }
       } catch (error) {
         if (!mountedRef.current || requestId !== requestSequenceRef.current) {
           return;
         }
-        onError?.(error);
+        if (!cached) {
+          onError?.(error);
+        }
       } finally {
         if (mountedRef.current && requestId === requestSequenceRef.current) {
           setLoading(false);
         }
       }
     },
-    [fetchPage, onError],
+    [fetchPage, onError, cacheNamespace, queryKey],
   );
 
   useEffect(() => {

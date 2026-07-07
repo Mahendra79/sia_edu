@@ -4,6 +4,7 @@ import { HiOutlineArrowPath } from "react-icons/hi2";
 import ConfirmModal from "../components/ConfirmModal";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PageTransition from "../components/PageTransition";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import AdminLayout from "../layouts/AdminLayout";
 import { analyticsService } from "../services/analyticsService";
@@ -13,6 +14,7 @@ import { deletedRecordService } from "../services/deletedRecordService";
 import { paymentService } from "../services/paymentService";
 import { fetchAllPaginated } from "../utils/export";
 import { formatCurrency, formatDate } from "../utils/format";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
 
 const TABS = [
@@ -26,6 +28,42 @@ const TABS = [
   { key: "deleted", label: "Deleted Records" },
   { key: "logs", label: "Activity Logs" },
 ];
+
+// Each tab only needs a subset of the 8 datasets (courses/coupons also need
+// data for their dropdowns) - fetched lazily per tab instead of all at once.
+const TAB_DATASETS = {
+  users: ["users"],
+  courses: ["courses", "categories"],
+  categories: ["categories"],
+  enrollments: ["enrollments"],
+  payments: ["payments"],
+  coupons: ["coupons", "courses"],
+  deleted: ["deletedRecords"],
+  logs: ["activityLogs"],
+  tables: [],
+};
+
+const DATASET_CACHE_KEYS = {
+  users: "admin-db-users",
+  courses: "admin-db-courses",
+  categories: "admin-db-categories",
+  enrollments: "admin-db-enrollments",
+  payments: "admin-db-payments",
+  coupons: "admin-db-coupons",
+  deletedRecords: "admin-db-deleted-records",
+  activityLogs: "admin-db-activity-logs",
+};
+
+const DATASET_FETCHERS = {
+  users: (params) => authService.getAdminUsers(params),
+  courses: (params) => courseService.getCourses(params),
+  categories: (params) => courseService.getCategories(params),
+  enrollments: (params) => courseService.getAdminEnrollments(params),
+  payments: (params) => paymentService.getAdminPaymentHistory(params),
+  coupons: (params) => paymentService.getAdminCoupons(params),
+  deletedRecords: (params) => deletedRecordService.getDeletedRecords(params),
+  activityLogs: (params) => analyticsService.getActivityLogs(params),
+};
 
 const EMPTY_EDIT = {
   type: "",
@@ -109,14 +147,17 @@ export default function DatabaseEditor() {
   const [edit, setEdit] = useState(EMPTY_EDIT);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [users, setUsers] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [enrollments, setEnrollments] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [coupons, setCoupons] = useState([]);
-  const [deletedRecords, setDeletedRecords] = useState([]);
-  const [activityLogs, setActivityLogs] = useState([]);
+  const [users, setUsers] = useState(() => getCached(DATASET_CACHE_KEYS.users) || []);
+  const [courses, setCourses] = useState(() => getCached(DATASET_CACHE_KEYS.courses) || []);
+  const [categories, setCategories] = useState(() => getCached(DATASET_CACHE_KEYS.categories) || []);
+  const [enrollments, setEnrollments] = useState(() => getCached(DATASET_CACHE_KEYS.enrollments) || []);
+  const [payments, setPayments] = useState(() => getCached(DATASET_CACHE_KEYS.payments) || []);
+  const [coupons, setCoupons] = useState(() => getCached(DATASET_CACHE_KEYS.coupons) || []);
+  const [deletedRecords, setDeletedRecords] = useState(() => getCached(DATASET_CACHE_KEYS.deletedRecords) || []);
+  const [activityLogs, setActivityLogs] = useState(() => getCached(DATASET_CACHE_KEYS.activityLogs) || []);
+  const [loadedDatasets, setLoadedDatasets] = useState(
+    () => new Set(Object.keys(DATASET_CACHE_KEYS).filter((key) => getCached(DATASET_CACHE_KEYS[key]))),
+  );
   const [courseImage, setCourseImage] = useState(null);
   const [couponDraft, setCouponDraft] = useState(EMPTY_COUPON);
   const [dbTables, setDbTables] = useState([]);
@@ -129,50 +170,109 @@ export default function DatabaseEditor() {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbEdit, setDbEdit] = useState(EMPTY_DB_EDIT);
 
-  const loadData = useCallback(
-    async ({ silent = false } = {}) => {
-      if (silent) setRefreshing(true);
-      else setLoading(true);
+  const applyDataset = useCallback((key, items) => {
+    switch (key) {
+      case "users":
+        setUsers(items);
+        break;
+      case "courses":
+        setCourses(items);
+        break;
+      case "categories":
+        setCategories(items);
+        break;
+      case "enrollments":
+        setEnrollments(items);
+        break;
+      case "payments":
+        setPayments(items);
+        break;
+      case "coupons":
+        setCoupons(items);
+        break;
+      case "deletedRecords":
+        setDeletedRecords(items);
+        break;
+      case "activityLogs":
+        setActivityLogs(items);
+        break;
+      default:
+        break;
+    }
+  }, []);
 
-      try {
-        const [u, c, ca, e, p, co, d, l] = await Promise.all([
-          fetchAllPaginated((params) => authService.getAdminUsers(params)),
-          fetchAllPaginated((params) => courseService.getCourses(params)),
-          fetchAllPaginated((params) => courseService.getCategories(params)),
-          fetchAllPaginated((params) => courseService.getAdminEnrollments(params)),
-          fetchAllPaginated((params) => paymentService.getAdminPaymentHistory(params)),
-          fetchAllPaginated((params) => paymentService.getAdminCoupons(params)),
-          fetchAllPaginated((params) => deletedRecordService.getDeletedRecords(params)),
-          fetchAllPaginated((params) => analyticsService.getActivityLogs(params)),
-        ]);
-
-        setUsers(u);
-        setCourses(c);
-        setCategories(ca);
-        setEnrollments(e);
-        setPayments(p);
-        setCoupons(co);
-        setDeletedRecords(d);
-        setActivityLogs(l);
-        setLastUpdated(new Date());
-      } catch {
-        addToast({ type: "error", message: "Unable to load database records." });
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const loadDataset = useCallback(
+    async (key) => {
+      const items = await fetchAllPaginated(DATASET_FETCHERS[key]);
+      applyDataset(key, items);
+      setCached(DATASET_CACHE_KEYS[key], items);
+      setLastUpdated(new Date());
+      return items;
     },
-    [addToast],
+    [applyDataset],
   );
 
+  // Only fetch the datasets the active tab actually needs, and only the ones
+  // not already loaded this session - switching tabs loads on demand instead
+  // of every admin visit pulling all 8 tables in full up front.
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const requiredKeys = TAB_DATASETS[activeTab] || [];
+    const missingKeys = requiredKeys.filter((key) => !loadedDatasets.has(key));
+
+    if (missingKeys.length === 0) {
+      setLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const hasAnyCached = missingKeys.some((key) => getCached(DATASET_CACHE_KEYS[key]));
+    if (hasAnyCached) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    Promise.all(missingKeys.map((key) => loadDataset(key)))
+      .then(() => {
+        if (cancelled) return;
+        setLoadedDatasets((prev) => {
+          const next = new Set(prev);
+          missingKeys.forEach((key) => next.add(key));
+          return next;
+        });
+      })
+      .catch(() => {
+        if (!cancelled && !hasAnyCached) {
+          addToast({ type: "error", message: "Unable to load database records." });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, loadedDatasets, loadDataset, addToast]);
+
+  const refreshActiveTab = useCallback(() => {
+    const requiredKeys = TAB_DATASETS[activeTab] || [];
+    if (requiredKeys.length === 0) {
+      return;
+    }
+    setRefreshing(true);
+    Promise.all(requiredKeys.map((key) => loadDataset(key)))
+      .catch(() => addToast({ type: "error", message: "Unable to refresh database records." }))
+      .finally(() => setRefreshing(false));
+  }, [activeTab, loadDataset, addToast]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => loadData({ silent: true }), 45000);
+    const timer = window.setInterval(refreshActiveTab, 45000);
     return () => window.clearInterval(timer);
-  }, [loadData]);
+  }, [refreshActiveTab]);
 
   const loadDbTables = useCallback(async () => {
     setDbLoading(true);
@@ -343,8 +443,8 @@ export default function DatabaseEditor() {
       }
 
       addToast({ type: "success", message: "Record updated." });
+      loadDataset(edit.type);
       clearEdit();
-      loadData({ silent: true });
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to update record.") });
     } finally {
@@ -369,7 +469,7 @@ export default function DatabaseEditor() {
       await paymentService.createAdminCoupon(payload);
       addToast({ type: "success", message: "Coupon created." });
       setCouponDraft(EMPTY_COUPON);
-      loadData({ silent: true });
+      loadDataset("coupons");
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to create coupon.") });
     } finally {
@@ -395,9 +495,9 @@ export default function DatabaseEditor() {
         await paymentService.deleteAdminCoupon(deleteTarget.id);
       }
       addToast({ type: "success", message: "Record deleted." });
+      loadDataset(deleteTarget.type);
       setDeleteTarget(null);
       clearEdit();
-      loadData({ silent: true });
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to delete record.") });
     } finally {
@@ -896,7 +996,7 @@ export default function DatabaseEditor() {
           </div>
           <div className="inline-controls">
             <span className="meta-note">{lastUpdated ? `Last sync: ${formatDate(lastUpdated)}` : "Syncing..."}</span>
-            <button type="button" className="btn btn-muted btn-icon" onClick={() => loadData({ silent: true })} disabled={refreshing}>
+            <button type="button" className="btn btn-muted btn-icon" onClick={refreshActiveTab} disabled={refreshing || activeTab === "tables"}>
               <HiOutlineArrowPath />
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -912,7 +1012,7 @@ export default function DatabaseEditor() {
         </div>
 
         {loading ? (
-          <LoadingSpinner label="Loading database records..." />
+          <SkeletonTable rows={6} columns={headers[activeTab]?.length || 6} />
         ) : activeTab === "tables" ? (
           <section className="panel-card">
             <h2>All Tables</h2>

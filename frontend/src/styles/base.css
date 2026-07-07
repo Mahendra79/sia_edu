@@ -57,7 +57,7 @@ p {
 
 main {
   width: min(var(--layout-max-width), calc(100% - (var(--layout-side-gap) * 2)));
-  margin: 0 auto;
+  margin: 0 auto 0 var(--layout-side-gap);
 }
 
 label {

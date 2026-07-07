@@ -14,13 +14,16 @@ import {
 } from "chart.js";
 import { HiOutlineArrowPath } from "react-icons/hi2";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import PageTransition from "../components/PageTransition";
+import { SkeletonBlock, SkeletonStatGrid } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import AdminLayout from "../layouts/AdminLayout";
 import { analyticsService } from "../services/analyticsService";
 import { formatCurrency, formatDate } from "../utils/format";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
+
+const REPORTS_CACHE_KEY = "admin-mis-reports";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend);
 
@@ -61,11 +64,12 @@ function openChartPrintWindow(title, imageDataUrl) {
 export default function MISReports() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const cachedReports = getCached(REPORTS_CACHE_KEY);
+  const [loading, setLoading] = useState(() => !cachedReports);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [activityLogs, setActivityLogs] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(() => cachedReports?.lastUpdated || null);
+  const [dashboardData, setDashboardData] = useState(() => cachedReports?.dashboardData || null);
+  const [activityLogs, setActivityLogs] = useState(() => cachedReports?.activityLogs || []);
 
   const revenueChartRef = useRef(null);
   const usersGrowthChartRef = useRef(null);
@@ -74,7 +78,8 @@ export default function MISReports() {
 
   const loadReports = useCallback(
     async ({ silent = false } = {}) => {
-      if (silent) {
+      const cached = getCached(REPORTS_CACHE_KEY);
+      if (silent || cached) {
         setRefreshing(true);
       } else {
         setLoading(true);
@@ -86,11 +91,21 @@ export default function MISReports() {
           analyticsService.getActivityLogs({ page: 1, page_size: 20 }),
         ]);
 
-        setDashboardData(dashboardResponse.data || null);
-        setActivityLogs(logsResponse.data.results || logsResponse.data || []);
-        setLastUpdated(new Date());
+        const nextDashboardData = dashboardResponse.data || null;
+        const nextActivityLogs = logsResponse.data.results || logsResponse.data || [];
+        const nextLastUpdated = new Date();
+        setDashboardData(nextDashboardData);
+        setActivityLogs(nextActivityLogs);
+        setLastUpdated(nextLastUpdated);
+        setCached(REPORTS_CACHE_KEY, {
+          dashboardData: nextDashboardData,
+          activityLogs: nextActivityLogs,
+          lastUpdated: nextLastUpdated,
+        });
       } catch {
-        addToast({ type: "error", message: "Unable to load MIS reports." });
+        if (!cached) {
+          addToast({ type: "error", message: "Unable to load MIS reports." });
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -242,7 +257,17 @@ export default function MISReports() {
         </section>
 
         {loading ? (
-          <LoadingSpinner label="Loading reports..." />
+          <>
+            <SkeletonStatGrid count={7} containerClassName="mis-kpi-grid" />
+            <section className="mis-chart-grid">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <article key={index} className="chart-card mis-chart-card">
+                  <SkeletonBlock width="40%" height="1.1rem" style={{ marginBottom: "0.8rem" }} />
+                  <SkeletonBlock height="255px" />
+                </article>
+              ))}
+            </section>
+          </>
         ) : (
           <>
             <section className="mis-kpi-grid">

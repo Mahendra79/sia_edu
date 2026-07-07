@@ -23,7 +23,7 @@ function getHighlightedTitle(title, query) {
   );
 }
 
-export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
+export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHoverPrefetch }) {
   const imageUrl = getCourseImageUrl(course);
   const logoPlaceholder = (import.meta.env.VITE_WEBSITE_LOGO_URL || "").trim();
   const discountPercent = Number(course.discount_percent || 0);
@@ -66,6 +66,8 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen }) {
       tabIndex={typeof onOpen === "function" ? 0 : undefined}
       onClick={typeof onOpen === "function" ? handleOpen : undefined}
       onKeyDown={typeof onOpen === "function" ? handleCardKeyDown : undefined}
+      onMouseEnter={typeof onHoverPrefetch === "function" ? () => onHoverPrefetch(course) : undefined}
+      onFocus={typeof onHoverPrefetch === "function" ? () => onHoverPrefetch(course) : undefined}
     >
       <CourseImage
         key={imageUrl || logoPlaceholder || "course-image-placeholder"}

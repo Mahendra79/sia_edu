@@ -2,31 +2,48 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import Pagination from "../components/Pagination";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import UserLayout from "../layouts/UserLayout";
 import { courseService } from "../services/courseService";
+import { prefetchLmsPortal } from "../data/lmsPrefetch";
 import { formatCurrency, formatDate } from "../utils/format";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./user.css";
 
 export default function MyCourses() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [courses, setCourses] = useState([]);
-  const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const cachedPage1 = getCached(`my-courses:1`);
+  const [courses, setCourses] = useState(() => cachedPage1?.courses || []);
+  const [count, setCount] = useState(() => cachedPage1?.count || 0);
+  const [loading, setLoading] = useState(() => !cachedPage1);
 
   useEffect(() => {
-    const fetchMyCourses = async () => {
+    const cacheKey = `my-courses:${page}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setCourses(cached.courses);
+      setCount(cached.count);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    const fetchMyCourses = async () => {
       try {
         const response = await courseService.getMyCourses({ page });
-        setCourses(response.data.results || []);
-        setCount(response.data.count || 0);
+        const results = response.data.results || [];
+        const total = response.data.count || 0;
+        setCourses(results);
+        setCount(total);
+        setCached(cacheKey, { courses: results, count: total });
       } catch {
-        addToast({ type: "error", message: "Unable to load enrolled courses." });
+        if (!cached) {
+          addToast({ type: "error", message: "Unable to load enrolled courses." });
+        }
       } finally {
         setLoading(false);
       }
@@ -42,7 +59,7 @@ export default function MyCourses() {
     <UserLayout>
       <h1>My Courses</h1>
       {loading ? (
-        <LoadingSpinner />
+        <SkeletonTable rows={5} columns={6} />
       ) : courses.length === 0 ? (
         <p className="empty-state">No enrolled courses yet.</p>
       ) : (
@@ -61,7 +78,7 @@ export default function MyCourses() {
               </thead>
               <tbody>
                 {courses.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} onMouseEnter={() => prefetchLmsPortal(item.course.id)}>
                     <td>{item.course.title}</td>
                     <td>{item.status}</td>
                     <td>{item.payment_status}</td>

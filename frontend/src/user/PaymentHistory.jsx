@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import Pagination from "../components/Pagination";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import { usePaginatedList } from "../hooks/usePaginatedList";
 import UserLayout from "../layouts/UserLayout";
@@ -53,6 +53,7 @@ export default function PaymentHistory() {
     queryKey,
     fetchPage,
     onError: handleLoadError,
+    cacheNamespace: "payment-history",
   });
 
   const openInvoice = async (paymentId, inline) => {
@@ -102,7 +103,7 @@ export default function PaymentHistory() {
           />
         </div>
         {loading ? (
-          <LoadingSpinner />
+          <SkeletonTable rows={6} columns={5} />
         ) : (
           <>
             <div className="table-wrap">

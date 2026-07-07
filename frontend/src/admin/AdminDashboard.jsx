@@ -11,30 +11,39 @@ import {
   Tooltip,
 } from "chart.js";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import PageTransition from "../components/PageTransition";
+import { SkeletonBlock, SkeletonStatGrid } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import AdminLayout from "../layouts/AdminLayout";
 import { analyticsService } from "../services/analyticsService";
 import { formatCurrency } from "../utils/format";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+const SUMMARY_CACHE_KEY = "admin-dashboard-summary";
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedSummary = getCached(SUMMARY_CACHE_KEY);
+  const [summary, setSummary] = useState(() => cachedSummary || null);
+  const [loading, setLoading] = useState(() => !cachedSummary);
 
   useEffect(() => {
     const loadSummary = async () => {
-      setLoading(true);
+      if (!getCached(SUMMARY_CACHE_KEY)) {
+        setLoading(true);
+      }
       try {
         const response = await analyticsService.getSummary();
         setSummary(response.data);
+        setCached(SUMMARY_CACHE_KEY, response.data);
       } catch {
-        addToast({ type: "error", message: "Unable to load analytics summary." });
+        if (!getCached(SUMMARY_CACHE_KEY)) {
+          addToast({ type: "error", message: "Unable to load analytics summary." });
+        }
       } finally {
         setLoading(false);
       }
@@ -63,7 +72,13 @@ export default function AdminDashboard() {
       <PageTransition>
         <h1>Admin Dashboard</h1>
         {loading ? (
-          <LoadingSpinner label="Loading analytics..." />
+          <div className="admin-dashboard">
+            <SkeletonStatGrid count={4} />
+            <div className="chart-card">
+              <SkeletonBlock width="30%" height="1.1rem" style={{ marginBottom: "0.8rem" }} />
+              <SkeletonBlock height="260px" />
+            </div>
+          </div>
         ) : (
           <div className="admin-dashboard">
             <div className="stat-grid">

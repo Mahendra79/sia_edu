@@ -56,6 +56,18 @@ button:disabled,
   border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--border));
 }
 
+.btn-outline-accent {
+  color: var(--accent-strong);
+  background: var(--surface-glass);
+  border-color: color-mix(in srgb, var(--accent-strong) 55%, var(--soft-border));
+  box-shadow: none;
+}
+
+.btn-outline-accent:hover {
+  background: color-mix(in srgb, var(--accent-soft) 55%, var(--surface-glass));
+  border-color: var(--accent-strong);
+}
+
 .btn-danger {
   color: #fff;
   background: linear-gradient(135deg, color-mix(in srgb, var(--danger) 86%, #9f1239), var(--danger));
@@ -124,6 +136,46 @@ button:disabled,
   gap: 0.8rem;
   text-align: center;
   color: var(--text-secondary);
+}
+
+.skeleton-block {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-muted-soft) 37%, var(--surface-muted) 63%);
+  background-size: 400px 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-text {
+  height: 0.85rem;
+  margin: 0.2rem 0;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.skeleton-stat-label {
+  height: 0.72rem;
+  margin-bottom: 0.6rem;
+}
+
+.skeleton-stat-value {
+  height: 1.5rem;
+}
+
+.skeleton-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.3rem;
+}
+
+.skeleton-block-list {
+  display: grid;
+  gap: 0.6rem;
 }
 
 .spinner {
@@ -332,7 +384,7 @@ button:disabled,
   .toast-container {
     right: 12px;
     left: 12px;
-    top: 12px;
+    top: 68px;
   }
 
   .toast {

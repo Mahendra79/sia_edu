@@ -4,7 +4,11 @@ import ConfirmModal from "../components/ConfirmModal";
 import AdminLayout from "../layouts/AdminLayout";
 import { useToast } from "../context/ToastContext";
 import { courseService } from "../services/courseService";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
+
+const LMS_COURSES_CACHE_KEY = "admin-lms-courses";
+const LMS_LESSONS_CACHE_KEY = "admin-lms-lessons-all";
 
 const EMPTY_FORM = {
   course: "",
@@ -15,17 +19,20 @@ const EMPTY_FORM = {
   video_url: "",
   thumbnail_url: "",
   pdf_url: "",
+  duration: "",
   is_active: true,
 };
 
 export default function AdminLMS() {
   const { addToast } = useToast();
-  const [courses, setCourses] = useState([]);
-  const [lessons, setLessons] = useState([]);
+  const cachedLmsCourses = getCached(LMS_COURSES_CACHE_KEY);
+  const cachedLmsLessons = getCached(LMS_LESSONS_CACHE_KEY);
+  const [courses, setCourses] = useState(() => cachedLmsCourses || []);
+  const [lessons, setLessons] = useState(() => cachedLmsLessons || []);
   const [courseFilter, setCourseFilter] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingLessonId, setEditingLessonId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !(cachedLmsCourses && cachedLmsLessons));
   const [submitting, setSubmitting] = useState(false);
 
   const selectedCourseId = useMemo(() => {
@@ -37,23 +44,36 @@ export default function AdminLMS() {
 
   const fetchCourses = async () => {
     const response = await courseService.getCourses({ page_size: 200 });
-    setCourses(response.data.results || []);
+    const results = response.data.results || [];
+    setCourses(results);
+    setCached(LMS_COURSES_CACHE_KEY, results);
+    return results;
   };
 
   const fetchLessons = async (courseId = "") => {
     const params = courseId ? { course_id: courseId } : {};
     const response = await courseService.getAdminLmsLessons(params);
-    setLessons(response.data || []);
+    const results = response.data || [];
+    setLessons(results);
+    if (!courseId) {
+      setCached(LMS_LESSONS_CACHE_KEY, results);
+    }
+    return results;
   };
 
   useEffect(() => {
     const init = async () => {
-      setLoading(true);
+      const hasCache = getCached(LMS_COURSES_CACHE_KEY) && getCached(LMS_LESSONS_CACHE_KEY);
+      if (!hasCache) {
+        setLoading(true);
+      }
       try {
         await fetchCourses();
         await fetchLessons();
       } catch {
-        addToast({ type: "error", message: "Failed to load LMS admin data." });
+        if (!hasCache) {
+          addToast({ type: "error", message: "Failed to load LMS admin data." });
+        }
       } finally {
         setLoading(false);
       }
@@ -94,6 +114,7 @@ export default function AdminLMS() {
       video_url: lesson.video_url || "",
       thumbnail_url: lesson.thumbnail_url || "",
       pdf_url: lesson.pdf_url || "",
+      duration: lesson.duration || "",
       is_active: Boolean(lesson.is_active),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -268,6 +289,15 @@ export default function AdminLMS() {
               onChange={(e) => handleChange("video_url", e.target.value)}
             />
           </label>
+          <label className="table-inline-field">
+            <span className="table-inline-field-label">Duration (e.g. 12:30)</span>
+            <input
+              type="text"
+              placeholder="mm:ss"
+              value={form.duration}
+              onChange={(e) => handleChange("duration", e.target.value)}
+            />
+          </label>
           <label className="table-inline-field table-inline-field-wide">
             <span className="table-inline-field-label">Thumbnail URL</span>
             <input type="url" value={form.thumbnail_url} onChange={(e) => handleChange("thumbnail_url", e.target.value)} />
@@ -316,6 +346,7 @@ export default function AdminLMS() {
                 <th>Module</th>
                 <th>Lesson</th>
                 <th>Title</th>
+                <th>Duration</th>
                 <th>PDF</th>
                 <th>Active</th>
                 <th>Actions</th>
@@ -328,6 +359,7 @@ export default function AdminLMS() {
                   <td>{lesson.module_number}</td>
                   <td>{lesson.lesson_number}</td>
                   <td>{lesson.title}</td>
+                  <td>{lesson.duration || "-"}</td>
                   <td>
                     {lesson.pdf_url ? (
                       <a href={lesson.pdf_url} target="_blank" rel="noreferrer">

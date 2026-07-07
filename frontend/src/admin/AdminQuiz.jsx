@@ -3,7 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../layouts/AdminLayout";
 import { useToast } from "../context/ToastContext";
 import { courseService } from "../services/courseService";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
+
+const QUIZ_COURSES_CACHE_KEY = "admin-quiz-courses";
+const QUIZ_ALL_CACHE_KEY = "admin-quiz-all";
 
 const EMPTY_QUIZ = {
   course: "",
@@ -28,15 +32,17 @@ const EMPTY_QUESTION = {
 
 export default function AdminQuiz() {
   const { addToast } = useToast();
-  const [courses, setCourses] = useState([]);
-  const [quizzes, setQuizzes] = useState([]);
+  const cachedQuizCourses = getCached(QUIZ_COURSES_CACHE_KEY);
+  const cachedQuizzes = getCached(QUIZ_ALL_CACHE_KEY);
+  const [courses, setCourses] = useState(() => cachedQuizCourses || []);
+  const [quizzes, setQuizzes] = useState(() => cachedQuizzes || []);
   const [courseFilter, setCourseFilter] = useState("");
   const [quizForm, setQuizForm] = useState(EMPTY_QUIZ);
   const [questionForm, setQuestionForm] = useState(EMPTY_QUESTION);
   const [editingQuizId, setEditingQuizId] = useState(null);
-  const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [selectedQuizId, setSelectedQuizId] = useState(() => cachedQuizzes?.[0]?.id || null);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !(cachedQuizCourses && cachedQuizzes));
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [importingQuestions, setImportingQuestions] = useState(false);
@@ -48,7 +54,10 @@ export default function AdminQuiz() {
 
   const fetchCourses = async () => {
     const response = await courseService.getCourses({ page_size: 200 });
-    setCourses(response.data.results || []);
+    const results = response.data.results || [];
+    setCourses(results);
+    setCached(QUIZ_COURSES_CACHE_KEY, results);
+    return results;
   };
 
   const fetchQuizzes = async (courseId = courseFilter) => {
@@ -61,16 +70,25 @@ export default function AdminQuiz() {
       }
       return nextQuizzes[0]?.id || null;
     });
+    if (!courseId) {
+      setCached(QUIZ_ALL_CACHE_KEY, nextQuizzes);
+    }
+    return nextQuizzes;
   };
 
   useEffect(() => {
     const init = async () => {
-      setLoading(true);
+      const hasCache = getCached(QUIZ_COURSES_CACHE_KEY) && getCached(QUIZ_ALL_CACHE_KEY);
+      if (!hasCache) {
+        setLoading(true);
+      }
       try {
         await fetchCourses();
         await fetchQuizzes("");
       } catch {
-        addToast({ type: "error", message: "Unable to load quiz admin data." });
+        if (!hasCache) {
+          addToast({ type: "error", message: "Unable to load quiz admin data." });
+        }
       } finally {
         setLoading(false);
       }

@@ -21,10 +21,12 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 import LoadingSpinner from "../components/LoadingSpinner";
+import { SkeletonBlock, SkeletonText } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
+import { getCached, setCached } from "../utils/sessionCache";
 import { getStoredAuth } from "../utils/storage";
 import "./user.css";
 
@@ -236,9 +238,10 @@ export default function LessonPlayer() {
   const refreshingVideoTokenRef = useRef(false);
   const videoRecoveryAttemptsRef = useRef(0);
   const controlsHideTimerRef = useRef(0);
-  const [lesson, setLesson] = useState(null);
-  const [overview, setOverview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedLesson = getCached(`lesson:${lessonId}:${courseId}`);
+  const [lesson, setLesson] = useState(() => cachedLesson?.lesson || null);
+  const [overview, setOverview] = useState(() => cachedLesson?.overview || null);
+  const [loading, setLoading] = useState(() => !cachedLesson);
   const [marking, setMarking] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [, setMaxWatchedPercent] = useState(0);
@@ -253,25 +256,45 @@ export default function LessonPlayer() {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const WATCH_THRESHOLD_PERCENT = 80;
 
   const loadLesson = useCallback(async () => {
-    setLoading(true);
+    const cacheKey = `lesson:${lessonId}:${courseId}`;
+    const cached = getCached(cacheKey);
+
+    // Reset playback state immediately so a cached previous lesson's video
+    // position/timers never briefly show against the newly selected lesson.
+    setMaxWatchedPercent(0);
+    setIsAutoCompleted(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+    setIsVideoReady(false);
+    videoRecoveryAttemptsRef.current = 0;
+
+    if (cached) {
+      setLesson(cached.lesson);
+      setOverview(cached.overview);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const [lessonResponse, overviewResponse] = await Promise.all([
         courseService.getLessonDetail(lessonId),
         courseService.getLmsOverview(courseId),
       ]);
-      setLesson(lessonResponse.data);
-      setOverview(overviewResponse.data);
-      setMaxWatchedPercent(0);
-      setIsAutoCompleted(false);
-      setCurrentTime(0);
-      setDuration(0);
-      setIsPlaying(false);
-      videoRecoveryAttemptsRef.current = 0;
+      const nextLesson = lessonResponse.data;
+      const nextOverview = overviewResponse.data;
+      setLesson(nextLesson);
+      setOverview(nextOverview);
+      setCached(cacheKey, { lesson: nextLesson, overview: nextOverview });
     } catch {
-      addToast({ type: "error", message: "Unable to load lesson details." });
+      if (!cached) {
+        addToast({ type: "error", message: "Unable to load lesson details." });
+      }
     } finally {
       setLoading(false);
     }
@@ -361,6 +384,7 @@ export default function LessonPlayer() {
     const media = event.currentTarget;
     const nextDuration = Number(media.duration || 0);
     setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
+    setIsVideoReady(true);
     media.volume = volume;
     media.muted = isMuted;
     media.playbackRate = playbackRate;
@@ -399,6 +423,7 @@ export default function LessonPlayer() {
 
     try {
       const response = await courseService.getLessonDetail(lessonId);
+      setIsVideoReady(false);
       setLesson(response.data);
     } catch {
       pendingVideoResumeRef.current = null;
@@ -585,7 +610,15 @@ export default function LessonPlayer() {
           </Link>
         </div>
 
-        {loading ? <LoadingSpinner label="Loading lesson..." /> : null}
+        {loading ? (
+          <article className="lesson-card">
+            <SkeletonText width="40%" style={{ height: "1.6rem", marginBottom: "0.8rem" }} />
+            <SkeletonText width="60%" style={{ marginBottom: "1rem" }} />
+            <div className="lesson-video-wrap lesson-video-skeleton-frame">
+              <SkeletonBlock height="100%" radius="0" className="lesson-video-skeleton" />
+            </div>
+          </article>
+        ) : null}
         {!loading && lesson ? (
           <article className="lesson-card">
             <p className="lms-kicker">Lesson Player</p>
@@ -605,6 +638,11 @@ export default function LessonPlayer() {
                 onMouseDown={revealFullscreenControls}
                 onTouchStart={revealFullscreenControls}
               >
+                {!isVideoReady ? (
+                  <div className="lesson-video-loading" role="status" aria-label="Loading video">
+                    <SkeletonBlock height="100%" radius="0" className="lesson-video-skeleton" />
+                  </div>
+                ) : null}
                 <video
                   ref={videoRef}
                   controlsList="nodownload"

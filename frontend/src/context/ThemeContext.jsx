@@ -2,10 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const ThemeContext = createContext(null);
 const THEME_KEY = "sia_edu_theme";
-const THEME_ORDER = ["navy", "light", "dark"];
+const THEME_ORDER = ["light", "dark"];
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || "navy");
+  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || "light");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

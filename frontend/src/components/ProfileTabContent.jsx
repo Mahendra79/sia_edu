@@ -6,8 +6,11 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { authService } from "../services/authService";
 import { API_BASE_URL } from "../services/api";
-import LoadingSpinner from "./LoadingSpinner";
+import { getCached, setCached } from "../utils/sessionCache";
+import { SkeletonBlock, SkeletonText } from "./Skeleton";
 import "./ProfileTabContent.css";
+
+const PROFILE_CACHE_KEY = "profile-tab-form";
 
 const EMPTY_FORM = {
   name: "",
@@ -111,14 +114,15 @@ function getNormalizedValues(values) {
 export default function ProfileTabContent() {
   const { user, refreshProfile } = useAuth();
   const { addToast } = useToast();
-  const [initialForm, setInitialForm] = useState(EMPTY_FORM);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const cachedProfile = getCached(PROFILE_CACHE_KEY);
+  const [initialForm, setInitialForm] = useState(() => cachedProfile || EMPTY_FORM);
+  const [form, setForm] = useState(() => cachedProfile || EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState(() => resolveImageUrl(cachedProfile?.avatar));
   const [avatarInputKey, setAvatarInputKey] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedProfile);
   const [saving, setSaving] = useState(false);
   const localAvatarObjectUrlRef = useRef("");
 
@@ -140,15 +144,20 @@ export default function ProfileTabContent() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      setLoading(true);
+      if (!getCached(PROFILE_CACHE_KEY)) {
+        setLoading(true);
+      }
       try {
         const response = await authService.getProfile();
         const nextForm = toProfileForm(response.data);
         setInitialForm(nextForm);
         setForm(nextForm);
         resetForReadonly(nextForm);
+        setCached(PROFILE_CACHE_KEY, nextForm);
       } catch {
-        addToast({ type: "error", message: "Unable to load profile." });
+        if (!getCached(PROFILE_CACHE_KEY)) {
+          addToast({ type: "error", message: "Unable to load profile." });
+        }
       } finally {
         setLoading(false);
       }
@@ -272,6 +281,7 @@ export default function ProfileTabContent() {
       setInitialForm(nextForm);
       setForm(nextForm);
       resetForReadonly(nextForm);
+      setCached(PROFILE_CACHE_KEY, nextForm);
       await refreshProfile();
       addToast({ type: "success", message: "Profile updated." });
     } catch (error) {
@@ -283,7 +293,25 @@ export default function ProfileTabContent() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <section className="profile-tab-shell" role="status" aria-label="Loading profile">
+        <div className="panel-card stack-form profile-tab-form">
+          <div className="profile-avatar-toolbar">
+            <div className="profile-avatar-left" />
+            <div className="profile-avatar-center">
+              <SkeletonBlock width="72px" height="72px" radius="999px" />
+            </div>
+            <div className="profile-avatar-right" />
+          </div>
+          {["Name", "Username", "Email", "Phone"].map((field) => (
+            <div key={field}>
+              <SkeletonText width="20%" style={{ height: "0.8rem", marginBottom: "0.4rem" }} />
+              <SkeletonBlock height="2.75rem" radius="12px" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
   }
 
   return (

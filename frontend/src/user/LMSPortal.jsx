@@ -17,11 +17,13 @@ import {
   HiOutlineSparkles,
 } from "react-icons/hi2";
 
-import LoadingSpinner from "../components/LoadingSpinner";
+import { SkeletonPanel } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
+import { lmsPortalCacheKey } from "../data/lmsPrefetch";
+import { getCached, setCached } from "../utils/sessionCache";
 import { LessonPdfViewer } from "./LessonPlayer";
 import "./user.css";
 
@@ -42,16 +44,16 @@ export default function LMSPortal() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [course, setCourse] = useState(null);
-  const [overview, setOverview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedLms = getCached(lmsPortalCacheKey(courseId));
+  const [course, setCourse] = useState(() => cachedLms?.course || null);
+  const [overview, setOverview] = useState(() => cachedLms?.overview || null);
+  const [loading, setLoading] = useState(() => !cachedLms);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("modules");
   const [openModuleId, setOpenModuleId] = useState(1);
-  const [durationByLessonId, setDurationByLessonId] = useState({});
   const [watchProgressByLessonId, setWatchProgressByLessonId] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [quizzes, setQuizzes] = useState([]);
+  const [quizzes, setQuizzes] = useState(() => cachedLms?.quizzes || []);
   const [projectPdf, setProjectPdf] = useState(null);
   const [downloadingProjectPdfId, setDownloadingProjectPdfId] = useState(null);
 
@@ -71,21 +73,32 @@ export default function LMSPortal() {
   }, []);
 
   useEffect(() => {
-    const loadCourse = async () => {
+    const cacheKey = lmsPortalCacheKey(courseId);
+    const cached = getCached(cacheKey);
+    if (!cached) {
       setLoading(true);
-      setError("");
+    }
+    setError("");
+
+    const loadCourse = async () => {
       try {
         const [courseResponse, overviewResponse] = await Promise.all([
           courseService.getCourse(courseId),
           courseService.getLmsOverview(courseId),
         ]);
-        setCourse(courseResponse.data);
-        setOverview(overviewResponse.data);
         const quizResponse = await courseService.getLearnerQuizzes(courseId);
-        setQuizzes(quizResponse.data || []);
+        const nextCourse = courseResponse.data;
+        const nextOverview = overviewResponse.data;
+        const nextQuizzes = quizResponse.data || [];
+        setCourse(nextCourse);
+        setOverview(nextOverview);
+        setQuizzes(nextQuizzes);
+        setCached(cacheKey, { course: nextCourse, overview: nextOverview, quizzes: nextQuizzes });
       } catch {
-        setError("Unable to load this course in LMS portal.");
-        addToast({ type: "error", message: "Unable to load LMS modules." });
+        if (!cached) {
+          setError("Unable to load this course in LMS portal.");
+          addToast({ type: "error", message: "Unable to load LMS modules." });
+        }
       } finally {
         setLoading(false);
       }
@@ -103,64 +116,6 @@ export default function LMSPortal() {
     overview?.completed_lessons ||
       modules.reduce((sum, module) => sum + module.lessons.filter((item) => item.is_completed).length, 0)
   );
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const formatDurationLabel = (secondsValue) => {
-      const totalSeconds = Math.max(0, Math.floor(Number(secondsValue || 0)));
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-      }
-      return `${minutes}:${String(seconds).padStart(2, "0")}`;
-    };
-
-    const readVideoDuration = (url) =>
-      new Promise((resolve) => {
-        if (!url) {
-          resolve("");
-          return;
-        }
-        const media = document.createElement("video");
-        media.preload = "metadata";
-        media.src = url;
-        media.onloadedmetadata = () => resolve(formatDurationLabel(media.duration));
-        media.onerror = () => resolve("");
-      });
-
-    const loadDurations = async () => {
-      const lessonIds = modules
-        .flatMap((module) => module.lessons || [])
-        .map((lesson) => lesson.id)
-        .filter((id) => Number.isInteger(Number(id)));
-
-      if (!lessonIds.length) {
-        return;
-      }
-
-      const next = {};
-      for (const id of lessonIds) {
-        try {
-          const response = await courseService.getLessonDetail(id);
-          const durationText = await readVideoDuration(response.data?.video_url);
-          next[id] = durationText || "-";
-        } catch {
-          next[id] = "-";
-        }
-      }
-      if (!isCancelled) {
-        setDurationByLessonId(next);
-      }
-    };
-
-    loadDurations();
-    return () => {
-      isCancelled = true;
-    };
-  }, [modules]);
 
   const openLesson = (moduleNumber, lessonId) => {
     const lessonUrl = `/user/lms/${courseId}/module/${moduleNumber}/lesson/${lessonId}`;
@@ -243,7 +198,16 @@ export default function LMSPortal() {
   return (
     <MainLayout>
       {loading ? (
-        <LoadingSpinner label="Opening LMS portal..." />
+        <section className="lms-shell">
+          <SkeletonPanel className="lms-hero-card" lines={2} titleWidth="55%" />
+          <div className="lms-content-grid">
+            <SkeletonPanel className="lms-left-nav" lines={3} titleWidth="40%" />
+            <div className="lms-right-content">
+              <SkeletonPanel className="lms-progress-card" lines={1} titleWidth="30%" />
+              <SkeletonPanel className="lms-modules-card" lines={6} titleWidth="35%" />
+            </div>
+          </div>
+        </section>
       ) : error || !course ? (
         <section className="lms-shell">
           <p className="empty-state">{error || "Course unavailable."}</p>
@@ -434,7 +398,7 @@ export default function LMSPortal() {
                                         )}
                                         {lesson.title}
                                       </span>
-                                      <small>{durationByLessonId[lesson.id] || "-"}</small>
+                                      <small>{lesson.duration || "-"}</small>
                                     </div>
                                     {isPlayable ? (
                                       isProjectLesson ? (

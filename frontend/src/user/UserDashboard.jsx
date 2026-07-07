@@ -1,29 +1,38 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import LoadingSpinner from "../components/LoadingSpinner";
+import { SkeletonStatGrid } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import UserLayout from "../layouts/UserLayout";
 import { courseService } from "../services/courseService";
 import { paymentService } from "../services/paymentService";
 import { fetchAllPaginated } from "../utils/export";
 import { formatCurrency } from "../utils/format";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./user.css";
+
+const STATS_CACHE_KEY = "user-dashboard-stats";
 
 export default function UserDashboard() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [stats, setStats] = useState({
-    courses: 0,
-    successful: 0,
-    failed: 0,
-    spent: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const cachedStats = getCached(STATS_CACHE_KEY);
+  const [stats, setStats] = useState(
+    () =>
+      cachedStats || {
+        courses: 0,
+        successful: 0,
+        failed: 0,
+        spent: 0,
+      },
+  );
+  const [loading, setLoading] = useState(() => !cachedStats);
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
+      if (!getCached(STATS_CACHE_KEY)) {
+        setLoading(true);
+      }
       try {
         const [enrollmentResponse, payments] = await Promise.all([
           courseService.getMyCourses({ page: 1, page_size: 1 }),
@@ -33,14 +42,18 @@ export default function UserDashboard() {
         const successful = payments.filter((item) => item.payment_status === "success");
         const failed = payments.filter((item) => item.payment_status === "failed");
 
-        setStats({
+        const nextStats = {
           courses: totalCourses,
           successful: successful.length,
           failed: failed.length,
           spent: successful.reduce((total, item) => total + Number(item.total || 0), 0),
-        });
+        };
+        setStats(nextStats);
+        setCached(STATS_CACHE_KEY, nextStats);
       } catch {
-        addToast({ type: "error", message: "Unable to load dashboard stats." });
+        if (!getCached(STATS_CACHE_KEY)) {
+          addToast({ type: "error", message: "Unable to load dashboard stats." });
+        }
       } finally {
         setLoading(false);
       }
@@ -52,7 +65,7 @@ export default function UserDashboard() {
     <UserLayout>
       <h1>User Dashboard</h1>
       {loading ? (
-        <LoadingSpinner />
+        <SkeletonStatGrid count={4} containerClassName="user-stat-grid" />
       ) : (
         <div className="user-stat-grid">
           <button type="button" className="stat-card user-stat-card-btn" onClick={() => navigate("/user/my-courses")}>

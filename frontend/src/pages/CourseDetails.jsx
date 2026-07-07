@@ -8,14 +8,16 @@ import {
   HiOutlineShoppingBag,
 } from "react-icons/hi2";
 
-import LoadingSpinner from "../components/LoadingSpinner";
 import PageTransition from "../components/PageTransition";
+import { SkeletonPanel } from "../components/Skeleton";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { courseService } from "../services/courseService";
+import { courseDetailsCacheKey } from "../data/coursePrefetch";
 import { getCourseImageUrl } from "../data/courseImages";
 import { getCourseStartLabel } from "../data/featuredCourse";
+import { getCached, setCached } from "../utils/sessionCache";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
@@ -147,15 +149,23 @@ export default function CourseDetails() {
   const { isAuthenticated } = useAuth();
   const { addToast } = useToast();
 
-  const [course, setCourse] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState(() => getCached(courseDetailsCacheKey(id)) || null);
+  const [loading, setLoading] = useState(() => !getCached(courseDetailsCacheKey(id)));
   const [error, setError] = useState("");
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [imageStage, setImageStage] = useState(0);
 
   const loadCourseDetails = useCallback(async () => {
-    setLoading(true);
-    setError("");
+    const cacheKey = courseDetailsCacheKey(id);
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setCourse(cached);
+      setError("");
+      setLoading(false);
+    } else {
+      setLoading(true);
+      setError("");
+    }
     setDescriptionExpanded(false);
     setImageStage(0);
 
@@ -163,10 +173,14 @@ export default function CourseDetails() {
       const detailResponse = await courseService.getCourse(id);
       const apiCourse = detailResponse.data;
       setCourse(apiCourse);
+      setError("");
+      setCached(cacheKey, apiCourse);
     } catch (requestError) {
-      const message = requestError?.response?.data?.detail || "Unable to load course details.";
-      setError(message);
-      addToast({ type: "error", message });
+      if (!cached) {
+        const message = requestError?.response?.data?.detail || "Unable to load course details.";
+        setError(message);
+        addToast({ type: "error", message });
+      }
     } finally {
       setLoading(false);
     }
@@ -232,7 +246,18 @@ export default function CourseDetails() {
       <PageTransition>
         <section className="course-details-page">
           {loading ? (
-            <LoadingSpinner label="Loading course details..." />
+            <>
+              <div className="course-hero">
+                <SkeletonPanel className="course-details-panel" lines={4} titleWidth="70%" />
+                <SkeletonPanel className="course-details-panel course-pricing-card" lines={2} titleWidth="50%" />
+              </div>
+              <div className="course-body">
+                <div className="course-main-column">
+                  <SkeletonPanel className="course-details-panel" lines={5} titleWidth="40%" />
+                  <SkeletonPanel className="course-details-panel" lines={4} titleWidth="35%" />
+                </div>
+              </div>
+            </>
           ) : error || !course ? (
             <article className="course-details-panel course-details-error">
               <h1>Course details unavailable</h1>

@@ -1,14 +1,14 @@
 import Footer from "../components/Footer";
-import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 
-export default function MainLayout({ children }) {
+export default function MainLayout({ children, sidebarExtra }) {
   return (
     <div className="app-shell">
-      <Navbar />
-      <main className="main-content">
-        {children}
-      </main>
-      <Footer />
+      <Sidebar extra={sidebarExtra} />
+      <div className="app-content-col">
+        <main className="main-content">{children}</main>
+        <Footer />
+      </div>
     </div>
   );
 }

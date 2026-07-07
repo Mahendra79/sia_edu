@@ -134,6 +134,7 @@ class CourseLesson(models.Model):
     video_url = models.URLField(max_length=1200, blank=True)
     thumbnail_url = models.URLField(max_length=1200, blank=True)
     pdf_url = models.URLField(max_length=1200, blank=True)
+    duration = models.CharField(max_length=20, blank=True, help_text="Lesson duration, e.g. 12:30")
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

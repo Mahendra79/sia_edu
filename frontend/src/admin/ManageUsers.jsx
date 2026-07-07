@@ -2,8 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import ConfirmModal from "../components/ConfirmModal";
-import LoadingSpinner from "../components/LoadingSpinner";
 import Pagination from "../components/Pagination";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import { usePaginatedList } from "../hooks/usePaginatedList";
 import AdminLayout from "../layouts/AdminLayout";
@@ -95,6 +95,7 @@ export default function ManageUsers() {
     queryKey,
     fetchPage,
     onError: handleLoadError,
+    cacheNamespace: "admin-users",
   });
 
   useEffect(() => {
@@ -279,7 +280,7 @@ export default function ManageUsers() {
         <p className="meta-note">Tip: double-click a user row to edit inline.</p>
 
         {loading ? (
-          <LoadingSpinner />
+          <SkeletonTable rows={7} columns={7} />
         ) : (
           <>
             <div className="table-wrap">

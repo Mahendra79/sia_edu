@@ -312,6 +312,7 @@ class CourseLessonAdminSerializer(serializers.ModelSerializer):
             "video_url",
             "thumbnail_url",
             "pdf_url",
+            "duration",
             "is_active",
             "created_at",
             "updated_at",

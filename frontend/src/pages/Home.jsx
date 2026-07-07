@@ -1,38 +1,55 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   HiOutlineAcademicCap,
-  HiOutlineBolt,
+  HiOutlineArrowRight,
   HiOutlineBookOpen,
-  HiOutlineChartBar,
-  HiOutlineMagnifyingGlass,
-  HiOutlineShieldCheck,
+  HiOutlinePlayCircle,
   HiOutlineSparkles,
 } from "react-icons/hi2";
 
 import CourseCard from "../components/CourseCard";
-import LoadingSpinner from "../components/LoadingSpinner";
 import PageTransition from "../components/PageTransition";
 import Pagination from "../components/Pagination";
 import SearchBar from "../components/SearchBar";
+import { SkeletonBlock, SkeletonCardGrid, SkeletonText } from "../components/Skeleton";
+import graduationBookImage from "../assets/graduation_book.png";
+import { getCourseImageUrl } from "../data/courseImages";
+import { prefetchCourseDetails } from "../data/coursePrefetch";
+import { prefetchLmsPortal } from "../data/lmsPrefetch";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { courseService } from "../services/courseService";
 
+// Module-scoped so it survives Home unmounting/remounting when navigating away and
+// back (e.g. opening a course then hitting back) within the same browser session.
+const homeCache = {
+  catalog: new Map(),
+  quickCourses: null,
+  continueCourse: null,
+};
+
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
   const { addToast } = useToast();
   const activeCategoryId = searchParams.get("category")?.trim() || "";
   const activeCategoryName = searchParams.get("categoryName")?.trim() || "";
+  const initialCatalogKey = `|1|${activeCategoryId}`;
+  const cachedCatalog = homeCache.catalog.get(initialCatalogKey);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [courses, setCourses] = useState([]);
-  const [count, setCount] = useState(0);
+  const [courses, setCourses] = useState(() => cachedCatalog?.courses || []);
+  const [count, setCount] = useState(() => cachedCatalog?.count || 0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedCatalog);
+  const [quickCourses, setQuickCourses] = useState(() => homeCache.quickCourses || []);
+  const [quickLoading, setQuickLoading] = useState(() => homeCache.quickCourses === null);
+  const [continueCourse, setContinueCourse] = useState(() => homeCache.continueCourse);
+  const [continueLoading, setContinueLoading] = useState(false);
+  const catalogRef = useRef(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -48,9 +65,17 @@ export default function Home() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const cacheKey = `${debouncedSearch}|${page}|${activeCategoryId}`;
+    const cached = homeCache.catalog.get(cacheKey);
+    if (cached) {
+      setCourses(cached.courses);
+      setCount(cached.count);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     const fetchCourses = async () => {
-      setLoading(true);
       try {
         const response = await courseService.getCourses(
           {
@@ -60,13 +85,18 @@ export default function Home() {
           },
           { signal: controller.signal },
         );
-        setCourses(response.data.results || []);
-        setCount(response.data.count || 0);
+        const results = response.data.results || [];
+        const total = response.data.count || 0;
+        setCourses(results);
+        setCount(total);
+        homeCache.catalog.set(cacheKey, { courses: results, count: total });
       } catch (requestError) {
         if (requestError?.code === "ERR_CANCELED") {
           return;
         }
-        addToast({ type: "error", message: "Failed to load courses." });
+        if (!cached) {
+          addToast({ type: "error", message: "Failed to load courses." });
+        }
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -78,6 +108,87 @@ export default function Home() {
     return () => controller.abort();
   }, [debouncedSearch, page, addToast, activeCategoryId]);
 
+  useEffect(() => {
+    if (!isAuthenticated || isAdmin) {
+      setQuickCourses([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    if (homeCache.quickCourses === null) {
+      setQuickLoading(true);
+    }
+
+    const loadQuickCourses = async () => {
+      try {
+        const response = await courseService.getMyCourses({ page: 1, page_size: 4 });
+        const enrolled = (response.data.results || []).filter((item) => item.payment_status === "success");
+        if (!cancelled) {
+          setQuickCourses(enrolled);
+          homeCache.quickCourses = enrolled;
+        }
+      } catch {
+        if (!cancelled && homeCache.quickCourses === null) {
+          setQuickCourses([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setQuickLoading(false);
+        }
+      }
+    };
+
+    loadQuickCourses();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isAdmin]);
+
+  useEffect(() => {
+    const candidate = quickCourses.find((item) => item.status !== "completed") || quickCourses[0];
+    if (!candidate) {
+      setContinueCourse(null);
+      setContinueLoading(false);
+      homeCache.continueCourse = null;
+      return undefined;
+    }
+
+    let cancelled = false;
+    if (!homeCache.continueCourse) {
+      setContinueLoading(true);
+    }
+
+    const loadContinueCourse = async () => {
+      try {
+        const overviewResponse = await courseService.getLmsOverview(candidate.course.id);
+        if (!cancelled) {
+          const next = {
+            ...candidate,
+            progressPercent: Number(overviewResponse.data?.progress_percent ?? 0),
+            completedLessons: Number(overviewResponse.data?.completed_lessons ?? 0),
+            totalLessons: Number(overviewResponse.data?.total_lessons ?? 0),
+          };
+          setContinueCourse(next);
+          homeCache.continueCourse = next;
+        }
+      } catch {
+        if (!cancelled) {
+          setContinueCourse(null);
+          homeCache.continueCourse = null;
+        }
+      } finally {
+        if (!cancelled) {
+          setContinueLoading(false);
+        }
+      }
+    };
+
+    loadContinueCourse();
+    return () => {
+      cancelled = true;
+    };
+  }, [quickCourses]);
+
   const learningTracks = useMemo(() => {
     const extracted = Array.from(
       new Set(courses.map((course) => course.category?.name).filter(Boolean)),
@@ -87,6 +198,9 @@ export default function Home() {
     }
     return ["Data Science", "Machine Learning", "Deep Learning", "Prompt Engineering", "Quantum Computing"];
   }, [courses]);
+
+  const isFiltering = Boolean(debouncedSearch || activeCategoryId);
+  const displayName = String(user?.name || user?.username || "").trim().split(/\s+/)[0];
 
   const clearCategoryFilter = () => {
     const nextParams = new URLSearchParams(searchParams);
@@ -123,96 +237,162 @@ export default function Home() {
     setSearchParams(nextParams);
   };
 
-  return (
-    <MainLayout showChatbot>
-      <PageTransition>
-        <section className="hero-grid">
-          <article className="hero-panel">
-            <span className="hero-badge">SIA Software Innovations Private Limited | ACCESS BEYOND LIMITS</span>
-            <h1>Build Job-Ready AI and Quantum Engineering Skills</h1>
-            <p>
-              Explore professional programs in Data Science, Machine Learning, Deep Learning, Prompt Engineering, and
-              Quantum Computing. Learn with structured labs, guided practice, and measurable skill milestones.
-            </p>
-            <div className="hero-track-row">
-              {learningTracks.map((track) => (
+  const scrollToCatalog = () => {
+    catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handlePrimaryAction = () => {
+    if (isAuthenticated && !isAdmin) {
+      navigate("/user/my-courses");
+      return;
+    }
+    if (isAuthenticated && isAdmin) {
+      navigate("/admin/dashboard");
+      return;
+    }
+    navigate("/signup");
+  };
+
+  const sidebarExtra =
+    isAuthenticated && !isAdmin ? (
+      <div className="app-sidebar-courses">
+        <div className="app-sidebar-courses-head">
+          <span>My Courses</span>
+          <Link to="/user/my-courses">View all</Link>
+        </div>
+        {quickLoading ? (
+          <ul className="app-sidebar-course-list" role="status" aria-label="Loading your courses">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <li key={index}>
+                <span className="app-sidebar-course-row">
+                  <span className="app-sidebar-course-thumb">
+                    <SkeletonBlock width="100%" height="100%" radius="0" />
+                  </span>
+                  <span className="app-sidebar-course-info">
+                    <SkeletonText width="80%" />
+                    <SkeletonText width="45%" />
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : quickCourses.length === 0 ? (
+          <p className="app-sidebar-courses-empty">No enrolled courses yet.</p>
+        ) : (
+          <ul className="app-sidebar-course-list">
+            {quickCourses.map((item) => (
+              <li key={item.id}>
                 <button
-                  key={track}
                   type="button"
-                  className="hero-track-pill hero-track-pill-btn"
-                  onClick={() => handleTrackClick(track)}
+                  className="app-sidebar-course-row"
+                  onClick={() => navigate(`/user/lms/${item.course.id}`)}
+                  onMouseEnter={() => prefetchLmsPortal(item.course.id)}
                 >
-                  {track}
+                  <span className="app-sidebar-course-thumb">
+                    <img src={getCourseImageUrl(item.course)} alt="" />
+                  </span>
+                  <span className="app-sidebar-course-info">
+                    <strong>{item.course.title}</strong>
+                    <small>{item.status === "completed" ? "Completed" : "In progress"}</small>
+                  </span>
                 </button>
-              ))}
-            </div>
-            <SearchBar value={search} onChange={setSearch} />
-          </article>
-          <aside className="hero-side">
-            <div className="hero-stat-card">
-              <HiOutlineBookOpen />
-              <div>
-                <strong>{count}</strong>
-                <span>Courses Found</span>
-              </div>
-            </div>
-            <div className="hero-stat-card">
-              <HiOutlineMagnifyingGlass />
-              <div>
-                <strong>Live Search</strong>
-                <span>Debounced, paginated, and filter-ready</span>
-              </div>
-            </div>
-            <div className="hero-stat-card">
-              <HiOutlineShieldCheck />
-              <div>
-                <strong>Secure Billing</strong>
-                <span>Razorpay checkout flow</span>
-              </div>
-            </div>
-            <div className="hero-stat-card">
-              <HiOutlineBolt />
-              <div>
-                <strong>Student Success</strong>
-                <span>Onboarding, progress, and completion guidance</span>
-              </div>
-            </div>
-          </aside>
-        </section>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    ) : null;
 
-        <section className="edu-value-grid">
-          <article className="edu-value-card">
-            <HiOutlineAcademicCap />
-            <h3>Knowledge-First Curriculum</h3>
-            <p>Move from fundamentals to advanced implementation through concept-driven module sequencing.</p>
-          </article>
-          <article className="edu-value-card">
-            <HiOutlineChartBar />
-            <h3>Skill Assessment Focus</h3>
-            <p>Validate improvement through practical labs, measurable outcomes, and project-grade checkpoints.</p>
-          </article>
-          <article className="edu-value-card">
-            <HiOutlineSparkles />
-            <h3>AI + Quantum Relevance</h3>
-            <p>Study current tooling and engineering practices used in modern AI and quantum learning tracks.</p>
-          </article>
-        </section>
-
-        <section className="catalog-header">
-          <div>
-            <h2>Explore AI and Quantum Courses</h2>
-            <p>Choose from curated tracks designed for knowledge depth and continuous technical skill improvement.</p>
-            {activeCategoryId ? (
-              <button type="button" className="catalog-filter-chip" onClick={clearCategoryFilter}>
-                Category: {activeCategoryName || "Selected Category"} (clear)
+  return (
+    <MainLayout sidebarExtra={sidebarExtra}>
+      <PageTransition>
+        <section className="home-hero">
+          <div className="home-hero-main">
+            {isAuthenticated ? (
+              <p className="home-greeting home-greeting-auth">
+                Welcome back, {displayName || "there"}
+                <span aria-hidden="true">👋</span>
+              </p>
+            ) : (
+              <p className="home-greeting">
+                <HiOutlineSparkles />
+                SIA Software Innovations Private Limited — Access Beyond Limits
+              </p>
+            )}
+            <h1>Learn AI, Quantum &amp; In-Demand Skills</h1>
+            <p className="home-hero-subtitle">
+              High-quality courses designed to help you master the technologies shaping the future.
+            </p>
+            <div className="home-hero-actions">
+              <button type="button" className="btn btn-primary btn-icon" onClick={scrollToCatalog}>
+                <HiOutlineArrowRight />
+                Explore Courses
               </button>
-            ) : null}
+              <button type="button" className="btn btn-outline-accent btn-icon" onClick={handlePrimaryAction}>
+                <HiOutlineAcademicCap />
+                {isAuthenticated ? "My Courses" : "Get Started"}
+              </button>
+            </div>
+          </div>
+          <div className="home-hero-art" aria-hidden="true">
+            <span className="home-hero-art-blob" />
+            <span className="home-hero-art-icon home-hero-art-icon-cap">
+              <img src={graduationBookImage} alt="" />
+            </span>
+            <span className="home-hero-art-icon home-hero-art-icon-book">
+              <HiOutlineBookOpen />
+            </span>
+            <span className="home-hero-art-icon home-hero-art-icon-spark">
+              <HiOutlineSparkles />
+            </span>
+            <span className="home-hero-art-dot dot-1" />
+            <span className="home-hero-art-dot dot-2" />
+            <span className="home-hero-art-dot dot-3" />
+          </div>
+        </section>
+
+        <section className="home-toolbar">
+          <div className="home-track-row">
+            {learningTracks.map((track) => (
+              <button
+                key={track}
+                type="button"
+                className="home-track-pill"
+                onClick={() => handleTrackClick(track)}
+              >
+                {track}
+              </button>
+            ))}
+          </div>
+          <SearchBar value={search} onChange={setSearch} />
+        </section>
+
+        <section className="catalog-header" ref={catalogRef}>
+          <div>
+            <h2>{isFiltering ? "Search Results" : "Popular Courses"}</h2>
+            <p>
+              {isFiltering
+                ? "Refine your search or clear filters to browse everything we offer."
+                : "Choose from curated tracks designed for knowledge depth and continuous technical skill improvement."}
+            </p>
+            <div className="inline-controls">
+              {activeCategoryId ? (
+                <button type="button" className="catalog-filter-chip" onClick={clearCategoryFilter}>
+                  Category: {activeCategoryName || "Selected Category"} (clear)
+                </button>
+              ) : null}
+              {debouncedSearch ? (
+                <button type="button" className="catalog-filter-chip" onClick={() => setSearch("")}>
+                  Search: &quot;{debouncedSearch}&quot; (clear)
+                </button>
+              ) : null}
+            </div>
           </div>
           <span className="catalog-badge">{count} total courses</span>
         </section>
 
         {loading ? (
-          <LoadingSpinner label="Fetching courses..." />
+          <SkeletonCardGrid count={8} />
         ) : (
           <>
             <section className="course-grid">
@@ -223,6 +403,7 @@ export default function Home() {
                   searchQuery={debouncedSearch}
                   onBuy={handleBuy}
                   onOpen={handleOpenCourse}
+                  onHoverPrefetch={(hoveredCourse) => prefetchCourseDetails(hoveredCourse.id)}
                 />
               ))}
             </section>
@@ -230,6 +411,65 @@ export default function Home() {
             <Pagination count={count} currentPage={page} onPageChange={setPage} />
           </>
         )}
+
+        {continueLoading ? (
+          <section className="continue-learning">
+            <div className="continue-learning-head">
+              <h2>Continue Learning</h2>
+            </div>
+            <article className="continue-learning-card" role="status" aria-label="Loading continue learning">
+              <span className="continue-learning-thumb">
+                <SkeletonBlock width="100%" height="100%" radius="0" />
+              </span>
+              <span className="continue-learning-body">
+                <SkeletonText width="45%" style={{ height: "1.05rem" }} />
+                <SkeletonText width="90%" />
+                <SkeletonText width="35%" />
+              </span>
+              <SkeletonBlock width="170px" height="42px" radius="12px" />
+            </article>
+          </section>
+        ) : continueCourse ? (
+          <section className="continue-learning">
+            <div className="continue-learning-head">
+              <h2>Continue Learning</h2>
+              <Link to="/user/my-courses" className="inline-link">
+                View all
+              </Link>
+            </div>
+            <article
+              className="continue-learning-card"
+              onMouseEnter={() => prefetchLmsPortal(continueCourse.course.id)}
+            >
+              <div className="continue-learning-thumb">
+                <img src={getCourseImageUrl(continueCourse.course)} alt="" />
+              </div>
+              <div className="continue-learning-body">
+                <h3>{continueCourse.course.title}</h3>
+                <div className="continue-learning-progress-row">
+                  <div className="continue-learning-track">
+                    <span
+                      className="continue-learning-fill"
+                      style={{ width: `${continueCourse.progressPercent}%` }}
+                    />
+                  </div>
+                  <strong>{continueCourse.progressPercent}%</strong>
+                </div>
+                <p>
+                  {continueCourse.completedLessons} / {continueCourse.totalLessons} Lessons Completed
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-icon"
+                onClick={() => navigate(`/user/lms/${continueCourse.course.id}`)}
+              >
+                <HiOutlinePlayCircle />
+                Continue Learning
+              </button>
+            </article>
+          </section>
+        ) : null}
       </PageTransition>
     </MainLayout>
   );
