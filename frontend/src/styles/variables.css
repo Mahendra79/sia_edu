@@ -50,6 +50,9 @@
   --soft-border: rgba(15, 23, 42, 0.07);
   --card-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
   --btn-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
 }
 
 [data-theme="dark"] {
