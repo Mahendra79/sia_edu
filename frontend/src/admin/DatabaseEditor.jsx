@@ -7,6 +7,7 @@ import PageTransition from "../components/PageTransition";
 import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import AdminLayout from "../layouts/AdminLayout";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 import { analyticsService } from "../services/analyticsService";
 import { authService } from "../services/authService";
 import { courseService } from "../services/courseService";
@@ -16,6 +17,34 @@ import { fetchAllPaginated } from "../utils/export";
 import { formatCurrency, formatDate } from "../utils/format";
 import { getCached, setCached } from "../utils/sessionCache";
 import "./admin.css";
+
+const PAGE_SIZE = 25;
+
+// Tabs that use server-side pagination via usePaginatedList
+const PAGINATED_TABS = new Set(["users", "courses", "categories", "enrollments", "payments", "coupons", "deleted", "logs"]);
+
+// Cache keys for small full-fetch datasets used only for dropdowns
+const DROPDOWN_CACHE_KEYS = {
+  categories: "admin-db-categories",
+  courses: "admin-db-courses-dropdown",
+};
+
+// Pagination bar component
+function TabPagination({ page, totalPages, count, loading, onPrev, onNext }) {
+  return (
+    <div className="inline-controls db-table-pagination" style={{ marginTop: "0.75rem" }}>
+      <button type="button" className="btn btn-muted" disabled={page <= 1 || loading} onClick={onPrev}>
+        Prev
+      </button>
+      <span className="meta-note">
+        Page {page} of {totalPages} &mdash; {count} total
+      </span>
+      <button type="button" className="btn btn-muted" disabled={page >= totalPages || loading} onClick={onNext}>
+        Next
+      </button>
+    </div>
+  );
+}
 
 const TABS = [
   { key: "users", label: "Users" },
@@ -28,42 +57,6 @@ const TABS = [
   { key: "deleted", label: "Deleted Records" },
   { key: "logs", label: "Activity Logs" },
 ];
-
-// Each tab only needs a subset of the 8 datasets (courses/coupons also need
-// data for their dropdowns) - fetched lazily per tab instead of all at once.
-const TAB_DATASETS = {
-  users: ["users"],
-  courses: ["courses", "categories"],
-  categories: ["categories"],
-  enrollments: ["enrollments"],
-  payments: ["payments"],
-  coupons: ["coupons", "courses"],
-  deleted: ["deletedRecords"],
-  logs: ["activityLogs"],
-  tables: [],
-};
-
-const DATASET_CACHE_KEYS = {
-  users: "admin-db-users",
-  courses: "admin-db-courses",
-  categories: "admin-db-categories",
-  enrollments: "admin-db-enrollments",
-  payments: "admin-db-payments",
-  coupons: "admin-db-coupons",
-  deletedRecords: "admin-db-deleted-records",
-  activityLogs: "admin-db-activity-logs",
-};
-
-const DATASET_FETCHERS = {
-  users: (params) => authService.getAdminUsers(params),
-  courses: (params) => courseService.getCourses(params),
-  categories: (params) => courseService.getCategories(params),
-  enrollments: (params) => courseService.getAdminEnrollments(params),
-  payments: (params) => paymentService.getAdminPaymentHistory(params),
-  coupons: (params) => paymentService.getAdminCoupons(params),
-  deletedRecords: (params) => deletedRecordService.getDeletedRecords(params),
-  activityLogs: (params) => analyticsService.getActivityLogs(params),
-};
 
 const EMPTY_EDIT = {
   type: "",
@@ -140,24 +133,15 @@ function formatDbValue(value) {
 export default function DatabaseEditor() {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [edit, setEdit] = useState(EMPTY_EDIT);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [users, setUsers] = useState(() => getCached(DATASET_CACHE_KEYS.users) || []);
-  const [courses, setCourses] = useState(() => getCached(DATASET_CACHE_KEYS.courses) || []);
-  const [categories, setCategories] = useState(() => getCached(DATASET_CACHE_KEYS.categories) || []);
-  const [enrollments, setEnrollments] = useState(() => getCached(DATASET_CACHE_KEYS.enrollments) || []);
-  const [payments, setPayments] = useState(() => getCached(DATASET_CACHE_KEYS.payments) || []);
-  const [coupons, setCoupons] = useState(() => getCached(DATASET_CACHE_KEYS.coupons) || []);
-  const [deletedRecords, setDeletedRecords] = useState(() => getCached(DATASET_CACHE_KEYS.deletedRecords) || []);
-  const [activityLogs, setActivityLogs] = useState(() => getCached(DATASET_CACHE_KEYS.activityLogs) || []);
-  const [loadedDatasets, setLoadedDatasets] = useState(
-    () => new Set(Object.keys(DATASET_CACHE_KEYS).filter((key) => getCached(DATASET_CACHE_KEYS[key]))),
-  );
+  // Dropdown-only full-fetch datasets (small, used in selects)
+  const [categories, setCategories] = useState(() => getCached(DROPDOWN_CACHE_KEYS.categories) || []);
+  const [courseDropdown, setCourseDropdown] = useState(() => getCached(DROPDOWN_CACHE_KEYS.courses) || []);
+
   const [courseImage, setCourseImage] = useState(null);
   const [couponDraft, setCouponDraft] = useState(EMPTY_COUPON);
   const [dbTables, setDbTables] = useState([]);
@@ -170,109 +154,73 @@ export default function DatabaseEditor() {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbEdit, setDbEdit] = useState(EMPTY_DB_EDIT);
 
-  const applyDataset = useCallback((key, items) => {
-    switch (key) {
-      case "users":
-        setUsers(items);
-        break;
-      case "courses":
-        setCourses(items);
-        break;
-      case "categories":
+  // --- Per-tab server-side pagination via usePaginatedList ---
+  const makeTabFetch = useCallback(
+    (tab) => (targetPage) => {
+      const params = { page: targetPage, page_size: PAGE_SIZE };
+      switch (tab) {
+        case "users":       return authService.getAdminUsers(params);
+        case "courses":     return courseService.getCourses(params);
+        case "categories":  return courseService.getCategories(params);
+        case "enrollments": return courseService.getAdminEnrollments(params);
+        case "payments":    return paymentService.getAdminPaymentHistory(params);
+        case "coupons":     return paymentService.getAdminCoupons(params);
+        case "deleted":     return deletedRecordService.getDeletedRecords(params);
+        case "logs":        return analyticsService.getActivityLogs(params);
+        default:            return Promise.resolve({ data: { results: [], count: 0 } });
+      }
+    },
+    [],
+  );
+
+  const fetchPage = useMemo(() => makeTabFetch(activeTab), [activeTab, makeTabFetch]);
+
+  const handleTabLoadError = useCallback(() => {
+    addToast({ type: "error", message: "Unable to load records." });
+  }, [addToast]);
+
+  const {
+    items: tabItems,
+    count: tabCount,
+    page: tabPage,
+    setPage: setTabPage,
+    loading: tabLoading,
+    reload: reloadTab,
+  } = usePaginatedList({
+    queryKey: activeTab,
+    fetchPage,
+    onError: handleTabLoadError,
+    cacheNamespace: "admin-tab",
+  });
+
+  const tabTotalPages = Math.max(1, Math.ceil(tabCount / PAGE_SIZE));
+
+  // Load small full-fetch dropdown datasets (categories for course edit, courses for coupon selects)
+  const loadDropdowns = useCallback(async () => {
+    try {
+      if (!getCached(DROPDOWN_CACHE_KEYS.categories)) {
+        const items = await fetchAllPaginated((p) => courseService.getCategories(p));
         setCategories(items);
-        break;
-      case "enrollments":
-        setEnrollments(items);
-        break;
-      case "payments":
-        setPayments(items);
-        break;
-      case "coupons":
-        setCoupons(items);
-        break;
-      case "deletedRecords":
-        setDeletedRecords(items);
-        break;
-      case "activityLogs":
-        setActivityLogs(items);
-        break;
-      default:
-        break;
+        setCached(DROPDOWN_CACHE_KEYS.categories, items);
+      }
+      if (!getCached(DROPDOWN_CACHE_KEYS.courses)) {
+        const items = await fetchAllPaginated((p) => courseService.getCourses(p));
+        setCourseDropdown(items);
+        setCached(DROPDOWN_CACHE_KEYS.courses, items);
+      }
+    } catch {
+      // non-critical — dropdowns will be empty
     }
   }, []);
 
-  const loadDataset = useCallback(
-    async (key) => {
-      const items = await fetchAllPaginated(DATASET_FETCHERS[key]);
-      applyDataset(key, items);
-      setCached(DATASET_CACHE_KEYS[key], items);
-      setLastUpdated(new Date());
-      return items;
-    },
-    [applyDataset],
-  );
-
-  // Only fetch the datasets the active tab actually needs, and only the ones
-  // not already loaded this session - switching tabs loads on demand instead
-  // of every admin visit pulling all 8 tables in full up front.
   useEffect(() => {
-    const requiredKeys = TAB_DATASETS[activeTab] || [];
-    const missingKeys = requiredKeys.filter((key) => !loadedDatasets.has(key));
+    loadDropdowns();
+  }, [loadDropdowns]);
 
-    if (missingKeys.length === 0) {
-      setLoading(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const hasAnyCached = missingKeys.some((key) => getCached(DATASET_CACHE_KEYS[key]));
-    if (hasAnyCached) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-
-    Promise.all(missingKeys.map((key) => loadDataset(key)))
-      .then(() => {
-        if (cancelled) return;
-        setLoadedDatasets((prev) => {
-          const next = new Set(prev);
-          missingKeys.forEach((key) => next.add(key));
-          return next;
-        });
-      })
-      .catch(() => {
-        if (!cancelled && !hasAnyCached) {
-          addToast({ type: "error", message: "Unable to load database records." });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, loadedDatasets, loadDataset, addToast]);
-
-  const refreshActiveTab = useCallback(() => {
-    const requiredKeys = TAB_DATASETS[activeTab] || [];
-    if (requiredKeys.length === 0) {
-      return;
-    }
-    setRefreshing(true);
-    Promise.all(requiredKeys.map((key) => loadDataset(key)))
-      .catch(() => addToast({ type: "error", message: "Unable to refresh database records." }))
-      .finally(() => setRefreshing(false));
-  }, [activeTab, loadDataset, addToast]);
-
+  // Track last-updated time from tab loads
   useEffect(() => {
-    const timer = window.setInterval(refreshActiveTab, 45000);
-    return () => window.clearInterval(timer);
-  }, [refreshActiveTab]);
+    if (!tabLoading) setLastUpdated(new Date());
+  }, [tabLoading]);
 
   const loadDbTables = useCallback(async () => {
     setDbLoading(true);
@@ -327,8 +275,8 @@ export default function DatabaseEditor() {
   );
 
   const courseOptions = useMemo(
-    () => courses.map((course) => ({ label: course.title, value: String(course.id) })),
-    [courses],
+    () => courseDropdown.map((course) => ({ label: course.title, value: String(course.id) })),
+    [courseDropdown],
   );
 
   const startEdit = (type, item) => {
@@ -443,7 +391,7 @@ export default function DatabaseEditor() {
       }
 
       addToast({ type: "success", message: "Record updated." });
-      loadDataset(edit.type);
+      reloadTab();
       clearEdit();
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to update record.") });
@@ -469,7 +417,7 @@ export default function DatabaseEditor() {
       await paymentService.createAdminCoupon(payload);
       addToast({ type: "success", message: "Coupon created." });
       setCouponDraft(EMPTY_COUPON);
-      loadDataset("coupons");
+      reloadTab();
     } catch (error) {
       addToast({ type: "error", message: getApiError(error, "Unable to create coupon.") });
     } finally {
@@ -495,7 +443,7 @@ export default function DatabaseEditor() {
         await paymentService.deleteAdminCoupon(deleteTarget.id);
       }
       addToast({ type: "success", message: "Record deleted." });
-      loadDataset(deleteTarget.type);
+      reloadTab();
       setDeleteTarget(null);
       clearEdit();
     } catch (error) {
@@ -594,38 +542,51 @@ export default function DatabaseEditor() {
     }
   };
 
-  const rows = {
-    users: users.map((item) => [item.name, item.email, item.phone, item.is_active ? "Yes" : "No", formatDate(item.created_at)]),
-    courses: courses.map((item) => [
-      item.title,
-      item.category?.name || "-",
-      Number(item.duration_days || 0) > 0 ? `${item.duration_days} days` : "-",
-      formatCurrency(item.price, "INR"),
-      Number(item.discount_percent || 0) > 0 ? `${Number(item.discount_percent).toFixed(2)}%` : "-",
-      item.is_active ? "Yes" : "No",
-      formatDate(item.created_at),
-    ]),
-    categories: categories.map((item) => [item.name, item.description || "-", formatDate(item.created_at)]),
-    enrollments: enrollments.map((item) => [item.user_email, item.course_title, item.status, item.payment_status, formatDate(item.enrolled_at)]),
-    payments: payments.map((item) => [item.user_email, item.course_title, item.payment_status, formatCurrency(item.total), formatDate(item.created_at)]),
-    coupons: coupons.map((item) => {
-      const maxUses = item.max_uses === null || item.max_uses === undefined ? "∞" : item.max_uses;
-      const used = item.used_count ?? 0;
-      const validFrom = item.valid_from ? formatDate(item.valid_from) : "-";
-      const validUntil = item.valid_until ? formatDate(item.valid_until) : "-";
-      return [
-        item.code,
-        item.course_title || "Global",
-        formatCurrency(item.discount_amount, "INR"),
-        `${used}/${maxUses}`,
-        item.per_user_limit ?? 1,
-        `${validFrom} → ${validUntil}`,
-        item.is_active ? "Yes" : "No",
-        formatDate(item.created_at),
-      ];
-    }),
-    deleted: deletedRecords.map((item) => [item.model_name, item.record_id, item.reason || "-", item.deleted_by_email || "-", formatDate(item.deleted_at)]),
-    logs: activityLogs.map((item) => [item.admin_email, item.action, `${item.target_type} #${item.target_id}`, item.details || "-", formatDate(item.created_at)]),
+  // Build display rows from paginated tabItems for the current tab
+  const buildRows = (tab, items) => {
+    switch (tab) {
+      case "users":
+        return items.map((item) => [item.name, item.email, item.phone, item.is_active ? "Yes" : "No", formatDate(item.created_at)]);
+      case "courses":
+        return items.map((item) => [
+          item.title,
+          item.category?.name || "-",
+          Number(item.duration_days || 0) > 0 ? `${item.duration_days} days` : "-",
+          formatCurrency(item.price, "INR"),
+          Number(item.discount_percent || 0) > 0 ? `${Number(item.discount_percent).toFixed(2)}%` : "-",
+          item.is_active ? "Yes" : "No",
+          formatDate(item.created_at),
+        ]);
+      case "categories":
+        return items.map((item) => [item.name, item.description || "-", formatDate(item.created_at)]);
+      case "enrollments":
+        return items.map((item) => [item.user_email, item.course_title, item.status, item.payment_status, formatDate(item.enrolled_at)]);
+      case "payments":
+        return items.map((item) => [item.user_email, item.course_title, item.payment_status, formatCurrency(item.total), formatDate(item.created_at)]);
+      case "coupons":
+        return items.map((item) => {
+          const maxUses = item.max_uses === null || item.max_uses === undefined ? "\u221e" : item.max_uses;
+          const used = item.used_count ?? 0;
+          const validFrom = item.valid_from ? formatDate(item.valid_from) : "-";
+          const validUntil = item.valid_until ? formatDate(item.valid_until) : "-";
+          return [
+            item.code,
+            item.course_title || "Global",
+            formatCurrency(item.discount_amount, "INR"),
+            `${used}/${maxUses}`,
+            item.per_user_limit ?? 1,
+            `${validFrom} \u2192 ${validUntil}`,
+            item.is_active ? "Yes" : "No",
+            formatDate(item.created_at),
+          ];
+        });
+      case "deleted":
+        return items.map((item) => [item.model_name, item.record_id, item.reason || "-", item.deleted_by_email || "-", formatDate(item.deleted_at)]);
+      case "logs":
+        return items.map((item) => [item.admin_email, item.action, `${item.target_type} #${item.target_id}`, item.details || "-", formatDate(item.created_at)]);
+      default:
+        return [];
+    }
   };
 
   const headers = {
@@ -639,8 +600,6 @@ export default function DatabaseEditor() {
     logs: ["Admin", "Action", "Target", "Details", "Date"],
   };
 
-  const dataByType = { users, courses, categories, enrollments, payments, coupons };
-
   const editTypeLabel = {
     users: "User",
     courses: "Course",
@@ -650,7 +609,11 @@ export default function DatabaseEditor() {
     coupons: "Coupon",
   };
 
+  const isReadOnlyTab = activeTab === "deleted" || activeTab === "logs";
+  const currentRows = PAGINATED_TABS.has(activeTab) ? buildRows(activeTab, tabItems) : [];
+
   const dbTotalPages = Math.max(1, Math.ceil(dbCount / dbPageSize));
+  const refreshActiveTab = activeTab === "tables" ? () => loadDbRows({ page: dbPage }) : reloadTab;
 
   const renderDbEditFields = () =>
     dbColumns
@@ -996,24 +959,27 @@ export default function DatabaseEditor() {
           </div>
           <div className="inline-controls">
             <span className="meta-note">{lastUpdated ? `Last sync: ${formatDate(lastUpdated)}` : "Syncing..."}</span>
-            <button type="button" className="btn btn-muted btn-icon" onClick={refreshActiveTab} disabled={refreshing || activeTab === "tables"}>
+            <button type="button" className="btn btn-muted btn-icon" onClick={refreshActiveTab} disabled={tabLoading || dbLoading}>
               <HiOutlineArrowPath />
-              {refreshing ? "Refreshing..." : "Refresh"}
+              {tabLoading || dbLoading ? "Refreshing..." : "Refresh"}
             </button>
           </div>
         </section>
 
         <div className="admin-tab-switch">
           {TABS.map((tab) => (
-            <button key={tab.key} type="button" className={`admin-tab-btn ${activeTab === tab.key ? "active" : ""}`} onClick={() => setActiveTab(tab.key)}>
+            <button
+              key={tab.key}
+              type="button"
+              className={`admin-tab-btn ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => { setActiveTab(tab.key); setEdit(EMPTY_EDIT); setCourseImage(null); }}
+            >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {loading ? (
-          <SkeletonTable rows={6} columns={headers[activeTab]?.length || 6} />
-        ) : activeTab === "tables" ? (
+        {activeTab === "tables" ? (
           <section className="panel-card">
             <h2>All Tables</h2>
             <p className="meta-note">Non-system tables only. Double-click a row to edit inline.</p>
@@ -1111,7 +1077,7 @@ export default function DatabaseEditor() {
         ) : (
           <section className="panel-card">
             <h2>{TABS.find((item) => item.key === activeTab)?.label}</h2>
-            {activeTab !== "deleted" && activeTab !== "logs" && (
+            {!isReadOnlyTab && (
               <p className="meta-note">Tip: double-click a row to edit inline.</p>
             )}
             {activeTab === "coupons" && (
@@ -1194,60 +1160,85 @@ export default function DatabaseEditor() {
                 </div>
               </form>
             )}
-            <div className="table-wrap">
-              <table>
-                <thead><tr>{headers[activeTab].map((header) => <th key={header}>{header}</th>)}</tr></thead>
-                <tbody>
-                  {activeTab === "deleted" || activeTab === "logs"
-                    ? rows[activeTab].map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        {row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>)}
-                      </tr>
-                    ))
-                    : rows[activeTab].map((row, rowIndex) => {
-                      const record = dataByType[activeTab][rowIndex];
-                      const isEditing = edit.type === activeTab && edit.id === record.id;
-                      return (
-                        <Fragment key={record.id}>
-                          <tr
-                            className={`table-row-editable ${isEditing ? "is-editing" : ""}`}
-                            onDoubleClick={() => startEdit(activeTab, record)}
-                          >
-                            {row.map((cell, cellIndex) => <td key={`${record.id}-${cellIndex}`}>{cell}</td>)}
-                            <td>
-                              <div className="inline-controls">
-                                <button type="button" className="btn btn-muted" onClick={() => startEdit(activeTab, record)}>
-                                  {isEditing ? "Editing" : "Edit"}
-                                </button>
-                                <button type="button" className="btn btn-danger" onClick={() => setDeleteTarget({ type: activeTab, id: record.id })}>
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
+
+            {tabLoading ? (
+              <SkeletonTable rows={6} columns={headers[activeTab]?.length || 6} />
+            ) : (
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr>{headers[activeTab].map((header) => <th key={header}>{header}</th>)}</tr></thead>
+                    <tbody>
+                      {currentRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={headers[activeTab].length} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                            No records found.
+                          </td>
+                        </tr>
+                      ) : isReadOnlyTab ? (
+                        currentRows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>)}
                           </tr>
-                          {isEditing && (
-                            <tr className="table-inline-edit-row">
-                              <td colSpan={headers[activeTab].length}>
-                                <form className="table-inline-edit-wrap table-inline-edit-grid database-inline-edit-form" onSubmit={handleSave}>
-                                  {renderInlineEditFields()}
-                                  <div className="table-inline-edit-actions">
-                                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                                      {saving ? "Saving..." : `Update ${editTypeLabel[activeTab] || "Record"}`}
+                        ))
+                      ) : (
+                        currentRows.map((row, rowIndex) => {
+                          const record = tabItems[rowIndex];
+                          const isEditing = edit.type === activeTab && edit.id === record?.id;
+                          return (
+                            <Fragment key={record?.id ?? rowIndex}>
+                              <tr
+                                className={`table-row-editable ${isEditing ? "is-editing" : ""}`}
+                                onDoubleClick={() => record && startEdit(activeTab, record)}
+                              >
+                                {row.map((cell, cellIndex) => <td key={`${record?.id}-${cellIndex}`}>{cell}</td>)}
+                                <td>
+                                  <div className="inline-controls">
+                                    <button type="button" className="btn btn-muted" onClick={() => record && startEdit(activeTab, record)}>
+                                      {isEditing ? "Editing" : "Edit"}
                                     </button>
-                                    <button type="button" className="btn btn-muted" onClick={clearEdit} disabled={saving}>
-                                      Cancel
+                                    <button type="button" className="btn btn-danger" onClick={() => record && setDeleteTarget({ type: activeTab, id: record.id })}>
+                                      Delete
                                     </button>
                                   </div>
-                                </form>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+                                </td>
+                              </tr>
+                              {isEditing && (
+                                <tr className="table-inline-edit-row">
+                                  <td colSpan={headers[activeTab].length}>
+                                    <form className="table-inline-edit-wrap table-inline-edit-grid database-inline-edit-form" onSubmit={handleSave}>
+                                      {renderInlineEditFields()}
+                                      <div className="table-inline-edit-actions">
+                                        <button type="submit" className="btn btn-primary" disabled={saving}>
+                                          {saving ? "Saving..." : `Update ${editTypeLabel[activeTab] || "Record"}`}
+                                        </button>
+                                        <button type="button" className="btn btn-muted" onClick={clearEdit} disabled={saving}>
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </form>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {tabTotalPages > 1 && (
+                  <TabPagination
+                    page={tabPage}
+                    totalPages={tabTotalPages}
+                    count={tabCount}
+                    loading={tabLoading}
+                    onPrev={() => setTabPage((p) => Math.max(1, p - 1))}
+                    onNext={() => setTabPage((p) => Math.min(tabTotalPages, p + 1))}
+                  />
+                )}
+              </>
+            )}
           </section>
         )}
       </PageTransition>
