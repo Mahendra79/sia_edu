@@ -1795,6 +1795,10 @@
     text-align: center;
   }
 
+  .continue-learning-body {
+    flex: 0 1 auto;
+  }
+
   .continue-learning-card > .btn {
     width: 100%;
     justify-content: center;
