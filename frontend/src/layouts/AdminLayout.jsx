@@ -6,7 +6,7 @@ export default function AdminLayout({ children }) {
     <div className="app-shell">
       <Sidebar />
       <div className="app-content-col">
-        <main className="main-content dashboard-content">{children}</main>
+        <main className="main-content dashboard-content admin-shell">{children}</main>
         <Footer />
       </div>
     </div>

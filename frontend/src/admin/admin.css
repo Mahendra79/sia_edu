@@ -1,36 +1,118 @@
+/* ==========================================================================
+   Admin Shell — design tokens
+   Everything below is scoped to `.admin-shell` (set on <main> in
+   AdminLayout.jsx) so it only ever affects the admin panel, never the
+   learner-facing dashboard, even though both reuse the same base layout
+   classes. All colors/radii reference the shared tokens in styles/variables.css
+   — no hardcoded hex values here, so light/dark theming stays automatic.
+   ========================================================================== */
+
+.admin-shell {
+  --admin-space-2xs: 0.35rem;
+  --admin-space-xs: 0.55rem;
+  --admin-space-sm: 0.75rem;
+  --admin-space-md: 1rem;
+  --admin-space-lg: 1.5rem;
+  --admin-title-lg: 1.5rem;
+  --admin-title-md: 1.1rem;
+  --admin-title-sm: 0.95rem;
+  --admin-text-sm: 0.86rem;
+  --admin-text-xs: 0.78rem;
+}
+
+/* --------------------------------------------------------------------------
+   Typography — page/section/card headings had no explicit size anywhere and
+   fell back to the browser default (~2em, bold), which read as oversized
+   next to the compact tables and controls beneath them. Fixed to a clear,
+   compact scale instead.
+   -------------------------------------------------------------------------- */
+
+.admin-shell h1 {
+  font-size: var(--admin-title-lg);
+  font-weight: 700;
+  margin-bottom: var(--admin-space-lg);
+}
+
+.admin-shell .page-top h1 {
+  margin-bottom: 0.2rem;
+}
+
+.admin-shell .page-top p {
+  font-size: var(--admin-text-sm);
+}
+
+.admin-shell h2 {
+  font-size: var(--admin-title-md);
+  font-weight: 700;
+}
+
+.admin-shell h3 {
+  font-size: var(--admin-title-sm);
+  font-weight: 700;
+}
+
+/* Denser controls than the marketing/learner side — an admin console reads
+   as more "professional" when inputs and buttons are compact and uniform. */
+.admin-shell button,
+.admin-shell .btn {
+  padding: 0.56rem 0.85rem;
+  font-size: var(--admin-text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea {
+  padding: 0.6rem 0.75rem;
+  font-size: var(--admin-text-sm);
+  border-radius: var(--radius-sm);
+}
+
+/* .search-bar reserves left space for the icon (components.css); restore it
+   here since it has the same selector specificity as the rule above and
+   would otherwise lose the cascade and sit under the icon. */
+.admin-shell .search-bar input {
+  padding-left: 2.6rem;
+}
+
+.admin-shell label {
+  font-size: var(--admin-text-xs);
+}
+
+/* ==========================================================================
+   Dashboard KPIs
+   ========================================================================== */
+
 .admin-dashboard {
   display: grid;
-  gap: 1rem;
+  gap: var(--admin-space-md);
 }
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 0.85rem;
+  gap: var(--admin-space-sm);
 }
 
 .stat-card {
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .stat-card h3 {
-  margin-bottom: 0.55rem;
+  margin-bottom: var(--admin-space-2xs);
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--admin-text-xs);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .stat-card strong {
+  display: block;
   font-family: "Sora", "Plus Jakarta Sans", sans-serif;
-  font-size: 1.58rem;
-  color: var(--text-primary);
-}
-
-/* Prevent long metric values (e.g., evaluation mode names) from overflowing cards. */
-.mis-kpi-grid .stat-card strong {
-  font-size: clamp(1.1rem, 2.1vw, 1.58rem);
+  font-size: clamp(1.15rem, 2.1vw, 1.4rem);
   line-height: 1.2;
+  color: var(--text-primary);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -39,7 +121,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(160deg, var(--surface-glass), var(--surface-overlay));
   box-shadow: var(--card-shadow);
   text-align: left;
@@ -64,18 +146,22 @@
   min-height: 320px;
 }
 
+/* ==========================================================================
+   Toolbars — section actions, tab switcher, toggles
+   ========================================================================== */
+
 .section-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.52rem;
+  gap: var(--admin-space-2xs);
   flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--admin-space-sm);
 }
 
 .admin-tab-switch {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.95rem;
+  gap: var(--admin-space-2xs);
+  margin-bottom: var(--admin-space-md);
   flex-wrap: wrap;
   max-width: 100%;
   overflow-x: auto;
@@ -88,6 +174,7 @@
   background: var(--surface-muted-soft);
   color: var(--text-secondary);
   padding: 0.46rem 0.88rem;
+  font-weight: 600;
   box-shadow: none;
   flex: 0 0 auto;
   white-space: nowrap;
@@ -113,22 +200,22 @@
 }
 
 .meta-note {
-  font-size: 0.84rem;
+  font-size: var(--admin-text-xs);
   color: var(--text-secondary);
 }
 
 .mis-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  gap: var(--admin-space-sm);
+  margin-bottom: var(--admin-space-md);
 }
 
 .mis-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.95rem;
-  margin-bottom: 1rem;
+  gap: var(--admin-space-md);
+  margin-bottom: var(--admin-space-md);
 }
 
 .mis-chart-card {
@@ -140,15 +227,22 @@
 .chart-card-head {
   display: flex;
   justify-content: space-between;
-  gap: 0.7rem;
+  gap: var(--admin-space-sm);
   align-items: center;
-  margin-bottom: 0.68rem;
+  margin-bottom: var(--admin-space-xs);
 }
 
 .mis-chart-canvas {
   flex: 1;
   min-height: 255px;
 }
+
+/* ==========================================================================
+   Inline edit forms — the pattern proven out on Manage Courses, now shared
+   by every admin edit surface (Users, Courses, Database Editor, LMS, Quiz).
+   Keep this single source of truth so any future page automatically looks
+   and behaves the same way.
+   ========================================================================== */
 
 .table-row-editable {
   cursor: pointer;
@@ -159,20 +253,20 @@
 }
 
 .table-inline-edit-row td {
-  padding: 0.9rem 0.75rem;
+  padding: var(--admin-space-md) var(--admin-space-sm);
   background: color-mix(in srgb, var(--surface-muted-soft) 68%, transparent);
 }
 
 .table-inline-edit-wrap {
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
-  padding: 0.74rem;
+  border-radius: var(--radius-md);
+  padding: var(--admin-space-md);
   background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
 }
 
 .table-inline-edit-grid {
   display: grid;
-  gap: 0.58rem;
+  gap: var(--admin-space-sm);
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   align-items: end;
 }
@@ -184,9 +278,10 @@
 }
 
 .table-inline-field-label {
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: var(--admin-text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-secondary);
 }
 
@@ -270,7 +365,7 @@
 .table-inline-toggle {
   min-height: 44px;
   padding: 0.45rem 0.6rem;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--soft-border);
   background: color-mix(in srgb, var(--surface-muted-soft) 68%, transparent);
 }
@@ -279,8 +374,11 @@
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
-  gap: 0.52rem;
+  gap: var(--admin-space-2xs);
   flex-wrap: wrap;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--soft-border);
+  margin-top: 0.2rem;
 }
 
 .table-detail-row td {
@@ -290,23 +388,27 @@
 
 .table-detail-panel {
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
-  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  padding: var(--admin-space-sm);
   background: color-mix(in srgb, var(--surface-muted) 44%, transparent);
 }
 
 .table-detail-panel h3 {
-  margin-bottom: 0.65rem;
-  font-size: 1rem;
+  margin-bottom: var(--admin-space-xs);
+  font-size: var(--admin-title-sm);
 }
 
+/* ==========================================================================
+   Chatbot QA
+   ========================================================================== */
+
 .chatbot-eval-panel {
-  padding: 1rem;
-  border-radius: 18px;
+  padding: var(--admin-space-md);
+  border-radius: var(--radius-lg);
 }
 
 .chatbot-eval-head {
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--admin-space-sm);
 }
 
 .chatbot-eval-head h3 {
@@ -318,12 +420,19 @@
 
 .chatbot-eval-head p {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--admin-text-sm);
 }
 
 .chatbot-eval-table-wrap {
   max-height: 520px;
   overflow: auto;
+}
+
+.chatbot-eval-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
 }
 
 .chatbot-reply-preview {
@@ -335,13 +444,19 @@
 
 .qa-pass {
   color: var(--success);
+  font-weight: 600;
 }
 
 .qa-fail {
   color: var(--danger);
+  font-weight: 600;
 }
 
-/* Keep admin data tables horizontally scrollable on small screens. */
+/* ==========================================================================
+   Data tables — shared readability polish for every admin table (users,
+   courses, payments, activity logs, "All Tables" editor, etc.)
+   ========================================================================== */
+
 .dashboard-content .table-wrap {
   display: block;
   width: 100%;
@@ -359,6 +474,23 @@
   min-width: 0;
 }
 
+.admin-shell table thead th {
+  background: var(--surface-muted-soft);
+}
+
+.admin-shell table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-shell table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+}
+
+.admin-shell table tbody tr.table-inline-edit-row:hover td,
+.admin-shell table tbody tr.table-detail-row:hover td {
+  background: inherit;
+}
+
 @media (max-width: 980px) {
   .table-inline-field-wide {
     grid-column: auto;
@@ -374,8 +506,8 @@
 }
 
 .db-table-controls {
-  margin-bottom: 0.75rem;
-  gap: 0.7rem;
+  margin-bottom: var(--admin-space-sm);
+  gap: var(--admin-space-xs);
 }
 
 .db-table-controls select {
@@ -415,6 +547,10 @@
   max-width: none;
 }
 
+.db-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--surface-muted-soft) 55%, transparent);
+}
+
 .db-table-wrap {
   max-width: 100%;
   width: 100%;
@@ -447,14 +583,18 @@
   min-width: 108px;
 }
 
+/* ==========================================================================
+   Quiz Admin
+   ========================================================================== */
+
 .quiz-admin-panel {
-  margin-top: 1rem;
+  margin-top: var(--admin-space-md);
 }
 
 .quiz-admin-layout {
   display: grid;
   grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--admin-space-md);
 }
 
 .quiz-admin-list,
@@ -462,18 +602,25 @@
 .quiz-question-form,
 .quiz-question-list {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--admin-space-sm);
 }
 
 .quiz-admin-card {
   width: 100%;
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.78rem;
   background: color-mix(in srgb, var(--surface-muted-soft) 70%, transparent);
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.quiz-admin-card:hover {
+  border-color: color-mix(in srgb, var(--accent-strong) 32%, var(--soft-border));
 }
 
 .quiz-admin-card.is-selected {
@@ -496,7 +643,7 @@
 .quiz-admin-detail-head {
   display: flex;
   justify-content: space-between;
-  gap: 0.8rem;
+  gap: var(--admin-space-sm);
   align-items: flex-start;
   flex-wrap: wrap;
 }
@@ -508,7 +655,7 @@
 
 .quiz-question-form {
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.85rem;
   background: color-mix(in srgb, var(--surface-muted-soft) 55%, transparent);
 }
@@ -516,7 +663,7 @@
 .quiz-readiness,
 .quiz-import-panel {
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.8rem;
   background: color-mix(in srgb, var(--surface-muted-soft) 52%, transparent);
 }
@@ -552,7 +699,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
+  gap: var(--admin-space-sm);
   flex-wrap: wrap;
 }
 
@@ -577,17 +724,17 @@
 
 .quiz-option-admin-row span {
   color: var(--text-secondary);
-  font-size: 0.86rem;
+  font-size: var(--admin-text-sm);
   white-space: nowrap;
 }
 
 .quiz-question-admin-card {
   display: flex;
   justify-content: space-between;
-  gap: 0.8rem;
+  gap: var(--admin-space-sm);
   align-items: flex-start;
   border: 1px solid var(--soft-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.78rem;
   background: color-mix(in srgb, var(--surface-muted-soft) 46%, transparent);
 }
@@ -622,5 +769,11 @@
 
   .quiz-question-admin-card {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-shell {
+    --admin-title-lg: 1.3rem;
   }
 }
