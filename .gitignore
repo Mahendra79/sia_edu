@@ -8,6 +8,7 @@ __pycache__/
 *.log
 backend/media/
 backend/staticfiles/
+backend/documents
 
 # Node
 node_modules/
@@ -21,3 +22,5 @@ frontend/.env
 
 
 backend/venv
+chatbot_architecture.md
+image.png

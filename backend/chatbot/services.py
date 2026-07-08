@@ -18,7 +18,20 @@ from courses.models import Course, Enrollment
 
 logger = logging.getLogger(__name__)
 
+_embeddings_model = None
+
+def _get_embeddings_model():
+    global _embeddings_model
+    if _embeddings_model is None:
+        try:
+            from langchain_huggingface import HuggingFaceEmbeddings
+            _embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        except Exception:
+            logger.exception("Failed to initialize HuggingFaceEmbeddings globally.")
+    return _embeddings_model
+
 CHATBOT_RAG_CACHE_PREFIX = "chatbot:rag:v2"
+
 
 EDUCATION_ONLY_REPLY = (
     "I can help only with SIA education and course-related questions in AI, ML, DL, Data Science, "
@@ -182,6 +195,7 @@ class ChatContext:
     focused_course_id: int | None
     retrieval_mode: str = "keyword_rag"
     retrieval_hits: int = 0
+    material_sources: list[str] = None
 
 
 @dataclass(frozen=True)
@@ -698,6 +712,35 @@ def _retrieve_grounded_chunks(
     history_course_ids: list[int],
     limit: int = 8,
 ) -> tuple[list[dict], dict[int, str]]:
+    from chatbot.models import DocumentEmbedding
+    from pgvector.django import CosineDistance
+
+    # Try executing vector similarity search on Neon (vector_db)
+    try:
+        if DocumentEmbedding.objects.using('vector_db').exists():
+            embeddings_model = _get_embeddings_model()
+            if embeddings_model is not None:
+                query_vector = embeddings_model.embed_query(message)
+
+                hits = DocumentEmbedding.objects.using('vector_db').order_by(
+                    CosineDistance('embedding', query_vector)
+                )[:limit]
+
+
+            selected = []
+            for hit in hits:
+                selected.append({
+                    "score": 1.0,
+                    "course_id": None,
+                    "section": "Document",
+                    "visibility": "public",
+                    "text": hit.content,
+                    "course_title": hit.title,
+                })
+            return selected, {}
+    except Exception as exc:
+        logger.exception("pgvector retrieval from Neon failed. Falling back to default RAG.")
+
     corpus = _load_retrieval_corpus()
     chunks: list[dict] = corpus.get("chunks", [])
     if not chunks:
@@ -712,6 +755,7 @@ def _retrieve_grounded_chunks(
     doc_count = max(int(corpus.get("doc_count") or len(chunks) or 1), 1)
     doc_freq = corpus.get("doc_freq", {})
     idf_map: dict[str, float] = {}
+
     for token in query_terms:
         df = float(doc_freq.get(token, 0))
         idf_map[token] = math.log(((doc_count - df + 0.5) / (df + 0.5)) + 1.0)
@@ -829,6 +873,28 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         context_rows.append("No active courses were available in the catalog context.")
 
     context_text = "Internal SIA EDU course context:\n" + "\n\n".join(context_rows)
+
+    material_sources = []
+    for hit in hits:
+        title = hit.get("course_title")
+        if title:
+            if title.lower().endswith(".pdf"):
+                title = title[:-4]
+            title = re.sub(r"\(\d+\)", "", title)
+            title = title.replace("_", " ").replace("-", " ").strip()
+            title = title.title()
+            if title not in material_sources:
+                material_sources.append(title)
+
+    if focused_course:
+        fc_title = focused_course.title.strip()
+        if fc_title.lower().endswith(".pdf"):
+            fc_title = fc_title[:-4]
+        fc_title = re.sub(r"\(\d+\)", "", fc_title)
+        fc_title = fc_title.replace("_", " ").replace("-", " ").strip().title()
+        if fc_title not in material_sources:
+            material_sources.insert(0, fc_title)
+
     return ChatContext(
         context_text=context_text,
         sources=sources[:8],
@@ -836,29 +902,32 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         focused_course_id=focused_course_id,
         retrieval_mode="lexical_bm25_rag",
         retrieval_hits=len(hits),
+        material_sources=material_sources,
     )
 
 
 def _build_system_prompt(context: ChatContext) -> str:
     return (
         "You are an education-only assistant for SIA EDU.\n"
-        "Rules:\n"
-        "1) Answer only education and SIA course-related questions.\n"
-        "2) If user asks outside education scope, reply exactly:\n"
+        "CRITICAL RULES:\n"
+        "1) Use ONLY the knowledge present in the provided internal context (course details, pricing, syllabus, and lesson document materials) to answer user questions. Do NOT use outside general knowledge or assume details not explicitly written in the provided document context.\n"
+        "2) You are STRICTLY FORBIDDEN from generating any programming code, code snippets, implementations, scripts, or topics that are not directly present and detailed in the provided knowledge base/internal context.\n"
+        "3) If a user asks for code, topics, concepts, or facts that are not explicitly present in the provided internal context, refuse to answer and state politely that the course documents do not cover this code/topic.\n"
+        "4) Answer only education and SIA course-related questions.\n"
+        "5) If user asks outside education scope, reply exactly:\n"
         f"\"{EDUCATION_ONLY_REPLY}\"\n"
-        "3) Use the provided internal context for course details and pricing.\n"
-        "4) If a requested fact is missing, say you do not have that information yet.\n"
-        "5) Never provide medical, legal, financial, political, or unrelated advice.\n"
-        "6) Keep answers concise, practical, and student-friendly.\n"
-        "7) If course_access is public, do not reveal paid/private lesson-level details.\n"
-        "8) If user asks career details, summarize relevant courses from context with likely career outcomes.\n"
-        "9) Do not ask for another course id when relevant context already includes enough details.\n"
-        "10) Prefer markdown with short structure:\n"
+        "6) Never provide medical, legal, financial, political, or unrelated advice.\n"
+        "7) Keep answers brief, concise, and student-friendly, but ensure they are factually complete and do not end abruptly.\n"
+        "8) Never expose raw source IDs (example: course:34 or Course #34) to students.\n"
+        "9) Prefer markdown with short structure:\n"
         "   - Use **bold** section titles.\n"
         "   - Use bullet points or numbered lists when useful.\n"
         "   - Keep each line short and readable for students.\n"
-        "11) Never expose raw source IDs (example: course:34 or Course #34) to students.\n"
-        "12) Keep tone friendly, specific, and actionable.\n"
+        "10) Keep tone friendly, specific, and actionable.\n"
+        "11) ALWAYS format all mathematical equations, variables, vectors, and matrices in standard LaTeX delimiters:\n"
+        "   - Wrap block equations, multi-line formulas, and matrices in \\[ ... \\] (do NOT output raw math without delimiters).\n"
+        "   - Wrap inline math expressions, variables, and symbols in \\( ... \\).\n"
+        "12) Limit responses to a maximum of 3-4 clear, complete sentences or well-structured bullet points. Do not write lengthy paragraphs, but ensure the final point is fully explained and complete.\n"
         f"Current course_access: {context.course_access}\n"
         f"Focused course id: {context.focused_course_id or 'none'}\n"
         f"Retrieval mode: {context.retrieval_mode}\n"
@@ -881,52 +950,155 @@ def _normalize_history(history: list[dict] | None) -> list[dict]:
 
 
 def generate_reply(message: str, history: list[dict] | None, context: ChatContext) -> str:
-    api_key = str(getattr(settings, "GROQ_API_KEY", "")).strip()
-    if not api_key:
-        raise ChatbotConfigError("GROQ_API_KEY is not configured.")
+    provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
 
-    api_url = str(
-        getattr(settings, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
-    ).strip()
-    model_name = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+    if provider == "gemini":
+        from chatbot.llm_manager import GeminiKeyRotationManager
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+            from langchain_core.output_parsers import StrOutputParser
+        except ImportError as exc:
+            logger.error("Failed to import langchain-google-genai. Check dependencies.")
+            raise ChatbotConfigError("langchain-google-genai dependencies are not installed correctly.") from exc
+
+        keys = GeminiKeyRotationManager.get_keys()
+        if not keys:
+            raise ChatbotConfigError("No Gemini API keys configured.")
+
+        model_name = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+        max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 900))
+
+        system_prompt = _build_system_prompt(context)
+        context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            SystemMessage(content=context_prompt),
+        ]
+
+        for item in _normalize_history(history):
+            if item["role"] == "user":
+                messages.append(HumanMessage(content=item["content"]))
+            else:
+                messages.append(AIMessage(content=item["content"]))
+
+        messages.append(HumanMessage(content=message))
+
+        num_keys = len(keys)
+        last_exception = None
+
+        for attempt in range(num_keys):
+            try:
+                api_key, active_idx = GeminiKeyRotationManager.get_next_available_key()
+            except ValueError as exc:
+                raise ChatbotConfigError(str(exc)) from exc
+
+            logger.info(f"Invoking Gemini LLM using key index {active_idx} (attempt {attempt + 1}/{num_keys})")
+
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                api_key=api_key,
+                temperature=0.2,
+                max_tokens=max_tokens,
+            )
+
+            try:
+                chain = llm | StrOutputParser()
+                reply = chain.invoke(messages).strip()
+                if reply:
+                    return reply
+                else:
+                    logger.warning(f"Empty response from Gemini with key index {active_idx}")
+                    raise ChatbotServiceError("Empty response from LLM.")
+            except Exception as exc:
+                last_exception = exc
+                err_msg = str(exc).lower()
+                err_type = type(exc).__name__
+
+                # Check if it's a rate limit, credential, server, or connection error
+                is_rotatable = False
+                if err_type in ("RateLimitError", "AuthenticationError", "APIConnectionError", "InternalServerError", "ResourceExhausted", "APIError"):
+                    is_rotatable = True
+                elif any(marker in err_msg for marker in ("429", "rate limit", "quota", "exhausted", "401", "invalid api key", "unauthorized", "503", "500", "bad gateway")):
+                    is_rotatable = True
+
+                if is_rotatable:
+                    logger.warning(
+                        f"Temporary Gemini error with key index {active_idx}: {err_type} - {exc}. Rotating key..."
+                    )
+                    GeminiKeyRotationManager.mark_key_rate_limited(api_key)
+                else:
+                    logger.error(f"Permanent/Non-rotatable error with Gemini LLM: {exc}")
+                    raise ChatbotServiceError(f"Failed to generate response from Gemini LLM: {exc}") from exc
+
+        logger.error("All Gemini API keys and fallbacks have been exhausted and failed.")
+        raise ChatbotServiceError("Failed to generate response from Gemini LLM. All keys exhausted.") from last_exception
+
+    # Non-Gemini Providers
+    if provider == "groq":
+        api_key = str(getattr(settings, "GROQ_API_KEY", "")).strip()
+        if not api_key:
+            raise ChatbotConfigError("GROQ_API_KEY is not configured.")
+        api_url = str(
+            getattr(settings, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+        ).strip()
+        # ChatOpenAI expects base_url without the "/chat/completions" path suffix
+        base_url = api_url.replace("/chat/completions", "")
+        model_name = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+    else:
+        # Local LLM (Ollama or LM Studio)
+        base_url = str(getattr(settings, "LOCAL_LLM_BASE_URL", "http://localhost:11434/v1")).strip()
+        api_key = str(getattr(settings, "LOCAL_LLM_API_KEY", "ollama")).strip() or "ollama"
+        model_name = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
+
     max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
 
+    try:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+        from langchain_core.output_parsers import StrOutputParser
+    except ImportError as exc:
+        logger.error("Failed to import LangChain classes. Check dependencies.")
+        raise ChatbotConfigError("LangChain dependencies are not installed correctly.") from exc
+
+    # Initialize LangChain model pointing to either Groq or local LLM server
+    llm = ChatOpenAI(
+        base_url=base_url,
+        api_key=api_key,
+        model=model_name,
+        temperature=0.2,
+        max_tokens=max_tokens,
+    )
+
+    system_prompt = _build_system_prompt(context)
+    context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
+
     messages = [
-        {"role": "system", "content": _build_system_prompt(context)},
-        {"role": "system", "content": context.context_text},
-        *_normalize_history(history),
-        {"role": "user", "content": message},
+        SystemMessage(content=system_prompt),
+        SystemMessage(content=context_prompt),
     ]
 
-    payload = {
-        "model": model_name,
-        "temperature": 0.2,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    for item in _normalize_history(history):
+        if item["role"] == "user":
+            messages.append(HumanMessage(content=item["content"]))
+        else:
+            messages.append(AIMessage(content=item["content"]))
+
+    messages.append(HumanMessage(content=message))
 
     try:
-        response = requests.post(api_url, json=payload, headers=headers, timeout=25)
-    except requests.RequestException as exc:
-        raise ChatbotServiceError("Unable to contact Groq API.") from exc
-
-    if response.status_code >= 400:
-        logger.warning("Groq API error status=%s body=%s", response.status_code, response.text[:500])
-        raise ChatbotServiceError("Groq API returned an error response.")
-
-    try:
-        data = response.json()
-        reply = data["choices"][0]["message"]["content"].strip()
-    except (ValueError, KeyError, IndexError, TypeError) as exc:
-        raise ChatbotServiceError("Invalid response payload from Groq API.") from exc
+        chain = llm | StrOutputParser()
+        reply = chain.invoke(messages).strip()
+    except Exception as exc:
+        logger.exception("LangChain LLM invocation failed")
+        raise ChatbotServiceError("Failed to generate response from local LLM.") from exc
 
     if not reply:
-        raise ChatbotServiceError("Empty response from Groq API.")
+        raise ChatbotServiceError("Empty response from LLM.")
     return reply
+
+
 
 
 def fallback_reply(message: str, context: ChatContext) -> str:
@@ -981,25 +1153,30 @@ def _answer_for_message(
             degraded = False
         elif use_model:
             reply = generate_reply(message=message, history=history, context=context)
-            provider = "groq"
-            model = "configured"
+            provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
+            if provider == "gemini":
+                model = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+            elif provider == "groq":
+                model = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+            else:
+                model = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
             degraded = False
         else:
             raise ChatbotServiceError("Model usage disabled for this evaluation run.")
     except (ChatbotConfigError, ChatbotServiceError):
-        reply = fallback_reply(message=message, context=context)
+        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
         provider = "fallback"
         model = "fallback"
         degraded = True
     except Exception:
         logger.exception("Unhandled chatbot execution error during evaluation")
-        reply = fallback_reply(message=message, context=context)
+        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
         provider = "fallback"
         model = "fallback"
         degraded = True
 
     elapsed_ms = max(int((time.perf_counter() - started) * 1000), 0)
-    return format_chat_reply(reply), provider, model, degraded, context, elapsed_ms
+    return format_chat_reply(reply, context), provider, model, degraded, context, elapsed_ms
 
 
 def _evaluate_case_quality(reply: str, context: ChatContext, case: ChatEvaluationCase) -> tuple[int, dict]:
@@ -1077,7 +1254,7 @@ def evaluate_chatbot_suite(*, user=None, use_model: bool = False, max_cases: int
     }
 
 
-def format_chat_reply(reply: str) -> str:
+def format_chat_reply(reply: str, context: ChatContext | None = None) -> str:
     cleaned = (reply or "").strip()
     if not cleaned:
         return cleaned
@@ -1091,17 +1268,20 @@ def format_chat_reply(reply: str) -> str:
     already_structured = any(
         marker in cleaned for marker in ("\n- ", "\n1.", "\n2.", "**")
     )
-    if already_structured:
-        return cleaned
+    if not already_structured and len(cleaned) >= 180:
+        sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", cleaned) if item.strip()]
+        if len(sentences) >= 2:
+            lines = ["**Answer**"]
+            for sentence in sentences[:5]:
+                lines.append(f"- {sentence}")
+            cleaned = "\n".join(lines)
 
-    if len(cleaned) < 180:
-        return cleaned
+    if context and getattr(context, "material_sources", None):
+        sources_list = context.material_sources[:2]
+        if len(sources_list) == 1:
+            cleaned += f"\n\n**Source:** {sources_list[0]}"
+        elif len(sources_list) > 1:
+            sources_markdown = "\n".join([f"- {src}" for src in sources_list])
+            cleaned += f"\n\n**Sources:**\n{sources_markdown}"
 
-    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", cleaned) if item.strip()]
-    if len(sentences) < 2:
-        return cleaned
-
-    lines = ["**Answer**"]
-    for sentence in sentences[:5]:
-        lines.append(f"- {sentence}")
-    return "\n".join(lines)
+    return cleaned

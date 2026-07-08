@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import LoadingSpinner from "./components/LoadingSpinner";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Chatbot from "./components/Chatbot";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -215,6 +216,7 @@ export default function App() {
         <Route path="/user" element={<Navigate to="/user/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <Chatbot />
     </Suspense>
   );
 }

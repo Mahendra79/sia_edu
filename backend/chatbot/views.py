@@ -1,6 +1,7 @@
 import logging
 import time
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -90,24 +91,29 @@ class ChatbotMessageView(APIView):
                 degraded = False
             else:
                 reply = generate_reply(message=message, history=history, context=context)
-                provider = "groq"
-                model = "configured"
+                provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
+                if provider == "gemini":
+                    model = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+                elif provider == "groq":
+                    model = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+                else:
+                    model = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
                 degraded = False
         except (ChatbotConfigError, ChatbotServiceError):
-            reply = fallback_reply(message=message, context=context)
+            reply = "I am currently experiencing connection issues with my AI service. Please try again later."
             provider = "fallback"
             model = "fallback"
             degraded = True
         except Exception:
             logger.exception("Unhandled chatbot error")
-            reply = fallback_reply(message=message, context=context)
+            reply = "I am currently experiencing connection issues with my AI service. Please try again later."
             provider = "fallback"
             model = "fallback"
             degraded = True
 
         return Response(
             {
-                "reply": format_chat_reply(reply),
+                "reply": format_chat_reply(reply, context),
                 "scope": "education_only",
                 "provider": provider,
                 "model": model,

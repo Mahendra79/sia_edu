@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
-from django.test import override_settings
+from django.test import override_settings, SimpleTestCase
+from django.core.cache import cache
 from django.urls import reverse
+from chatbot.llm_manager import GeminiKeyRotationManager
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -247,3 +249,76 @@ class ChatbotApiTests(APITestCase):
         self.assertEqual(response.data["summary"]["total_cases"], 4)
         self.assertTrue(len(response.data["results"]) == 4)
         mock_post.assert_not_called()
+
+
+class GeminiKeyRotationTests(SimpleTestCase):
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    @override_settings(GEMINI_API_KEYS=["key_A", "key_B", "key_C"])
+    def test_key_rotation_manager_flow(self):
+        # 1. Get initial available key
+        key, idx = GeminiKeyRotationManager.get_next_available_key()
+        self.assertEqual(key, "key_A")
+        self.assertEqual(idx, 0)
+
+        # 2. Mark active key (key_A) as rate limited
+        GeminiKeyRotationManager.mark_key_rate_limited("key_A")
+        self.assertTrue(GeminiKeyRotationManager.is_key_rate_limited("key_A"))
+
+        # 3. Next available key should bypass key_A and go to key_B
+        key, idx = GeminiKeyRotationManager.get_next_available_key()
+        self.assertEqual(key, "key_B")
+        self.assertEqual(idx, 1)
+
+        # 4. Mark key_B as rate limited
+        GeminiKeyRotationManager.mark_key_rate_limited("key_B")
+        self.assertTrue(GeminiKeyRotationManager.is_key_rate_limited("key_B"))
+
+        # 5. Next available key should go to key_C
+        key, idx = GeminiKeyRotationManager.get_next_available_key()
+        self.assertEqual(key, "key_C")
+        self.assertEqual(idx, 2)
+
+    @patch("langchain_google_genai.ChatGoogleGenerativeAI")
+    @override_settings(
+        CHATBOT_LLM_PROVIDER="gemini",
+        GEMINI_API_KEYS=["key_1", "key_2"],
+        GEMINI_MODEL_NAME="gemini-3.5-flash",
+    )
+    def test_generate_reply_rotates_on_rate_limit(self, mock_chat_openai):
+        from unittest.mock import MagicMock
+        from chatbot.services import generate_reply, ChatContext
+
+        mock_instance = MagicMock()
+        mock_chat_openai.return_value = mock_instance
+
+        class MockRateLimitError(Exception):
+            pass
+
+        mock_chain = MagicMock()
+        mock_instance.__or__.return_value = mock_chain
+
+        # Mocking the invoke call: first raises rate limit exception, second succeeds
+        mock_chain.invoke.side_effect = [
+            MockRateLimitError("429 Rate limit exceeded"),
+            "Success reply"
+        ]
+
+        context = ChatContext(
+            course_access="none",
+            focused_course_id=None,
+            retrieval_mode="none",
+            retrieval_hits=0,
+            context_text="No context",
+            sources=[]
+        )
+
+        reply = generate_reply("hello", [], context)
+        self.assertEqual(reply, "Success reply")
+        # Check that ChatGoogleGenerativeAI was instantiated twice (once for key_1, once for key_2)
+        self.assertEqual(mock_chat_openai.call_count, 2)
+
