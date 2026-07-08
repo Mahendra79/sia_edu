@@ -1198,6 +1198,17 @@
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 76%, #12203b), var(--accent-strong));
   border-color: color-mix(in srgb, var(--accent-strong) 65%, transparent);
   box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 24%, transparent);
+  opacity: 1;
+  transform: scale(1);
+  visibility: visible;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chatbot-fab.hidden {
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .chatbot-modal {
@@ -1207,8 +1218,19 @@
   border: 1px solid var(--border);
   background: var(--chatbot-surface);
   box-shadow: var(--card-shadow);
-  animation: slideUp 0.22s ease both;
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chatbot-modal.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .chatbot-modal header {
