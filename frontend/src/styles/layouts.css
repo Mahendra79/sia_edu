@@ -1102,6 +1102,41 @@
   line-height: 1.2;
 }
 
+/* Premium ChatGPT-like typing bouncing dots loading bubble */
+.chat-loading-bubble {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.35rem 0.5rem;
+}
+
+.chat-loading-bubble .dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: bounce-dot 1.4s infinite ease-in-out both;
+  opacity: 0.6;
+}
+
+.chat-loading-bubble .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.chat-loading-bubble .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { 
+    transform: scale(0.3);
+    opacity: 0.3;
+  } 40% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .chatbot-suggestions {
   display: grid;
   grid-auto-flow: column;

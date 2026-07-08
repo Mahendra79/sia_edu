@@ -22,6 +22,7 @@ import {
   HiOutlineLightBulb,
   HiOutlineXMark,
 } from "react-icons/hi2";
+import { BiBold, BiUnderline, BiListUl, BiListOl } from "react-icons/bi";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
@@ -231,6 +232,71 @@ export function LessonPdfViewer({ name, url }) {
   );
 }
 
+function NoteBlockCard({ block, blockContentsRef, onTitleChange, onSave, onDelete, setNoteBlocks }) {
+  const editorRef = useRef(null);
+  const isInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (editorRef.current && !isInitializedRef.current) {
+      editorRef.current.innerHTML = block.content;
+      isInitializedRef.current = true;
+    }
+  }, [block.content]);
+
+  useEffect(() => {
+    isInitializedRef.current = false;
+  }, [block.id]);
+
+  const handleInput = (e) => {
+    const htmlVal = e.currentTarget.innerHTML;
+    blockContentsRef.current[block.id] = htmlVal;
+    
+    // Only trigger React re-renders on transitions from saved to unsaved.
+    // Typing has zero lag because no state updates run while editing an unsaved block.
+    if (block.isSaved) {
+      setNoteBlocks(prev => prev.map(b => b.id === block.id ? { ...b, isSaved: false } : b));
+    }
+  };
+
+  return (
+    <div className={`note-block-card ${block.isSaved ? "saved" : "unsaved"}`}>
+      <div className="note-block-header">
+        <input
+          type="text"
+          className="note-block-title-input"
+          value={block.title}
+          onChange={(e) => onTitleChange(block.id, e.target.value)}
+          placeholder="Portion Title..."
+        />
+        <div className="note-block-actions">
+          <button
+            type="button"
+            className={`note-block-minimal-btn save-btn ${block.isSaved ? "saved" : "unsaved"}`}
+            onClick={() => onSave(block.id)}
+          >
+            {block.isSaved ? "Saved" : "Save"}
+          </button>
+          <button
+            type="button"
+            className="note-block-minimal-btn delete-btn"
+            onClick={() => onDelete(block.id)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        className="note-block-editor"
+        data-block-id={block.id}
+        onInput={handleInput}
+        data-placeholder="Start typing portion notes..."
+      />
+    </div>
+  );
+}
+
 export default function LessonPlayer() {
   const { courseId, moduleId, lessonId } = useParams();
   const navigate = useNavigate();
@@ -283,14 +349,9 @@ export default function LessonPlayer() {
   const [showNotes, setShowNotes] = useState(true);
   const [hasText, setHasText] = useState(false);
   const [showListMenu, setShowListMenu] = useState(false);
-  const editorRef = useRef(null);
-  const saveTimeoutRef = useRef(null);
+  const [noteBlocks, setNoteBlocks] = useState([]);
   const dropdownRef = useRef(null);
-
-  // Refs for tracking changes synchronously to avoid race conditions on page load/navigation
-  const latestHtmlRef = useRef("");
-  const hasPendingChangesRef = useRef(false);
-  const lessonIdRef = useRef(lessonId);
+  const blockContentsRef = useRef({});
 
   const WATCH_THRESHOLD_PERCENT = 80;
 
@@ -307,111 +368,210 @@ export default function LessonPlayer() {
     };
   }, []);
 
-  // Save pending changes synchronously
-  const savePendingChanges = () => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-
-    if (hasPendingChangesRef.current) {
-      try {
-        const { user } = getStoredAuth();
-        const targetLessonId = lessonIdRef.current;
-        if (targetLessonId) {
-          const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${targetLessonId}`;
-          localStorage.setItem(storageKey, latestHtmlRef.current);
-        }
-      } catch {
-        // Ignore local storage errors
-      }
-      hasPendingChangesRef.current = false;
-    }
-  };
-
-  // Sync lessonIdRef and save pending changes of previous lesson on lesson navigation or unmount
-  useEffect(() => {
-    return () => {
-      savePendingChanges();
-    };
-  }, [lessonId]);
-
-  // Load Saved Notes HTML
+  // Load Saved Notes JSON
   useEffect(() => {
     if (!lessonId) return;
     try {
       const { user } = getStoredAuth();
-      const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
-      const saved = localStorage.getItem(storageKey) || "";
-      if (editorRef.current) {
-        editorRef.current.innerHTML = saved;
+      const storageKey = `sia_edu_lesson_notes_json_${user?.id || "guest"}_${lessonId}`;
+      const legacyKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
+      
+      const savedJson = localStorage.getItem(storageKey);
+      const savedLegacy = localStorage.getItem(legacyKey);
+      
+      let blocks = [];
+      if (savedJson) {
+        const parsed = JSON.parse(savedJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          blocks = parsed.map(b => ({ ...b, isSaved: true }));
+        }
+      } else if (savedLegacy && savedLegacy.trim() !== "") {
+        blocks = [
+          {
+            id: "initial",
+            title: "General Notes",
+            content: savedLegacy,
+            timestamp: "Imported",
+            isSaved: true
+          }
+        ];
+        localStorage.setItem(storageKey, JSON.stringify(blocks));
       }
-      setHasText(!!editorRef.current?.innerText?.trim());
-      latestHtmlRef.current = saved;
-      hasPendingChangesRef.current = false;
-      lessonIdRef.current = lessonId;
+      
+      if (blocks.length === 0) {
+        blocks = [{
+          id: String(Date.now()),
+          title: "General Notes",
+          content: "",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSaved: true
+        }];
+      }
+      
+      setNoteBlocks(blocks);
+      setHasText(blocks.some(b => b.content && b.content.replace(/<[^>]*>/g, "").trim()));
+      
+      // Initialize blockContentsRef
+      blockContentsRef.current = {};
+      blocks.forEach(b => {
+        blockContentsRef.current[b.id] = b.content;
+      });
     } catch {
-      // Ignore local storage errors
+      const defaultBlock = {
+        id: String(Date.now()),
+        title: "General Notes",
+        content: "",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isSaved: true
+      };
+      setNoteBlocks([defaultBlock]);
+      setHasText(false);
+      blockContentsRef.current = { [defaultBlock.id]: "" };
     }
   }, [lessonId, loading, isFullscreen]);
 
-  const handleInput = () => {
-    const htmlVal = editorRef.current?.innerHTML || "";
-    const textVal = editorRef.current?.innerText || "";
-    setHasText(!!textVal.trim());
+  const handleBlockContentChange = (id, textContent) => {
+    // Kept for backward compatibility interface, but we direct write using blockContentsRef onInput.
+    blockContentsRef.current[id] = textContent;
+  };
 
-    latestHtmlRef.current = htmlVal;
-    hasPendingChangesRef.current = true;
-    lessonIdRef.current = lessonId;
+  const handleBlockTitleChange = (id, newTitle) => {
+    setNoteBlocks(prev =>
+      prev.map(block => {
+        if (block.id === id) {
+          return { ...block, title: newTitle, isSaved: false };
+        }
+        return block;
+      })
+    );
+  };
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+  const addNoteBlock = () => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setNoteBlocks(prev => {
+      const nextBlockNum = prev.length + 1;
+      const newBlock = {
+        id: String(Date.now() + Math.random()),
+        title: `Note Portion ${nextBlockNum}`,
+        content: "",
+        timestamp,
+        isSaved: false
+      };
+      blockContentsRef.current[newBlock.id] = "";
+      return [...prev, newBlock];
+    });
+  };
+
+  const saveBlock = (id) => {
+    try {
+      const { user } = getStoredAuth();
+      const storageKey = `sia_edu_lesson_notes_json_${user?.id || "guest"}_${lessonId}`;
+      
+      setNoteBlocks(prev => {
+        const updated = prev.map(block => {
+          if (block.id === id) {
+            return { 
+              ...block, 
+              content: blockContentsRef.current[id] || "", 
+              isSaved: true 
+            };
+          }
+          return block;
+        });
+        localStorage.setItem(storageKey, JSON.stringify(updated.map(b => ({
+          ...b,
+          content: b.id === id ? (blockContentsRef.current[id] || "") : b.content
+        }))));
+        return updated;
+      });
+      addToast({ type: "success", message: "Block saved successfully!" });
+    } catch {
+      addToast({ type: "error", message: "Failed to save block." });
     }
+  };
 
-    saveTimeoutRef.current = setTimeout(() => {
-      savePendingChanges();
-    }, 600);
+  const saveAllBlocks = () => {
+    try {
+      const { user } = getStoredAuth();
+      const storageKey = `sia_edu_lesson_notes_json_${user?.id || "guest"}_${lessonId}`;
+      
+      setNoteBlocks(prev => {
+        const updated = prev.map(block => ({
+          ...block,
+          content: blockContentsRef.current[block.id] || "",
+          isSaved: true
+        }));
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+        return updated;
+      });
+      addToast({ type: "success", message: "All notes saved successfully!" });
+    } catch {
+      addToast({ type: "error", message: "Failed to save notes." });
+    }
+  };
+
+  const deleteBlock = (id) => {
+    setNoteBlocks(prev => {
+      const updated = prev.filter(block => block.id !== id);
+      delete blockContentsRef.current[id];
+      try {
+        const { user } = getStoredAuth();
+        const storageKey = `sia_edu_lesson_notes_json_${user?.id || "guest"}_${lessonId}`;
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      const anyText = updated.some(b => (blockContentsRef.current[b.id] || b.content).replace(/<[^>]*>/g, "").trim());
+      setHasText(anyText);
+      return updated;
+    });
+    addToast({ type: "success", message: "Block deleted." });
   };
 
   const applyFormat = (command, value = null) => {
-    editorRef.current?.focus();
     document.execCommand(command, false, value);
-    handleInput();
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.classList.contains("note-block-editor")) {
+      const blockId = activeEl.getAttribute("data-block-id");
+      if (blockId) {
+        blockContentsRef.current[blockId] = activeEl.innerHTML;
+        setNoteBlocks(prev => prev.map(b => b.id === blockId ? { ...b, isSaved: false } : b));
+      }
+    }
   };
 
   const copyNotesToClipboard = async () => {
-    const plainText = editorRef.current?.innerText || "";
+    const plainText = noteBlocks
+      .map(b => {
+        const content = blockContentsRef.current[b.id] || b.content;
+        return `--- ${b.title} (${b.timestamp}) ---\n${content.replace(/<[^>]*>/g, "").trim()}`;
+      })
+      .join("\n\n");
+      
     if (!plainText.trim()) {
-      addToast({ type: "info", message: "Brain Dump is empty." });
+      addToast({ type: "info", message: "No notes to copy." });
       return;
     }
     try {
       await navigator.clipboard.writeText(plainText);
-      addToast({ type: "success", message: "Copied to clipboard!" });
+      addToast({ type: "success", message: "All notes copied to clipboard!" });
     } catch {
       addToast({ type: "error", message: "Failed to copy notes." });
     }
   };
 
   const clearNotes = () => {
-    const plainText = editorRef.current?.innerText || "";
-    if (!plainText.trim()) return;
-    if (window.confirm("Are you sure you want to clear your notes for this lesson? This cannot be undone.")) {
-      if (editorRef.current) {
-        editorRef.current.innerHTML = "";
-      }
+    if (window.confirm("Are you sure you want to clear all your notes for this lesson? This cannot be undone.")) {
+      setNoteBlocks([]);
       setHasText(false);
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-      latestHtmlRef.current = "";
-      hasPendingChangesRef.current = false;
+      blockContentsRef.current = {};
       try {
         const { user } = getStoredAuth();
-        const storageKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
+        const storageKey = `sia_edu_lesson_notes_json_${user?.id || "guest"}_${lessonId}`;
+        const legacyKey = `sia_edu_lesson_notes_html_${user?.id || "guest"}_${lessonId}`;
         localStorage.removeItem(storageKey);
-        addToast({ type: "success", message: "Brain Dump cleared." });
+        localStorage.removeItem(legacyKey);
+        addToast({ type: "success", message: "All notes cleared." });
       } catch {
         // Ignore errors
       }
@@ -732,121 +892,119 @@ export default function LessonPlayer() {
   const renderStickyNote = () => {
     return (
       <aside className={`lesson-sticky-note ${showNotes ? "open" : "closed"}${isFullscreen ? " is-fullscreen" : ""}`}>
-        <div className="sticky-note-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-          <div className="sticky-note-title" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <span className="note-emoji">🧠</span>
+        <div className="sticky-note-header">
+          <div className="sticky-note-title">
             <span>Brain Dump</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-            <span className="sticky-note-autosave-label">Auto-saved</span>
+            <span className="sticky-note-status saved">Manual Save</span>
             {isFullscreen && (
               <button
                 type="button"
-                className="btn btn-muted btn-icon notes-close-btn"
+                className="notes-close-minimal-btn"
                 onClick={() => setShowNotes(false)}
-                aria-label="Close Brain Dump"
-                title="Close Brain Dump"
-                style={{ padding: "0.2rem", minWidth: "auto", border: "none", background: "none", color: "rgba(255, 255, 255, 0.6)", cursor: "pointer", display: "flex", alignItems: "center" }}
+                title="Close notes panel"
               >
-                <HiOutlineXMark style={{ width: "1.2rem", height: "1.2rem" }} />
+                Close
               </button>
             )}
           </div>
         </div>
 
-        <div className="sticky-note-toolbar">
+        <div className="sticky-note-toolbar minimal">
           <button
             type="button"
-            className="toolbar-btn bold-btn"
+            className="toolbar-minimal-btn"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat("bold");
             }}
             title="Bold"
           >
-            B
+            <BiBold />
           </button>
           <button
             type="button"
-            className="toolbar-btn underline-btn"
+            className="toolbar-minimal-btn"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat("underline");
             }}
             title="Underline"
           >
-            U
+            <BiUnderline />
           </button>
-
-          {/* List Options Dropdown */}
-          <div className="toolbar-dropdown-container" ref={dropdownRef}>
-            <button
-              type="button"
-              className={`toolbar-btn btn-icon ${showListMenu ? "active" : ""}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setShowListMenu(!showListMenu);
-              }}
-              title="List Options"
-            >
-              <HiOutlineListBullet />
-            </button>
-            {showListMenu && (
-              <div className="toolbar-dropdown-menu">
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applyFormat("insertUnorderedList");
-                    setShowListMenu(false);
-                  }}
-                >
-                  • Bullet List
-                </button>
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applyFormat("insertOrderedList");
-                    setShowListMenu(false);
-                  }}
-                >
-                  1. Numbered List
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="sticky-note-body">
-          <div
-            ref={editorRef}
-            contentEditable
-            className="sticky-note-editor"
-            onInput={handleInput}
-            onBlur={() => savePendingChanges()}
-            data-placeholder="Jot down quick ideas, key formulas, or doubts..."
-          />
-        </div>
-        <div className="sticky-note-footer">
           <button
             type="button"
-            className="btn btn-muted btn-small note-action-btn btn-icon"
+            className="toolbar-minimal-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat("insertUnorderedList");
+            }}
+            title="Bullet List"
+          >
+            <BiListUl />
+          </button>
+          <button
+            type="button"
+            className="toolbar-minimal-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat("insertOrderedList");
+            }}
+            title="Numbered List"
+          >
+            <BiListOl />
+          </button>
+        </div>
+
+        <div className="sticky-note-body block-layout">
+          {noteBlocks.map((block) => (
+            <NoteBlockCard
+              key={`${lessonId}_${block.id}`}
+              block={block}
+              blockContentsRef={blockContentsRef}
+              setNoteBlocks={setNoteBlocks}
+              onTitleChange={handleBlockTitleChange}
+              onSave={saveBlock}
+              onDelete={deleteBlock}
+            />
+          ))}
+
+          <button
+            type="button"
+            className="note-block-add-btn"
+            onClick={addNoteBlock}
+            title="Add a new portion portion"
+          >
+            + Add Portion
+          </button>
+        </div>
+        <div className="sticky-note-footer minimal">
+          <button
+            type="button"
+            className="btn-minimal copy-all-btn"
             onClick={copyNotesToClipboard}
             title="Copy Notes to Clipboard"
           >
-            <HiOutlineClipboard /> Copy
+            Copy All
           </button>
           <button
             type="button"
-            className="btn btn-danger btn-small note-action-btn btn-icon"
+            className="btn-minimal save-all-btn"
+            onClick={saveAllBlocks}
+            title="Save All Portions"
+          >
+            Save All
+          </button>
+          <button
+            type="button"
+            className="btn-minimal clear-all-btn"
             onClick={clearNotes}
             title="Clear Notes"
-            disabled={!hasText}
+            disabled={noteBlocks.length === 0}
           >
-            <HiOutlineTrash /> Clear
+            Clear All
           </button>
         </div>
       </aside>

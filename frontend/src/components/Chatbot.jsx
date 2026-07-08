@@ -185,10 +185,59 @@ export default function Chatbot() {
     },
   ]);
 
+  const activeIntervalsRef = useRef([]);
+
+  useEffect(() => {
+    return () => {
+      activeIntervalsRef.current.forEach(clearInterval);
+    };
+  }, []);
+
   useEffect(() => {
     if (!open || !messagesRef.current) return;
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [messages, botTyping, open]);
+
+  const typeOutMessage = (reply, sources) => {
+    // Append a blank bot entry which we will progressively fill
+    setMessages((prev) => [...prev, { role: "bot", text: "", sources }]);
+    
+    let currentText = "";
+    let index = 0;
+    const charsPerStep = 4; // Types 4 characters at a time for smooth, high-fidelity typing
+    const intervalTime = 20;
+    
+    const interval = setInterval(() => {
+      if (index >= reply.length) {
+        clearInterval(interval);
+        activeIntervalsRef.current = activeIntervalsRef.current.filter((item) => item !== interval);
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg && lastMsg.role === "bot") {
+            lastMsg.text = reply;
+          }
+          return updated;
+        });
+        setBotTyping(false);
+        return;
+      }
+      
+      currentText += reply.slice(index, index + charsPerStep);
+      index += charsPerStep;
+      
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastMsg = updated[updated.length - 1];
+        if (lastMsg && lastMsg.role === "bot") {
+          lastMsg.text = currentText;
+        }
+        return updated;
+      });
+    }, intervalTime);
+
+    activeIntervalsRef.current.push(interval);
+  };
 
   const askBot = async (rawText) => {
     const text = rawText.trim();
@@ -223,7 +272,7 @@ export default function Chatbot() {
       });
       const reply = response?.data?.reply || "**Quick Retry**\n- I can help with your education doubts.\n- Please rephrase the question.";
       const sources = Array.isArray(response?.data?.sources) ? response.data.sources : [];
-      setMessages((prev) => [...prev, { role: "bot", text: reply, sources }]);
+      typeOutMessage(reply, sources);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -237,7 +286,6 @@ export default function Chatbot() {
           sources: [],
         },
       ]);
-    } finally {
       setBotTyping(false);
     }
   };
@@ -271,7 +319,17 @@ export default function Chatbot() {
               <div className="chat-msg-body">{renderMessageText(message.text)}</div>
             </div>
           ))}
-          {botTyping ? <div className="chat-msg bot">Support chat is preparing your answer...</div> : null}
+          {botTyping ? (
+            <div className="chat-msg bot">
+              <div className="chat-msg-body">
+                <div className="chat-loading-bubble">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
         <div className="chatbot-suggestions">
           {QUICK_SUGGESTIONS.map((item) => (

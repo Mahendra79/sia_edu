@@ -56,6 +56,21 @@ export default function LMSPortal() {
   const [projectPdf, setProjectPdf] = useState(null);
   const [downloadingProjectPdfId, setDownloadingProjectPdfId] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
+  const [activeModule, setActiveModule] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedModule) {
+      setActiveModule(selectedModule);
+      setDrawerOpen(true);
+    } else {
+      setDrawerOpen(false);
+      const timer = setTimeout(() => {
+        setActiveModule(null);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedModule]);
 
   useEffect(() => {
     try {
@@ -94,6 +109,24 @@ export default function LMSPortal() {
     };
     loadCourse();
   }, [courseId, addToast]);
+
+  // Auto-scroll on initial load to focus on the active/uncompleted module node with smooth scrolling
+  useEffect(() => {
+    if (!loading && activeTab === "modules" && overview) {
+      const scrollTimer = setTimeout(() => {
+        const activeNode = document.querySelector(".roadmap-node-wrapper.active");
+        if (activeNode) {
+          activeNode.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          const certNode = document.querySelector(".roadmap-node-wrapper.certificate");
+          if (certNode) {
+            certNode.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }
+      }, 500);
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [loading, activeTab, overview]);
 
   const modules = useMemo(() => overview?.modules || [], [overview]);
   const progressPercent = Number(overview?.progress_percent || 0);
@@ -242,11 +275,14 @@ export default function LMSPortal() {
     return `${completedCount}/${module.lessons?.length || 0} lessons`;
   };
 
-  // Winding calculations for level nodes
+  // Winding calculations for level nodes (Bottom-Up layout)
   const roadmapNodes = useMemo(() => {
+    const totalCount = modules.length;
     const list = modules.map((module, index) => {
-      const x = 50 + 20 * Math.sin((index * Math.PI) / 2);
-      const y = index * 145 + 75;
+      // Module 1 (index 0) is placed at the bottom (reversedIndex = totalCount)
+      const reversedIndex = totalCount - index;
+      const x = 50 + 20 * Math.sin((reversedIndex * Math.PI) / 2);
+      const y = reversedIndex * 145 + 75;
 
       const completedCount = module.lessons?.filter((item) => item.is_completed).length || 0;
       const isCompleted = Boolean(module.is_completed);
@@ -259,23 +295,22 @@ export default function LMSPortal() {
         y,
         completedCount,
         status,
+        index,
       };
     });
 
     if (list.length > 0) {
-      const certIndex = list.length;
-      const certX = 50 + 20 * Math.sin((certIndex * Math.PI) / 2);
-      const certY = certIndex * 145 + 75;
-      
+      // Certificate is placed at the very top (reversedIndex = 0)
       const isCertUnlocked = completedLessons === totalLessons;
       const status = isCertUnlocked ? "completed" : "locked";
 
       list.push({
         is_certificate_node: true,
         module_number: 99,
-        x: certX,
-        y: certY,
+        x: 50,
+        y: 75,
         status,
+        index: totalCount,
       });
     }
 
@@ -293,17 +328,17 @@ export default function LMSPortal() {
     for (let i = 1; i < roadmapNodes.length; i++) {
       const prev = roadmapNodes[i - 1];
       const curr = roadmapNodes[i];
-      const cp1y = prev.y + 70;
-      const cp2y = curr.y - 70;
+      const cp1y = prev.y - 70;
+      const cp2y = curr.y + 70;
       path += ` C ${prev.x} ${cp1y}, ${curr.x} ${cp2y}, ${curr.x} ${curr.y}`;
     }
     return path;
   }, [roadmapNodes]);
 
-  const selectedModuleQuiz = useMemo(() => {
-    if (!selectedModule) return null;
-    return quizzes.find((q) => Number(q.module_number) === Number(selectedModule.module_number));
-  }, [selectedModule, quizzes]);
+  const activeModuleQuiz = useMemo(() => {
+    if (!activeModule) return null;
+    return quizzes.find((q) => Number(q.module_number) === Number(activeModule.module_number));
+  }, [activeModule, quizzes]);
 
   return (
     <MainLayout>
@@ -495,6 +530,7 @@ export default function LMSPortal() {
                             style={{
                               left: `${node.x}%`,
                               top: `${node.y}px`,
+                              animationDelay: `${node.index * 75}ms`,
                             }}
                           >
                             <button
@@ -527,6 +563,7 @@ export default function LMSPortal() {
                           style={{
                             left: `${node.x}%`,
                             top: `${node.y}px`,
+                            animationDelay: `${index * 75}ms`,
                           }}
                         >
                           <button
@@ -659,17 +696,20 @@ export default function LMSPortal() {
           </div>
           
           {/* Slide-over Module Details Drawer */}
-          {selectedModule && (
-            <>
-              <div className="lms-drawer-overlay active" onClick={() => setSelectedModule(null)} />
-              <div className="lms-details-drawer active">
+          <div
+            className={`lms-drawer-overlay ${drawerOpen ? "active" : ""}`}
+            onClick={() => setSelectedModule(null)}
+          />
+          <div className={`lms-details-drawer ${drawerOpen ? "active" : ""}`}>
+            {activeModule && (
+              <>
                 <div className="drawer-header">
                   <div>
                     <span className="drawer-kicker">
-                      {selectedModule.is_certificate_node ? "Achievement stop" : `Level ${roadmapNodes.findIndex(n => n.module_number === selectedModule.module_number) + 1}`}
+                      {activeModule.is_certificate_node ? "Achievement stop" : `Level ${roadmapNodes.findIndex(n => n.module_number === activeModule.module_number) + 1}`}
                     </span>
                     <h3>
-                      {selectedModule.is_certificate_node ? "Course Certification" : getModuleTitle(selectedModule)}
+                      {activeModule.is_certificate_node ? "Course Certification" : getModuleTitle(activeModule)}
                     </h3>
                   </div>
                   <button
@@ -683,13 +723,13 @@ export default function LMSPortal() {
                 </div>
 
                 <div className="drawer-body">
-                  {selectedModule.is_certificate_node ? (
+                  {activeModule.is_certificate_node ? (
                     <div className="drawer-certificate-content">
                       <p>Complete all core module requirements and evaluations to generate your course certificate.</p>
                       
                       <div className="drawer-progress-info" style={{ margin: "1.5rem 0" }}>
                         <div className="drawer-progress-meta">
-                          <strong>Certification Criteria</strong>
+                          <strong>Certificate Progress</strong>
                           <span>{completedLessons} / {totalLessons} Lessons Verified</span>
                         </div>
                         <div className="drawer-progress-bar">
@@ -701,60 +741,45 @@ export default function LMSPortal() {
                           />
                         </div>
                       </div>
-
-                      <ul className="lms-certificate-checklist" style={{ paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "0.85rem", marginBottom: "2rem" }}>
-                        <li className={completedLessons === totalLessons ? "is-complete" : ""} style={{ position: "relative", paddingLeft: "1.5rem", color: completedLessons === totalLessons ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                          <span style={{ position: "absolute", left: 0, color: completedLessons === totalLessons ? "#10b981" : "#64748b" }}>
-                            {completedLessons === totalLessons ? "●" : "○"}
-                          </span>
-                          Complete all {totalLessons} course lessons ({completedLessons} completed)
-                        </li>
-                        <li className={progressPercent >= 100 ? "is-complete" : ""} style={{ position: "relative", paddingLeft: "1.5rem", color: progressPercent >= 100 ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                          <span style={{ position: "absolute", left: 0, color: progressPercent >= 100 ? "#10b981" : "#64748b" }}>
-                            {progressPercent >= 100 ? "●" : "○"}
-                          </span>
-                          Reach 100% course progress rating
-                        </li>
-                      </ul>
-
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        style={{ width: "100%" }}
-                        disabled={completedLessons !== totalLessons}
-                        onClick={() => {
-                          setActiveTab("certificate");
-                          setSelectedModule(null);
-                        }}
-                      >
-                        Go to Certificate tab
-                      </button>
+                      <div className="lms-certificate-panel">
+                        <div className="lms-certificate-progress">{completedLessons}/{totalLessons} lessons complete</div>
+                        <ul className="lms-certificate-checklist">
+                          <li className={completedLessons === totalLessons ? "is-complete" : ""}>
+                            Complete all lessons ({completedLessons}/{totalLessons})
+                          </li>
+                          <li className={progressPercent >= 100 ? "is-complete" : ""}>Reach 100% course progress</li>
+                          <li>Pass all required module quizzes (published on weekends)</li>
+                        </ul>
+                        <button type="button" className="btn btn-primary" disabled={completedLessons !== totalLessons}>
+                          Generate Certificate
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <>
                       <div className="drawer-progress-info">
                         <div className="drawer-progress-meta">
-                          <strong>Lessons Progress</strong>
-                          <span>{selectedModule.completedCount} / {selectedModule.lessons?.length || 0} Complete</span>
+                          <strong>Level Progress</strong>
+                          <span>{activeModule.completedCount} / {activeModule.lessons?.length || 0} Complete</span>
                         </div>
                         <div className="drawer-progress-bar">
                           <div
                             className="drawer-progress-fill"
                             style={{
-                              width: `${selectedModule.lessons?.length ? (selectedModule.completedCount / selectedModule.lessons.length) * 100 : 0}%`,
+                              width: `${activeModule.lessons?.length ? (activeModule.completedCount / activeModule.lessons.length) * 100 : 0}%`,
                             }}
                           />
                         </div>
                       </div>
 
                       <div className="drawer-section">
-                        <h4>Course Lessons</h4>
+                        <h4>Lessons</h4>
                         <ul className="drawer-lesson-list">
-                          {selectedModule.lessons?.map((lesson) => {
+                          {activeModule.lessons?.map((lesson) => {
+                            const isProjectLesson = lesson.is_project || Number(activeModule.module_number) === 9;
                             const lessonStatus = getLessonStatus(lesson);
                             const isPlayable =
                               lessonStatus === "Continue" || lessonStatus === "Resume" || lessonStatus === "Completed";
-                            const isProjectLesson = lesson.is_project || Number(selectedModule.module_number) === 9;
 
                             return (
                               <li
@@ -763,9 +788,17 @@ export default function LMSPortal() {
                               >
                                 <div className="lesson-info-col">
                                   {lesson.is_completed ? (
-                                    <HiOutlineCheckCircle className="drawer-lesson-icon is-completed" />
+                                    isProjectLesson ? (
+                                      <HiOutlineClipboardDocumentList className="drawer-lesson-icon is-completed" />
+                                    ) : (
+                                      <HiOutlinePlayCircle className="drawer-lesson-icon is-completed" />
+                                    )
                                   ) : lesson.is_unlocked ? (
-                                    <HiOutlinePlayCircle className="drawer-lesson-icon is-unlocked" />
+                                    isProjectLesson ? (
+                                      <HiOutlineClipboardDocumentList className="drawer-lesson-icon is-unlocked" />
+                                    ) : (
+                                      <HiOutlinePlayCircle className="drawer-lesson-icon is-unlocked" />
+                                    )
                                   ) : (
                                     <HiOutlineLockClosed className="drawer-lesson-icon is-locked" />
                                   )}
@@ -779,12 +812,44 @@ export default function LMSPortal() {
                                 
                                 <div className="lesson-action-col">
                                   {isPlayable ? (
-                                    isProjectLesson ? (
-                                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                                    lessonStatus === "Completed" ? (
+                                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                                        <HiOutlineCheckCircle style={{ color: "#10b981", fontSize: "1.45rem", flexShrink: 0 }} title="Completed" />
+                                        {isProjectLesson ? (
+                                          <div style={{ display: "flex", gap: "0.4rem" }}>
+                                            <button
+                                              type="button"
+                                              className="btn btn-muted btn-small drawer-lesson-btn"
+                                              onClick={() => handleLessonAction(activeModule.module_number, lesson)}
+                                            >
+                                              View PDF
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="btn btn-muted btn-icon btn-small"
+                                              onClick={() => downloadProjectPdf(lesson)}
+                                              disabled={downloadingProjectPdfId === lesson.id}
+                                              title="Download PDF"
+                                            >
+                                              <HiOutlineDocumentArrowDown />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="btn btn-muted btn-small drawer-lesson-btn"
+                                            onClick={() => handleLessonAction(activeModule.module_number, lesson)}
+                                          >
+                                            View Lesson
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : isProjectLesson ? (
+                                      <div style={{ display: "flex", gap: "0.4rem" }}>
                                         <button
                                           type="button"
-                                          className={`btn btn-small ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"} drawer-lesson-btn`}
-                                          onClick={() => handleLessonAction(selectedModule.module_number, lesson)}
+                                          className="btn btn-primary btn-small drawer-lesson-btn"
+                                          onClick={() => handleLessonAction(activeModule.module_number, lesson)}
                                         >
                                           View PDF
                                         </button>
@@ -801,8 +866,8 @@ export default function LMSPortal() {
                                     ) : (
                                       <button
                                         type="button"
-                                        className={`btn btn-small ${lessonStatus === "Completed" ? "btn-muted" : "btn-primary"} drawer-lesson-btn`}
-                                        onClick={() => handleLessonAction(selectedModule.module_number, lesson)}
+                                        className="btn btn-primary btn-small drawer-lesson-btn"
+                                        onClick={() => handleLessonAction(activeModule.module_number, lesson)}
                                       >
                                         {lessonStatus}
                                       </button>
@@ -818,32 +883,32 @@ export default function LMSPortal() {
                       </div>
 
                       {/* Integrated Module Quiz */}
-                      {selectedModuleQuiz && (
+                      {activeModuleQuiz && (
                         <div className="drawer-section drawer-quiz-section">
                           <h4>Module Evaluation</h4>
-                          <div className={`drawer-quiz-card ${selectedModuleQuiz.is_done ? "passed" : ""}`}>
+                          <div className={`drawer-quiz-card ${activeModuleQuiz.is_done ? "passed" : ""}`}>
                             <div className="quiz-card-head">
-                              <h5>{selectedModuleQuiz.title}</h5>
-                              <span className={`quiz-badge ${selectedModuleQuiz.is_done ? "passed" : ""}`}>
-                                {selectedModuleQuiz.is_done ? "Passed" : "Available"}
+                              <h5>{activeModuleQuiz.title}</h5>
+                              <span className={`quiz-badge ${activeModuleQuiz.is_done ? "passed" : ""}`}>
+                                {activeModuleQuiz.is_done ? "Passed" : "Available"}
                               </span>
                             </div>
-                            <p>{selectedModuleQuiz.description || "Complete the lessons above then evaluate your knowledge."}</p>
+                            <p>{activeModuleQuiz.description || "Complete the lessons above then evaluate your knowledge."}</p>
                             <div className="quiz-card-meta">
-                              <span>{selectedModuleQuiz.question_count} Questions</span>
-                              <span>{selectedModuleQuiz.pass_percentage}% Passing Mark</span>
+                              <span>{activeModuleQuiz.question_count} Questions</span>
+                              <span>{activeModuleQuiz.pass_percentage}% Passing Mark</span>
                             </div>
                             <button
                               type="button"
-                              className={`btn ${selectedModuleQuiz.is_done ? "btn-muted" : "btn-primary"} quiz-btn`}
+                              className={`btn ${activeModuleQuiz.is_done ? "btn-muted" : "btn-primary"} quiz-btn`}
                               onClick={() => {
-                                if (!selectedModuleQuiz.is_done) {
-                                  navigate(`/user/lms/${courseId}/quiz/${selectedModuleQuiz.id}`);
+                                if (!activeModuleQuiz.is_done) {
+                                  navigate(`/user/lms/${courseId}/quiz/${activeModuleQuiz.id}`);
                                 }
                               }}
-                              disabled={selectedModuleQuiz.is_done}
+                              disabled={activeModuleQuiz.is_done}
                             >
-                              {selectedModuleQuiz.is_done ? "Evaluation Passed" : "Start Evaluation"}
+                              {activeModuleQuiz.is_done ? "Evaluation Passed" : "Start Evaluation"}
                             </button>
                           </div>
                         </div>
@@ -851,9 +916,9 @@ export default function LMSPortal() {
                     </>
                   )}
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </section>
       )}
     </MainLayout>
