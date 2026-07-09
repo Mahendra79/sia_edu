@@ -4,6 +4,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Chatbot from "./components/Chatbot";
+import QuantumBackground from "./components/QuantumBackground";
+import { useAuth } from "./context/AuthContext";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -38,8 +40,11 @@ const LessonPlayer = lazy(() => import("./user/LessonPlayer"));
 const QuizPlayer = lazy(() => import("./user/QuizPlayer"));
 
 export default function App() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Suspense fallback={<LoadingSpinner label="Loading page..." />}>
+      <QuantumBackground />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -216,7 +221,7 @@ export default function App() {
         <Route path="/user" element={<Navigate to="/user/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Chatbot />
+      {isAuthenticated && <Chatbot />}
     </Suspense>
   );
 }
