@@ -338,7 +338,12 @@ class CourseListCreateView(generics.ListCreateAPIView):
         queryset = _annotated_course_queryset(self.request.user)
         search = self.request.query_params.get("search", "").strip()
         if search:
-            queryset = queryset.filter(title__icontains=search)
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(short_description__icontains=search) |
+                Q(description__icontains=search) |
+                Q(category__name__icontains=search)
+            )
 
         category_id = self.request.query_params.get("category")
         if category_id:

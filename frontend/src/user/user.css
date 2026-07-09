@@ -640,10 +640,7 @@
   display: block;
 }
 
-.custom-video-player.is-theater {
-  margin-inline: calc(50% - 50vw + 1rem);
-  border-radius: 0;
-}
+
 
 .custom-video-player:fullscreen {
   width: 100vw;
@@ -670,9 +667,8 @@
   cursor: pointer;
 }
 
-.custom-video-player.is-theater .lesson-video {
-  max-height: none;
-}
+
+
 
 .custom-video-player:fullscreen .lesson-video {
   width: 100%;
@@ -1293,10 +1289,8 @@
     max-height: none;
   }
 
-  .custom-video-player.is-theater {
-    margin-inline: 0;
-    border-radius: var(--radius-md);
-  }
+
+
 
   .custom-video-toolbar {
     display: flex;
@@ -1386,62 +1380,83 @@
 
 /* Lesson Player: Brain Dump (sticky notes) panel */
 .lesson-layout-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1.5rem;
+}
+
+.lesson-card {
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 @media (min-width: 1025px) {
   .lesson-layout-container {
-    grid-template-columns: 1fr 380px;
+    flex-direction: row;
     align-items: start;
-    gap: 1.5rem;
   }
 }
 
 .lesson-sticky-note {
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 1.25rem;
-  background: color-mix(in srgb, var(--bg-elevated) 95%, #020b1f);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-primary);
-  box-shadow: var(--card-shadow);
   height: 600px;
   width: 380px;
-  max-width: 380px;
+  max-width: 100%;
   opacity: 1;
   visibility: visible;
   overflow: hidden;
-  margin-left: 0;
   transition:
     width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.25s ease,
     margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     border-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s ease,
     border-color 0.2s ease;
 }
 
-.lesson-sticky-note.closed {
-  width: 0;
-  max-width: 0;
-  opacity: 0;
-  visibility: hidden;
-  margin-left: 0;
-  padding: 0;
-  border-width: 0;
-  box-shadow: none;
+@media (max-width: 1024px) {
+  .lesson-sticky-note.closed {
+    height: 0;
+    width: 0;
+    max-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    padding: 0;
+    border-width: 0;
+    margin-top: -1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .lesson-sticky-note {
+    width: 380px;
+    max-width: 380px;
+  }
+  
+  .lesson-sticky-note.closed {
+    width: 0;
+    max-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    padding: 0;
+    border-width: 0;
+    margin-left: -1.5rem;
+  }
 }
 
 .lesson-sticky-note:hover,
 .lesson-sticky-note:focus-within {
-  border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--border));
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--bg-primary) 30%, black);
+  border-color: var(--border);
 }
 
 .sticky-note-header {
@@ -1518,36 +1533,32 @@
 }
 
 .note-block-card {
-  background: color-mix(in srgb, var(--bg-primary) 35%, var(--bg-elevated));
+  background: var(--bg-primary);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 0.8rem 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .note-block-card:hover {
-  border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--border));
-  background: color-mix(in srgb, var(--bg-primary) 15%, var(--bg-elevated));
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
+  border-color: var(--border);
+  background: var(--bg-primary);
 }
 
 .note-block-card.unsaved {
-  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  border-color: var(--warning);
 }
 
 .note-block-card.saved {
-  border-style: solid;
   border-color: var(--border);
 }
 
 .note-block-card.saved:hover {
-  border-color: color-mix(in srgb, var(--accent-strong) 30%, var(--border));
+  border-color: var(--border);
 }
 
 .note-block-header {
@@ -1776,14 +1787,13 @@
   width: 350px !important;
   max-width: 350px !important;
   padding: 1.1rem !important;
-  border-width: 1px !important;
-  background: rgba(15, 23, 42, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  border-left: 1px solid var(--border) !important;
+  background: var(--bg-elevated) !important;
   z-index: 2147483647 !important;
   margin: 0 !important;
   border-radius: 0 !important;
-  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15) !important;
   visibility: visible !important;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
 }

@@ -16,7 +16,7 @@ import {
   HiOutlinePlay,
   HiOutlineSpeakerWave,
   HiOutlineSpeakerXMark,
-  HiOutlineViewColumns,
+
 } from "react-icons/hi2";
 import { BiBold, BiUnderline, BiListUl, BiListOl } from "react-icons/bi";
 import * as pdfjsLib from "pdfjs-dist";
@@ -316,7 +316,6 @@ export default function LessonPlayer() {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isVideoReady, setIsVideoReady] = useState(false);
@@ -326,6 +325,10 @@ export default function LessonPlayer() {
   const [showNotes, setShowNotes] = useState(true);
   const [noteBlocks, setNoteBlocks] = useState([]);
   const blockContentsRef = useRef({});
+
+  const handleToggleNotes = () => {
+    setShowNotes((prev) => !prev);
+  };
 
   const loadLesson = useCallback(async () => {
     const cacheKey = `lesson:${lessonId}:${courseId}`;
@@ -431,7 +434,7 @@ export default function LessonPlayer() {
       setNoteBlocks([defaultBlock]);
       blockContentsRef.current = { [defaultBlock.id]: "" };
     }
-  }, [lessonId, loading, isFullscreen]);
+  }, [lessonId]);
 
   const handleBlockTitleChange = (id, newTitle) => {
     setNoteBlocks((prev) =>
@@ -979,7 +982,7 @@ export default function LessonPlayer() {
             <button
               type="button"
               className={`btn ${showNotes ? "btn-muted" : "btn-primary"} btn-icon toggle-notes-btn`}
-              onClick={() => setShowNotes((value) => !value)}
+              onClick={handleToggleNotes}
               style={{ marginLeft: "auto" }}
             >
               💡 {showNotes ? "Hide Brain Dump" : "Show Brain Dump"}
@@ -997,7 +1000,7 @@ export default function LessonPlayer() {
           </article>
         ) : null}
         {!loading && lesson ? (
-          <div className="lesson-layout-container">
+          <div className={`lesson-layout-container ${showNotes ? "has-notes" : "no-notes"}`}>
           <article className="lesson-card">
             <p className="lms-kicker">Lesson Player</p>
             <p className="lesson-breadcrumb">
@@ -1010,7 +1013,7 @@ export default function LessonPlayer() {
 
             {videoUrl && videoViewerUrl ? (
               <div
-                className={`lesson-video-wrap custom-video-player${isTheaterMode ? " is-theater" : ""}${isFullscreen && isPlaying && !controlsVisible ? " controls-hidden" : ""}`}
+                className={`lesson-video-wrap custom-video-player${isFullscreen && isPlaying && !controlsVisible ? " controls-hidden" : ""}`}
                 ref={playerRef}
                 onMouseMove={revealFullscreenControls}
                 onMouseDown={revealFullscreenControls}
@@ -1098,21 +1101,13 @@ export default function LessonPlayer() {
                       <button
                         type="button"
                         className={`custom-video-btn${showNotes ? " is-active" : ""}`}
-                        onClick={() => setShowNotes((value) => !value)}
+                        onClick={handleToggleNotes}
                         aria-label="Toggle Brain Dump"
                         title={showNotes ? "Hide Brain Dump" : "Show Brain Dump"}
                       >
                         <HiOutlineLightBulb />
                       </button>
-                      <button
-                        type="button"
-                        className={`custom-video-btn${isTheaterMode ? " is-active" : ""}`}
-                        onClick={() => setIsTheaterMode((value) => !value)}
-                        aria-label="Toggle theater mode"
-                        title="Theater mode"
-                      >
-                        <HiOutlineViewColumns />
-                      </button>
+
                       <button type="button" className="custom-video-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen" title="Fullscreen">
                         {isFullscreen ? <HiOutlineArrowsPointingIn /> : <HiOutlineArrowsPointingOut />}
                       </button>

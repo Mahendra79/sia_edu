@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
   HiArrowRightOnRectangle,
   HiBars3,
@@ -49,12 +50,24 @@ export default function Sidebar({ extra }) {
   const { theme, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [lastPathname, setLastPathname] = useState(location.pathname);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar-collapsed") === "true";
+  });
+
   const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
 
   if (location.pathname !== lastPathname) {
     setLastPathname(location.pathname);
     setIsOpen(false);
   }
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebar-collapsed", String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -98,32 +111,48 @@ export default function Sidebar({ extra }) {
       </div>
       {isOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeSidebar} /> : null}
 
-      <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""}`.trim()}>
-        <Link className="app-sidebar-brand" to="/" onClick={closeSidebar}>
-          <span className="app-sidebar-logo">
-            <img src={companyLogo} alt="SIA Software Innovations logo" loading="lazy" decoding="async" />
-          </span>
-          <span className="app-sidebar-brand-text">
-            <strong>SIA</strong>
-            <span>Software Innovations</span>
-          </span>
-        </Link>
+      <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""} ${isCollapsed ? "is-collapsed" : ""}`.trim()}>
+        <div className="app-sidebar-header">
+          <Link className="app-sidebar-brand" to="/" onClick={closeSidebar}>
+            <span className="app-sidebar-logo">
+              <img src={companyLogo} alt="SIA Software Innovations logo" loading="lazy" decoding="async" />
+            </span>
+            {!isCollapsed && (
+              <span className="app-sidebar-brand-text">
+                <strong>SIA</strong>
+                <span>Software Innovations</span>
+              </span>
+            )}
+          </Link>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={handleToggleCollapse}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen size={20} className="sidebar-toggle-icon" />
+            ) : (
+              <PanelLeftClose size={20} className="sidebar-toggle-icon" />
+            )}
+          </button>
+        </div>
 
         <nav className="app-sidebar-nav">
           <NavLink end to="/" className="app-sidebar-link" onClick={closeSidebar}>
             <HiOutlineHome />
-            Home
+            {!isCollapsed && <span>Home</span>}
           </NavLink>
 
           {!isAuthenticated ? (
             <>
               <NavLink to="/login" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineUserCircle />
-                Login
+                {!isCollapsed && <span>Login</span>}
               </NavLink>
               <NavLink to="/signup" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineAcademicCap />
-                Signup
+                {!isCollapsed && <span>Signup</span>}
               </NavLink>
             </>
           ) : null}
@@ -132,19 +161,19 @@ export default function Sidebar({ extra }) {
             <>
               <NavLink to="/user/dashboard" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineViewColumns />
-                Dashboard
+                {!isCollapsed && <span>Dashboard</span>}
               </NavLink>
               <NavLink to="/user/my-courses" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineSquares2X2 />
-                My Courses
+                {!isCollapsed && <span>My Courses</span>}
               </NavLink>
               <NavLink to="/user/payment-history" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineCreditCard />
-                Payment History
+                {!isCollapsed && <span>Payment History</span>}
               </NavLink>
               <NavLink to="/user/profile" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineUserCircle />
-                Profile
+                {!isCollapsed && <span>Profile</span>}
               </NavLink>
             </>
           ) : null}
@@ -153,51 +182,51 @@ export default function Sidebar({ extra }) {
             <>
               <NavLink to="/admin/dashboard" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineChartBar />
-                Dashboard
+                {!isCollapsed && <span>Dashboard</span>}
               </NavLink>
               <NavLink to="/admin/courses" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineSquares2X2 />
-                Manage Courses
+                {!isCollapsed && <span>Manage Courses</span>}
               </NavLink>
               <NavLink to="/admin/users" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineUsers />
-                Manage Users
+                {!isCollapsed && <span>Manage Users</span>}
               </NavLink>
               <NavLink to="/admin/payments" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineCreditCard />
-                Payments
+                {!isCollapsed && <span>Payments</span>}
               </NavLink>
               <NavLink to="/admin/database" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineCircleStack />
-                Database Edit
+                {!isCollapsed && <span>Database Edit</span>}
               </NavLink>
               <NavLink to="/admin/reports" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlinePresentationChartBar />
-                MIS Reports
+                {!isCollapsed && <span>MIS Reports</span>}
               </NavLink>
               <NavLink to="/admin/chatbot" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineCpuChip />
-                Chatbot QA
+                {!isCollapsed && <span>Chatbot QA</span>}
               </NavLink>
               <NavLink to="/admin/lms" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineBookOpen />
-                LMS
+                {!isCollapsed && <span>LMS</span>}
               </NavLink>
               <NavLink to="/admin/quiz" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineAcademicCap />
-                Quiz
+                {!isCollapsed && <span>Quiz</span>}
               </NavLink>
               <NavLink to="/admin/profile" className="app-sidebar-link" onClick={closeSidebar}>
                 <HiOutlineUserCircle />
-                Profile
+                {!isCollapsed && <span>Profile</span>}
               </NavLink>
             </>
           ) : null}
         </nav>
 
-        {extra ? <div className="app-sidebar-extra">{extra}</div> : null}
+        {extra && !isCollapsed ? <div className="app-sidebar-extra">{extra}</div> : null}
 
-        {isAuthenticated && !isAdmin ? (
+        {isAuthenticated && !isAdmin && !isCollapsed ? (
           <div className="app-sidebar-promo">
             <span className="app-sidebar-promo-icon">
               <HiOutlineSparkles />
@@ -207,7 +236,7 @@ export default function Sidebar({ extra }) {
           </div>
         ) : null}
 
-        {!isAuthenticated ? (
+        {!isAuthenticated && !isCollapsed ? (
           <div className="app-sidebar-promo">
             <span className="app-sidebar-promo-icon">
               <HiOutlineSparkles />
@@ -233,15 +262,16 @@ export default function Sidebar({ extra }) {
                 to={isAdmin ? "/admin/profile" : "/user/profile"}
                 className="user-badge user-badge-link app-sidebar-user"
                 onClick={closeSidebar}
+                title={isCollapsed ? user?.username : undefined}
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={`${user?.username || "User"} avatar`} className="user-badge-avatar" />
                 ) : (
                   <HiOutlineUserCircle />
                 )}
-                <span>{user?.username}</span>
+                {!isCollapsed && <span>{user?.username}</span>}
               </Link>
-              <button type="button" className="btn btn-danger btn-icon app-sidebar-logout" onClick={handleLogout} aria-label="Logout">
+              <button type="button" className="btn btn-danger btn-icon app-sidebar-logout" onClick={handleLogout} aria-label="Logout" title="Logout">
                 <HiArrowRightOnRectangle />
               </button>
             </>

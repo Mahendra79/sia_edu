@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { HiOutlinePaperAirplane, HiOutlineSparkles, HiOutlineXMark } from "react-icons/hi2";
-import { FaRobot } from "react-icons/fa6";
+import { Sparkles, X, Send, Bot } from "lucide-react";
 import { chatbotService } from "../services/chatbotService";
 import katex from "katex";
 import "katex/dist/katex.min.css";
@@ -177,9 +176,10 @@ export default function Chatbot() {
     {
       role: "bot",
       text: (
-        "**Welcome to Support Chat**\n"
-        + "- 24x7 student support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum courses.\n"
-        + "- Ask your topic and I will answer step-by-step."
+        "**Hey there! 👋 I'm Sia, your AI study buddy.**\n"
+        + "- Ask me anything about AI, Machine Learning, Deep Learning, Prompt Engineering, or Quantum Computing.\n"
+        + "- I can clarify complex topics, suggest learning roadmaps, or help with billing questions.\n\n"
+        + "What should we explore today?"
       ),
       sources: [],
     },
@@ -301,16 +301,17 @@ export default function Chatbot() {
         <header>
           <div className="chatbot-title-wrap">
             <h4>
-              <FaRobot />
-              Support Chat
+              <Bot size={18} className="chatbot-header-bot-icon" />
+              SIA AI Buddy
+              <Sparkles size={13} className="chatbot-header-sparkle-icon" />
             </h4>
             <p>
-              24x7 student doubt support for AI, ML, DL, Data Science, Prompt Engineering, and Quantum tracks.
-              {activeCourseId ? " Focused on selected course." : ""}
+              Your friendly study companion for learning roadmaps, lessons, doubts, and billing.
+              {activeCourseId ? " Focused on this course." : ""}
             </p>
           </div>
-          <button type="button" className="btn btn-muted chat-close-btn" onClick={() => setOpen(false)}>
-            <HiOutlineXMark />
+          <button type="button" className="chat-close-btn" onClick={() => setOpen(false)} aria-label="Close chat">
+            <X size={18} />
           </button>
         </header>
         <div className="chatbot-messages" ref={messagesRef}>
@@ -319,7 +320,7 @@ export default function Chatbot() {
               <div className="chat-msg-body">{renderMessageText(message.text)}</div>
             </div>
           ))}
-          {botTyping ? (
+          {botTyping && messages[messages.length - 1]?.role !== "bot" ? (
             <div className="chat-msg bot">
               <div className="chat-msg-body">
                 <div className="chat-loading-bubble">
@@ -342,7 +343,7 @@ export default function Chatbot() {
           <input
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder={activeCourseId ? "Ask your doubt about this course..." : "Ask about AI, ML, DL, Prompt Engineering, or Quantum..."}
+            placeholder={activeCourseId ? "Ask Sia a question about this course..." : "Chat with Sia..."}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -350,9 +351,8 @@ export default function Chatbot() {
               }
             }}
           />
-          <button type="button" className="btn btn-primary btn-icon" onClick={handleSend} disabled={botTyping}>
-            <HiOutlinePaperAirplane />
-            Send
+          <button type="button" className="chat-send-btn" onClick={handleSend} disabled={botTyping || !input.trim()}>
+            <Send size={16} />
           </button>
         </div>
       </div>
@@ -361,9 +361,9 @@ export default function Chatbot() {
         type="button"
         className={`chatbot-fab ${open ? "hidden" : ""}`}
         onClick={() => setOpen(true)}
-        aria-label="Open chatbot"
+        aria-label="Open study assistant"
       >
-        <FaRobot className="chatbot-fab-icon" />
+        <Bot className="chatbot-fab-icon" />
       </button>
 
     </div>

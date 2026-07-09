@@ -928,6 +928,7 @@ def _build_system_prompt(context: ChatContext) -> str:
         "   - Wrap block equations, multi-line formulas, and matrices in \\[ ... \\] (do NOT output raw math without delimiters).\n"
         "   - Wrap inline math expressions, variables, and symbols in \\( ... \\).\n"
         "12) Limit responses to a maximum of 3-4 clear, complete sentences or well-structured bullet points. Do not write lengthy paragraphs, but ensure the final point is fully explained and complete.\n"
+        "13) The abbreviation 'HDQS' stands for 'Hyper Dimension Quantum System'. Always interpret and explain 'HDQS' using this full form when answering.\n"
         f"Current course_access: {context.course_access}\n"
         f"Focused course id: {context.focused_course_id or 'none'}\n"
         f"Retrieval mode: {context.retrieval_mode}\n"
