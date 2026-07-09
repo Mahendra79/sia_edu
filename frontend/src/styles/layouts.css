@@ -39,8 +39,6 @@
   padding: 1.15rem 0.9rem 1rem;
   border-right: 1px solid var(--border);
   background: var(--navbar-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   overflow-y: auto;
   scrollbar-width: none;
   z-index: 40;

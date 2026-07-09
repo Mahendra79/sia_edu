@@ -113,8 +113,6 @@ button:disabled,
   border: 1px solid var(--border);
   box-shadow: var(--card-shadow);
   border-radius: 18px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .card-title {

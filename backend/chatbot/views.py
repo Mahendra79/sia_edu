@@ -7,7 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdminUserRole
+from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
 from chatbot.serializers import ChatEvaluationRequestSerializer, ChatRequestSerializer
 from chatbot.services import (
     EDUCATION_ONLY_REPLY,
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChatbotMessageView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsActiveAuthenticated]
     throttle_scope = "chatbot"
 
     def post(self, request):

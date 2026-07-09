@@ -4,7 +4,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Chatbot from "./components/Chatbot";
-import QuantumBackground from "./components/QuantumBackground";
 import { useAuth } from "./context/AuthContext";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -44,7 +43,6 @@ export default function App() {
 
   return (
     <Suspense fallback={<LoadingSpinner label="Loading page..." />}>
-      <QuantumBackground />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />

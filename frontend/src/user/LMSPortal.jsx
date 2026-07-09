@@ -154,8 +154,7 @@ export default function LMSPortal() {
     const list = modules.map((module, index) => {
       // Module 1 (index 0) is placed at the bottom (reversedIndex = totalCount).
       const reversedIndex = totalCount - index;
-      const amplitude = 22;
-      const x = 50 + amplitude * Math.sin(reversedIndex * Math.PI - Math.PI / 2);
+      const x = 50 + 20 * Math.sin((reversedIndex * Math.PI) / 2);
       const y = reversedIndex * 145 + 75;
 
       const completedCount = module.lessons?.filter((item) => item.is_completed).length || 0;
@@ -191,32 +190,13 @@ export default function LMSPortal() {
 
   const svgPath = useMemo(() => {
     if (roadmapNodes.length === 0) return "";
-    
-    // Sort nodes to draw from bottom (max Y) to top (min Y)
-    const sortedNodes = [...roadmapNodes].sort((a, b) => b.y - a.y);
-    const startY = sortedNodes[0].y;
-    const endY = sortedNodes[sortedNodes.length - 1].y;
-    
-    let path = "";
-    const amplitude = 22;
-    
-    for (let y = startY; y >= endY; y -= 4) {
-      const arg = ((y - 75) / 145) * Math.PI - Math.PI / 2;
-      
-      // Dampen the wave amplitude near the top certificate node
-      let localAmp = amplitude;
-      if (y < 220) {
-        const factor = Math.max(0, (y - 75) / (220 - 75));
-        localAmp = amplitude * factor;
-      }
-      
-      const x = 50 + localAmp * Math.sin(arg);
-      
-      if (y === startY) {
-        path += `M ${x} ${y}`;
-      } else {
-        path += ` L ${x} ${y}`;
-      }
+    let path = `M ${roadmapNodes[0].x} ${roadmapNodes[0].y}`;
+    for (let i = 1; i < roadmapNodes.length; i++) {
+      const prev = roadmapNodes[i - 1];
+      const curr = roadmapNodes[i];
+      const cp1y = prev.y - 70;
+      const cp2y = curr.y + 70;
+      path += ` C ${prev.x} ${cp1y}, ${curr.x} ${cp2y}, ${curr.x} ${curr.y}`;
     }
     return path;
   }, [roadmapNodes]);

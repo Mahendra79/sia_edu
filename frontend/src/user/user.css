@@ -1872,18 +1872,8 @@
 }
 
 .glowing-line {
-  filter: drop-shadow(0 0 10px var(--accent-strong)) drop-shadow(0 0 4px var(--accent));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-strong) 60%, transparent));
   stroke-linecap: round;
-  animation: quantumRoadmapFlow 8s linear infinite;
-}
-
-@keyframes quantumRoadmapFlow {
-  0% {
-    stroke-dashoffset: 180;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
 }
 
 .roadmap-node-wrapper {
