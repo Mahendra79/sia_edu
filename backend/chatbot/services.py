@@ -1278,11 +1278,20 @@ def format_chat_reply(reply: str, context: ChatContext | None = None) -> str:
             cleaned = "\n".join(lines)
 
     if context and getattr(context, "material_sources", None):
-        sources_list = context.material_sources[:2]
-        if len(sources_list) == 1:
-            cleaned += f"\n\n**Source:** {sources_list[0]}"
-        elif len(sources_list) > 1:
-            sources_markdown = "\n".join([f"- {src}" for src in sources_list])
-            cleaned += f"\n\n**Sources:**\n{sources_markdown}"
+        is_general_or_refusal = (
+            cleaned == EDUCATION_ONLY_REPLY
+            or "I can help only with SIA education" in cleaned
+            or "I support only education questions" in cleaned
+            or "connection issues" in cleaned
+            or "reach the learning assistant" in cleaned
+            or "Please rephrase the question" in cleaned
+        )
+        if not is_general_or_refusal:
+            sources_list = context.material_sources[:2]
+            if len(sources_list) == 1:
+                cleaned += f"\n\n**Source:** {sources_list[0]}"
+            elif len(sources_list) > 1:
+                sources_markdown = "\n".join([f"- {src}" for src in sources_list])
+                cleaned += f"\n\n**Sources:**\n{sources_markdown}"
 
     return cleaned

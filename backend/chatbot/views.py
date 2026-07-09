@@ -111,6 +111,14 @@ class ChatbotMessageView(APIView):
             model = "fallback"
             degraded = True
 
+        is_refusal = (
+            reply == EDUCATION_ONLY_REPLY
+            or "I can help only with SIA education" in reply
+            or "I support only education questions" in reply
+            or "connection issues" in reply
+            or "Please rephrase the question" in reply
+        )
+
         return Response(
             {
                 "reply": format_chat_reply(reply, context),
@@ -118,7 +126,7 @@ class ChatbotMessageView(APIView):
                 "provider": provider,
                 "model": model,
                 "course_access": context.course_access,
-                "sources": context.sources,
+                "sources": [] if is_refusal else context.sources,
                 "retrieval_mode": context.retrieval_mode,
                 "retrieval_hits": context.retrieval_hits,
                 "latency_ms": max(int((time.perf_counter() - started) * 1000), 0),
