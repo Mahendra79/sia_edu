@@ -6,7 +6,7 @@ export const COURSE_IMAGE_URLS_BY_ID = {
   53: "https://cdn.corenexis.com/files/c/8776583720.png",
   54: "https://cdn.corenexis.com/files/c/4223578720.png",
   55: "https://cdn.corenexis.com/files/c/5482339720.png",
-  56: "https://cdn.corenexis.com/files/c/8776583720.png",
+  56: "https://cdn.corenexis.com/f/HNvRe3NCqaf.png",
   58: "https://cdn.corenexis.com/files/c/5482339720.png",
   60: "https://cdn.corenexis.com/f/BUqXDT5gwSF.png",
   59: "https://cdn.corenexis.com/f/ikPV93Znw8Y.png",
