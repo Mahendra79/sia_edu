@@ -210,6 +210,19 @@ class QuizQuestion(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    explanation = models.TextField(blank=True, default="")
+    reference_lesson = models.ForeignKey(
+        CourseLesson,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="referenced_questions",
+    )
+    reference_timestamp_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
 
     class Meta:
         ordering = ["order", "id"]

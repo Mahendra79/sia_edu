@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineArrowLeft,
   HiOutlineArrowsPointingIn,
@@ -229,9 +229,11 @@ export function LessonPdfViewer({ name, url }) {
 export default function LessonPlayer() {
   const { courseId, moduleId, lessonId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   const playerRef = useRef(null);
   const videoRef = useRef(null);
+  const initialTimestampAppliedRef = useRef(false);
   const pendingVideoResumeRef = useRef(null);
   const refreshingVideoTokenRef = useRef(false);
   const videoRecoveryAttemptsRef = useRef(0);
@@ -254,6 +256,7 @@ export default function LessonPlayer() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const WATCH_THRESHOLD_PERCENT = 80;
+  const requestedStartTime = Math.max(0, Number(new URLSearchParams(location.search).get("t")) || 0);
 
   const loadLesson = useCallback(async () => {
     setLoading(true);
@@ -270,6 +273,7 @@ export default function LessonPlayer() {
       setDuration(0);
       setIsPlaying(false);
       videoRecoveryAttemptsRef.current = 0;
+      initialTimestampAppliedRef.current = false;
     } catch {
       addToast({ type: "error", message: "Unable to load lesson details." });
     } finally {
@@ -280,6 +284,20 @@ export default function LessonPlayer() {
   useEffect(() => {
     loadLesson();
   }, [loadLesson]);
+
+  useEffect(() => {
+    if (requestedStartTime <= 0 || !videoRef.current) {
+      return;
+    }
+    const media = videoRef.current;
+    const nextDuration = Number(media.duration || 0);
+    if (!Number.isFinite(nextDuration) || nextDuration <= 0 || requestedStartTime < nextDuration) {
+      media.currentTime = requestedStartTime;
+      setCurrentTime(requestedStartTime);
+      initialTimestampAppliedRef.current = true;
+      media.play().catch(() => {});
+    }
+  }, [requestedStartTime]);
 
   const allLessons = (overview?.modules || []).flatMap((module) =>
     (module.lessons || []).map((item) => ({ ...item, module_number: module.module_number })),
@@ -380,6 +398,19 @@ export default function LessonPlayer() {
       media.play().catch(() => {
         // Browser autoplay policies can block resume until the learner presses play.
       });
+    }
+  };
+
+  const handleVideoCanPlay = (event) => {
+    const media = event.currentTarget;
+    const nextDuration = Number(media.duration || 0);
+    if (!initialTimestampAppliedRef.current && requestedStartTime > 0) {
+      initialTimestampAppliedRef.current = true;
+      if (!Number.isFinite(nextDuration) || nextDuration <= 0 || requestedStartTime < nextDuration) {
+        media.currentTime = requestedStartTime;
+        setCurrentTime(requestedStartTime);
+        media.play().catch(() => {});
+      }
     }
   };
 
@@ -615,6 +646,7 @@ export default function LessonPlayer() {
                   onContextMenu={(event) => event.preventDefault()}
                   onClick={togglePlay}
                   onLoadedMetadata={handleVideoLoadedMetadata}
+                  onCanPlay={handleVideoCanPlay}
                   onTimeUpdate={handleTimeUpdate}
                   onPlay={() => {
                     setIsPlaying(true);
