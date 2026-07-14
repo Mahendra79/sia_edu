@@ -510,7 +510,7 @@ export default function AdminQuiz() {
                 <div className="quiz-import-panel">
                   <div>
                     <strong>Bulk import questions</strong>
-                    <p className="meta-note">CSV columns: question, option_1, option_2, option_3, option_4, correct_option, marks</p>
+                    <p className="meta-note">CSV columns: question, option_1, option_2, option_3, option_4, correct_option, marks, explanation (optional), reference_lesson (optional ID), reference_timestamp_seconds (optional)</p>
                   </div>
                   <label className="btn btn-muted">
                     {importingQuestions ? "Importing..." : "Import CSV"}
