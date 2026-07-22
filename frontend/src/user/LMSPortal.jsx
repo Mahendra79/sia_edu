@@ -13,6 +13,7 @@ import {
   HiOutlinePlayCircle,
   HiOutlineRectangleStack,
   HiOutlineSparkles,
+  HiOutlineBriefcase,
 } from "react-icons/hi2";
 
 import { SkeletonPanel } from "../components/Skeleton";
@@ -36,6 +37,57 @@ const MODULE_TITLES = {
   8: "QML on Quantum-Encoded Datasets Using HDQS",
 };
 
+const SCIENTISTS = {
+  1: {
+    name: "Paul Dirac",
+    initials: "PD",
+    blurb: "Dirac's notation and formulation underpin the Hilbert spaces, quantum states, and measurement concepts covered in this module.",
+    photo: "/images/scientists/Paul_Dirac.jpg",
+  },
+  2: {
+    name: "Richard Feynman",
+    initials: "RF",
+    blurb: "Feynman's vision of quantum computation laid the conceptual groundwork for qubits, gates, and circuit design.",
+    photo: "/images/scientists/richard_feynman.jpg",
+  },
+  3: {
+    name: "Erwin Schrödinger",
+    initials: "ES",
+    blurb: "Bell states, entanglement, and density matrices all build on concepts Schrödinger introduced.",
+    photo: "/images/scientists/Erwin_Schrdinger.jpg",
+  },
+  4: {
+    name: "David Deutsch",
+    initials: "DD",
+    blurb: "Deutsch created the first quantum algorithm, the basis for this module's Deutsch and Deutsch-Jozsa content.",
+    photo: "/images/scientists/david_Deutsch.jpg",
+  },
+  5: {
+    name: "Lov Grover",
+    initials: "LG",
+    blurb: "Grover's search algorithm is the flagship topic of this module.",
+    photo: "/images/scientists/Lov_Grover.jpg",
+  },
+  6: {
+    name: "Charles Bennett",
+    initials: "CB",
+    blurb: "Bennett co-created BB84, the foundational quantum key distribution protocol.",
+    photo: "/images/scientists/Charles_Bennett.jpg",
+  },
+  7: {
+    name: "Edward Farhi",
+    initials: "EF",
+    blurb: "Farhi introduced QAOA, one of the most influential variational quantum algorithms.",
+    photo: "/images/scientists/Edward_Farhi.jpg",
+  },
+  8: {
+    name: "Maria Schuld",
+    initials: "MS",
+    blurb: "Schuld is a leading researcher and educator in quantum machine learning.",
+    photo: "/images/scientists/Maria_Schuld.jpeg",
+  },
+};
+
 const LESSON_WATCH_PROGRESS_KEY = "lms_lesson_watch_progress_v1";
 
 export default function LMSPortal() {
@@ -56,6 +108,7 @@ export default function LMSPortal() {
   const [selectedModule, setSelectedModule] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hoveredNodeKey, setHoveredNodeKey] = useState(null);
 
   useEffect(() => {
     if (selectedModule) {
@@ -149,13 +202,15 @@ export default function LMSPortal() {
   }, [loading, activeTab, overview]);
 
   // Winding calculations for level nodes (bottom-up layout).
+  const VERTICAL_STEP = 110;
+
   const roadmapNodes = useMemo(() => {
     const totalCount = modules.length;
     const list = modules.map((module, index) => {
-      // Module 1 (index 0) is placed at the bottom (reversedIndex = totalCount).
       const reversedIndex = totalCount - index;
-      const x = 50 + 20 * Math.sin((reversedIndex * Math.PI) / 2);
-      const y = reversedIndex * 145 + 75;
+      const amplitude = 15;
+      const x = 50 - amplitude * Math.sin(reversedIndex * Math.PI - Math.PI / 2);
+      const y = reversedIndex * VERTICAL_STEP + 75;
 
       const completedCount = module.lessons?.filter((item) => item.is_completed).length || 0;
       const isCompleted = Boolean(module.is_completed);
@@ -166,7 +221,7 @@ export default function LMSPortal() {
     });
 
     if (list.length > 0) {
-      // Certificate is placed at the very top (reversedIndex = 0).
+      // Certificate is placed at the very top (placed at y = 0.5 * VERTICAL_STEP + 75 to align with constant sine wave).
       const isCertUnlocked = completedLessons === totalLessons;
       const status = isCertUnlocked ? "completed" : "locked";
 
@@ -174,7 +229,7 @@ export default function LMSPortal() {
         is_certificate_node: true,
         module_number: 99,
         x: 50,
-        y: 75,
+        y: 0.5 * VERTICAL_STEP + 75,
         status,
         index: totalCount,
       });
@@ -185,19 +240,33 @@ export default function LMSPortal() {
 
   const roadmapHeight = useMemo(() => {
     if (roadmapNodes.length === 0) return 0;
-    return roadmapNodes.length * 145 + 40;
+    return roadmapNodes.length * VERTICAL_STEP + 40;
   }, [roadmapNodes]);
 
   const svgPath = useMemo(() => {
     if (roadmapNodes.length === 0) return "";
-    let path = `M ${roadmapNodes[0].x} ${roadmapNodes[0].y}`;
-    for (let i = 1; i < roadmapNodes.length; i++) {
-      const prev = roadmapNodes[i - 1];
-      const curr = roadmapNodes[i];
-      const cp1y = prev.y - 70;
-      const cp2y = curr.y + 70;
-      path += ` C ${prev.x} ${cp1y}, ${curr.x} ${cp2y}, ${curr.x} ${curr.y}`;
-    }
+
+    const sortedNodes = [...roadmapNodes].sort((a, b) => b.y - a.y);
+    let path = "";
+
+    sortedNodes.forEach((node, index) => {
+      if (index === 0) {
+        path = `M ${node.x.toFixed(2)} ${node.y.toFixed(2)}`;
+        return;
+      }
+
+      const prevNode = sortedNodes[index - 1];
+      const startX = prevNode.x;
+      const startY = prevNode.y;
+      const endX = node.x;
+      const endY = node.y;
+
+      const halfY = startY - (startY - endY) * 0.5;
+
+      // Draw a smooth S-curve using cubic bezier curves
+      path += ` C ${startX.toFixed(2)} ${halfY.toFixed(2)}, ${endX.toFixed(2)} ${halfY.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+    });
+
     return path;
   }, [roadmapNodes]);
 
@@ -446,82 +515,191 @@ export default function LMSPortal() {
 
                   <div className="lms-roadmap-area" style={{ height: `${roadmapHeight}px` }}>
                     <svg className="roadmap-svg-path" viewBox={`0 0 100 ${roadmapHeight}`} preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="roadmap-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="var(--accent-strong)" />
+                       <defs>
+                        <linearGradient id="roadmap-gradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#00f5ff" />
                           <stop offset="50%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#7b61ff" />
                         </linearGradient>
+                        <filter id="glow-blur" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="3" />
+                        </filter>
                       </defs>
-                      <path d={svgPath} fill="none" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="8" />
+                      {/* Faint background track */}
+                      <path
+                        d={svgPath}
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.03)"
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {/* Soft blurred glow path */}
                       <path
                         d={svgPath}
                         fill="none"
                         stroke="url(#roadmap-gradient)"
-                        strokeWidth="4"
-                        strokeDasharray="10 8"
-                        className="glowing-line"
+                        strokeWidth="8"
+                        filter="url(#glow-blur)"
+                        opacity="0.55"
+                        vectorEffect="non-scaling-stroke"
+                        className="glowing-line-bg"
+                      />
+                      {/* Crisp sharp core line */}
+                      <path
+                        d={svgPath}
+                        fill="none"
+                        stroke="url(#roadmap-gradient)"
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                        className="glowing-line-core"
                       />
                     </svg>
 
                     {roadmapNodes.map((node, index) => {
                       const isLeft = node.x < 50;
+                      const nodeKey = node.is_certificate_node ? "certificate" : String(node.module_number);
+                      const isExpanded = node.status === "active" || hoveredNodeKey === nodeKey;
 
                       if (node.is_certificate_node) {
                         return (
                           <div
                             key="certificate-node"
-                            className={`roadmap-node-wrapper certificate ${node.status}`}
+                            className={`roadmap-node-wrapper certificate ${node.status} ${isExpanded ? "is-expanded" : ""}`}
                             style={{ left: `${node.x}%`, top: `${node.y}px`, animationDelay: `${node.index * 75}ms` }}
                           >
                             <button
                               type="button"
                               className={`roadmap-node-circle certificate-node ${node.status}`}
-                              onClick={() => setSelectedModule(node)}
+                              onClick={() => {
+                                setSelectedModule(node);
+                                setHoveredNodeKey(nodeKey);
+                              }}
+                              onMouseEnter={() => setHoveredNodeKey(nodeKey)}
+                              onMouseLeave={() => setHoveredNodeKey(null)}
+                              onFocus={() => setHoveredNodeKey(nodeKey)}
+                              onBlur={() => setHoveredNodeKey(null)}
                               title="Course Certification"
                             >
-                              <HiOutlineShieldCheck className="node-icon-completed" />
+                              <span className="node-dot" />
                               {node.status === "active" && <span className="node-pulse-aura" />}
                             </button>
 
-                            <div className={`roadmap-node-label ${isLeft ? "label-right" : "label-left"}`}>
-                              <span className="node-label-kicker" style={{ color: "var(--accent-strong)" }}>
-                                Achievement
+                            <div
+                              className={`roadmap-node-label ${isLeft ? "label-left" : "label-right"}`}
+                              onClick={() => {
+                                setSelectedModule(node);
+                                setHoveredNodeKey(nodeKey);
+                              }}
+                            >
+                              <h4>
+                                <span className="node-label-kicker-inline">Achievement</span>
+                                {" · "}
+                                <span className={`node-status-badge ${node.status}`}>
+                                  {node.status === "completed" ? (
+                                    <>
+                                      <HiOutlineShieldCheck style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                      Unlocked
+                                    </>
+                                  ) : (
+                                    <>
+                                      <HiOutlineLockClosed style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                      Locked
+                                    </>
+                                  )}
+                                </span>
+                              </h4>
+                              <span className="node-label-title-inline" style={{ fontSize: "0.95rem", fontWeight: "750", color: "#f3f4f6", display: "block", margin: "0.2rem 0" }}>
+                                Course Certification
                               </span>
-                              <h4>Course Certification</h4>
                               <span className="node-label-progress">
-                                {node.status === "completed" ? "Click to generate" : "Locked"}
+                                {node.status === "completed" ? "Click to generate certificate" : "Complete all requirements to unlock"}
                               </span>
                             </div>
                           </div>
                         );
                       }
 
+                      const scientist = SCIENTISTS[node.module_number];
+
                       return (
                         <div
                           key={node.module_number}
-                          className={`roadmap-node-wrapper ${node.status}`}
+                          className={`roadmap-node-wrapper ${node.status} ${isExpanded ? "is-expanded" : ""}`}
                           style={{ left: `${node.x}%`, top: `${node.y}px`, animationDelay: `${index * 75}ms` }}
                         >
-                          <button
-                            type="button"
-                            className={`roadmap-node-circle ${node.status}`}
-                            onClick={() => setSelectedModule(node)}
-                            title={getModuleTitle(node)}
-                          >
-                            {node.status === "completed" ? (
-                              <HiOutlineCheckCircle className="node-icon-completed" />
-                            ) : node.status === "locked" ? (
-                              <HiOutlineLockClosed className="node-icon-locked" />
-                            ) : (
-                              <span className="node-index">{index + 1}</span>
+                          <div className="scientist-avatar-container">
+                            <button
+                              type="button"
+                              className={`roadmap-node-circle scientist-circle ${node.status}`}
+                              onClick={() => {
+                                setSelectedModule(node);
+                                setHoveredNodeKey(nodeKey);
+                              }}
+                              onMouseEnter={() => setHoveredNodeKey(nodeKey)}
+                              onMouseLeave={() => setHoveredNodeKey(null)}
+                              onFocus={() => setHoveredNodeKey(nodeKey)}
+                              onBlur={() => setHoveredNodeKey(null)}
+                              title={`${getModuleTitle(node)} — ${scientist?.name}`}
+                            >
+                              {scientist?.photo ? (
+                                <img
+                                  src={scientist.photo}
+                                  alt={scientist.name}
+                                  className="scientist-photo"
+                                />
+                              ) : Number(node.module_number) === 9 ? (
+                                <div className="scientist-initials" style={{ fontSize: "1.3rem", color: node.status === "active" ? "#00f5ff" : "#7b61ff" }}>
+                                  <HiOutlineBriefcase />
+                                </div>
+                              ) : (
+                                <div className="scientist-initials">{scientist?.initials}</div>
+                              )}
+                              {node.status === "active" && <span className="node-pulse-aura" />}
+                            </button>
+                            {scientist && (
+                              <div className={`scientist-tooltip ${isLeft ? "tooltip-right" : "tooltip-left"}`}>
+                                <div className="scientist-tooltip-name">{scientist?.name}</div>
+                                <div className="scientist-tooltip-blurb">{scientist?.blurb}</div>
+                              </div>
                             )}
-                            {node.status === "active" && <span className="node-pulse-aura" />}
-                          </button>
-                          <div className={`roadmap-node-label ${isLeft ? "label-right" : "label-left"}`}>
-                            <span className="node-label-kicker">Level {index + 1}</span>
-                            <h4>{getModuleTitle(node)}</h4>
-                            <span className="node-label-progress">{getModuleCountLabel(node)}</span>
+                          </div>
+                          <div
+                            className={`roadmap-node-label ${isLeft ? "label-left" : "label-right"}`}
+                            onClick={() => {
+                              setSelectedModule(node);
+                              setHoveredNodeKey(nodeKey);
+                            }}
+                          >
+                            <h4>
+                              <span className="node-label-kicker-inline">Level {index + 1}</span>
+                              {" · "}
+                              <span className={`node-status-badge ${node.status}`}>
+                                {node.status === "completed" && (
+                                  <>
+                                    <HiOutlineCheckCircle style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                    Completed
+                                  </>
+                                )}
+                                {node.status === "active" && (
+                                  <>
+                                    <HiOutlineSparkles className="pulsing-badge-icon" style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                    Active
+                                  </>
+                                )}
+                                {node.status === "locked" && (
+                                  <>
+                                    <HiOutlineLockClosed style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                    Locked
+                                  </>
+                                )}
+                              </span>
+                            </h4>
+                            <span className="node-label-title-inline" style={{ fontSize: "0.95rem", fontWeight: "750", color: "#f3f4f6", display: "block", margin: "0.2rem 0" }}>
+                              {getModuleTitle(node).replace(/level \d+:\s*|module \d+:\s*/gi, "")}
+                            </span>
+                            <span className="node-label-progress">
+                              {getModuleCountLabel(node).replace("lessons", "Lessons").replace("projects", "Projects").replace("project", "Project")}
+                            </span>
                           </div>
                         </div>
                       );

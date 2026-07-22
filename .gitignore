@@ -19,6 +19,9 @@ frontend/dist/
 .env
 backend/.env
 frontend/.env
+env
+backend/env
+*.env
 
 
 backend/venv
