@@ -1984,11 +1984,11 @@
 .roadmap-node-label {
   position: absolute;
   width: 230px;
-  background: #0c101b; /* Solid dark background to ensure high readability on all light/dark themes */
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.95rem 1.15rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: var(--card-shadow);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   pointer-events: auto;
@@ -2000,41 +2000,78 @@
   flex-direction: column;
 }
 
-/* Status specific styling for cards */
+/* Status specific styling for cards (light theme defaults) */
 .roadmap-node-wrapper.completed .roadmap-node-label {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: #090e18;
-  opacity: 0.95;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: color-mix(in srgb, var(--success) 6%, var(--bg-elevated));
 }
 .roadmap-node-wrapper.completed .roadmap-node-label:hover {
   border-color: #10b981;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(16, 185, 129, 0.2);
-  opacity: 1;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1), 0 0 18px rgba(16, 185, 129, 0.18);
   transform: translateY(-2px);
 }
 
 .roadmap-node-wrapper.active .roadmap-node-label {
+  border-color: rgba(0, 180, 216, 0.55);
+  background: color-mix(in srgb, #00b4d8 6%, var(--bg-elevated));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), 0 0 18px rgba(0, 180, 216, 0.16);
+}
+.roadmap-node-wrapper.active .roadmap-node-label:hover {
+  border-color: #00b4d8;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12), 0 0 22px rgba(0, 180, 216, 0.26);
+  transform: translateY(-2px);
+}
+
+.roadmap-node-wrapper.locked .roadmap-node-label {
+  border-color: rgba(123, 97, 255, 0.3);
+  background: color-mix(in srgb, #7b61ff 4%, var(--bg-elevated));
+  opacity: 0.8;
+}
+.roadmap-node-wrapper.locked .roadmap-node-label:hover {
+  border-color: #7b61ff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1), 0 0 18px rgba(123, 97, 255, 0.14);
+  opacity: 0.95;
+  transform: translateY(-2px);
+}
+
+/* Dark theme keeps the original glowing "console card" look, unchanged */
+[data-theme="dark"] .roadmap-node-label {
+  background: #0c101b;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .roadmap-node-wrapper.completed .roadmap-node-label {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: #090e18;
+  opacity: 0.95;
+}
+[data-theme="dark"] .roadmap-node-wrapper.completed .roadmap-node-label:hover {
+  border-color: #10b981;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(16, 185, 129, 0.2);
+  opacity: 1;
+}
+
+[data-theme="dark"] .roadmap-node-wrapper.active .roadmap-node-label {
   border-color: rgba(0, 245, 255, 0.5);
   background: #0b111e;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 245, 255, 0.18);
   opacity: 1;
 }
-.roadmap-node-wrapper.active .roadmap-node-label:hover {
+[data-theme="dark"] .roadmap-node-wrapper.active .roadmap-node-label:hover {
   border-color: #00f5ff;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 245, 255, 0.3);
-  transform: translateY(-2px);
 }
 
-.roadmap-node-wrapper.locked .roadmap-node-label {
+[data-theme="dark"] .roadmap-node-wrapper.locked .roadmap-node-label {
   border-color: rgba(123, 97, 255, 0.25);
   background: #0c0d16;
   opacity: 0.65;
 }
-.roadmap-node-wrapper.locked .roadmap-node-label:hover {
+[data-theme="dark"] .roadmap-node-wrapper.locked .roadmap-node-label:hover {
   border-color: #7b61ff;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(123, 97, 255, 0.15);
   opacity: 0.9;
-  transform: translateY(-2px);
 }
 
 /* Connector lines between cards and node center */
@@ -2067,7 +2104,7 @@
 }
 
 .node-label-kicker-inline {
-  color: #00f5ff;
+  color: #0e7490;
   font-weight: 800;
   text-transform: uppercase;
   font-size: 0.72rem;
@@ -2075,10 +2112,22 @@
 }
 
 .certificate .node-label-kicker-inline {
-  color: #fbbf24;
+  color: #b45309;
 }
 
 .locked .node-label-kicker-inline {
+  color: #6d28d9;
+}
+
+[data-theme="dark"] .node-label-kicker-inline {
+  color: #00f5ff;
+}
+
+[data-theme="dark"] .certificate .node-label-kicker-inline {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .locked .node-label-kicker-inline {
   color: #7b61ff;
 }
 
@@ -2087,12 +2136,20 @@
   font-size: 0.94rem;
   font-weight: 750;
   line-height: 1.4;
-  color: #f3f4f6;
+  color: var(--text-primary);
+}
+
+.node-label-title-inline {
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--text-primary);
+  display: block;
+  margin: 0.2rem 0;
 }
 
 .node-label-progress {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -2739,11 +2796,20 @@
 }
 
 .roadmap-node-wrapper.certificate .roadmap-node-label {
+  border-color: rgba(180, 83, 9, 0.4);
+}
+
+[data-theme="dark"] .roadmap-node-wrapper.certificate .roadmap-node-label {
   border-color: rgba(217, 119, 6, 0.25);
 }
 
 .roadmap-node-wrapper.certificate.completed .roadmap-node-label {
   border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.08);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12), 0 0 20px rgba(251, 191, 36, 0.18);
+}
+
+[data-theme="dark"] .roadmap-node-wrapper.certificate.completed .roadmap-node-label {
   background: rgba(251, 191, 36, 0.05);
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.15);
 }
@@ -2821,6 +2887,10 @@
     visibility: visible !important;
     flex: 1;
     padding: 0.85rem 1.1rem !important;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1) !important;
+  }
+
+  [data-theme="dark"] .roadmap-node-label {
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35) !important;
   }
 
@@ -2856,16 +2926,31 @@
 }
 
 .node-status-badge.completed {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.node-status-badge.active {
+  color: #0e7490;
+  background: rgba(0, 180, 216, 0.12);
+}
+
+.node-status-badge.locked {
+  color: #6d28d9;
+  background: rgba(123, 97, 255, 0.12);
+}
+
+[data-theme="dark"] .node-status-badge.completed {
   color: #10b981;
   background: rgba(16, 185, 129, 0.08);
 }
 
-.node-status-badge.active {
+[data-theme="dark"] .node-status-badge.active {
   color: #00f5ff;
   background: rgba(0, 245, 255, 0.08);
 }
 
-.node-status-badge.locked {
+[data-theme="dark"] .node-status-badge.locked {
   color: #7b61ff;
   background: rgba(123, 97, 255, 0.08);
 }

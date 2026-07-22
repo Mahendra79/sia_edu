@@ -65,6 +65,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "can_review",
             "image",
             "is_active",
+            "allow_purchase",
             "average_rating",
             "review_count",
             "highlight_title",

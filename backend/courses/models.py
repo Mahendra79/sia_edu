@@ -36,6 +36,10 @@ class Course(models.Model):
     )
     image = models.ImageField(upload_to="courses/images/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    allow_purchase = models.BooleanField(
+        default=True,
+        help_text="If disabled, the course stays visible but cannot be purchased/enrolled in.",
+    )
     is_deleted = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

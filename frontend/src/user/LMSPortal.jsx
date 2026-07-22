@@ -608,7 +608,7 @@ export default function LMSPortal() {
                                   )}
                                 </span>
                               </h4>
-                              <span className="node-label-title-inline" style={{ fontSize: "0.95rem", fontWeight: "750", color: "#f3f4f6", display: "block", margin: "0.2rem 0" }}>
+                              <span className="node-label-title-inline">
                                 Course Certification
                               </span>
                               <span className="node-label-progress">
@@ -694,7 +694,7 @@ export default function LMSPortal() {
                                 )}
                               </span>
                             </h4>
-                            <span className="node-label-title-inline" style={{ fontSize: "0.95rem", fontWeight: "750", color: "#f3f4f6", display: "block", margin: "0.2rem 0" }}>
+                            <span className="node-label-title-inline">
                               {getModuleTitle(node).replace(/level \d+:\s*|module \d+:\s*/gi, "")}
                             </span>
                             <span className="node-label-progress">

@@ -88,6 +88,7 @@ const EMPTY_FORM = {
   discount_percent: "0",
   category_id: "",
   is_active: true,
+  allow_purchase: true,
   image: null,
 };
 
@@ -106,6 +107,7 @@ function toCourseForm(course) {
     discount_percent: discountPercentExact.toFixed(2),
     category_id: String(course.category?.id || ""),
     is_active: Boolean(course.is_active),
+    allow_purchase: course.allow_purchase ?? true,
     image: null,
   };
 }
@@ -134,6 +136,7 @@ function buildCoursePayload(form) {
   payload.append("discount_percent", discountPercent.toFixed(2));
   payload.append("category_id", String(form.category_id));
   payload.append("is_active", String(Boolean(form.is_active)));
+  payload.append("allow_purchase", String(Boolean(form.allow_purchase)));
   if (form.image) {
     payload.append("image", form.image);
   }
@@ -289,6 +292,17 @@ function InlineCourseForm({
             onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))}
           />
           Active
+        </label>
+      </InlineField>
+
+      <InlineField label="Allow Purchase" className="table-inline-field-toggle">
+        <label className="toggle-row table-inline-toggle">
+          <input
+            type="checkbox"
+            checked={Boolean(form.allow_purchase)}
+            onChange={(event) => setForm((prev) => ({ ...prev, allow_purchase: event.target.checked }))}
+          />
+          Allow Purchase
         </label>
       </InlineField>
 
@@ -501,6 +515,7 @@ export default function ManageCourses() {
           { key: "final_price", label: "Final Price" },
           { key: "discount_percent", label: "Discount %" },
           { key: "is_active", label: "Active" },
+          { key: "allow_purchase", label: "Allow Purchase" },
           { key: "created_at", label: "Date" },
         ],
         rows: allCourses.map((course) => ({
@@ -512,6 +527,7 @@ export default function ManageCourses() {
           final_price: formatInr(deriveCourseFinalPrice(course)),
           discount_percent: `${calculateRoundedDiscountPercentFromFinalPrice(course.price, deriveCourseFinalPrice(course))}%`,
           is_active: course.is_active ? "Yes" : "No",
+          allow_purchase: course.allow_purchase ?? true ? "Yes" : "No",
           created_at: formatDate(course.created_at),
         })),
       });
@@ -581,13 +597,14 @@ export default function ManageCourses() {
                     <th>Final Price</th>
                     <th>Discount</th>
                     <th>Active</th>
+                    <th>Buy</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {showCreateRow && (
                     <tr className="table-inline-edit-row">
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <InlineCourseForm
                           form={createForm}
                           setForm={setCreateForm}
@@ -615,6 +632,7 @@ export default function ManageCourses() {
                         <td>{formatInr(deriveCourseFinalPrice(course))}</td>
                         <td>{`${calculateRoundedDiscountPercentFromFinalPrice(course.price, deriveCourseFinalPrice(course))}%`}</td>
                         <td>{course.is_active ? "Yes" : "No"}</td>
+                        <td>{(course.allow_purchase ?? true) ? "Yes" : "No"}</td>
                         <td>
                           <div className="inline-controls">
                             <button type="button" className="btn btn-muted" onClick={() => startEdit(course)}>

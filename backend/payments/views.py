@@ -351,6 +351,11 @@ class CreateRazorpayOrderView(APIView):
         course = Course.objects.filter(id=serializer.validated_data["course_id"], is_deleted=False, is_active=True).first()
         if not course:
             return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not course.allow_purchase:
+            return Response(
+                {"detail": "This course is not available for purchase right now."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if Enrollment.objects.filter(user=request.user, course=course, payment_status="success", is_deleted=False).exists():
             return Response({"detail": "You are already enrolled in this course."}, status=status.HTTP_400_BAD_REQUEST)
