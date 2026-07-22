@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
@@ -53,8 +54,16 @@ export default function Sidebar({ extra }) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";
   });
+  const [tooltip, setTooltip] = useState(null);
 
   const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
+
+  const showTooltip = (event, label) => {
+    if (!isCollapsed || !label || window.innerWidth < 981) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltip({ label, top: rect.top + rect.height / 2, left: rect.right + 12 });
+  };
+  const hideTooltip = () => setTooltip(null);
 
   if (location.pathname !== lastPathname) {
     setLastPathname(location.pathname);
@@ -113,7 +122,7 @@ export default function Sidebar({ extra }) {
 
       <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""} ${isCollapsed ? "is-collapsed" : ""}`.trim()}>
         <div className="app-sidebar-header">
-          <Link className="app-sidebar-brand" to="/" onClick={closeSidebar}>
+          <Link className="app-sidebar-brand" to="/" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "SIA Software Innovations")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "SIA Software Innovations")} onBlur={hideTooltip} aria-label={isCollapsed ? "SIA Software Innovations" : undefined}>
             <span className="app-sidebar-logo">
               <img src={companyLogo} alt="SIA Software Innovations logo" loading="lazy" decoding="async" />
             </span>
@@ -139,18 +148,18 @@ export default function Sidebar({ extra }) {
         </div>
 
         <nav className="app-sidebar-nav">
-          <NavLink end to="/" className="app-sidebar-link" onClick={closeSidebar}>
+          <NavLink end to="/" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Home")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Home")} onBlur={hideTooltip} aria-label={isCollapsed ? "Home" : undefined}>
             <HiOutlineHome />
             {!isCollapsed && <span>Home</span>}
           </NavLink>
 
           {!isAuthenticated ? (
             <>
-              <NavLink to="/login" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/login" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Login")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Login")} onBlur={hideTooltip} aria-label={isCollapsed ? "Login" : undefined}>
                 <HiOutlineUserCircle />
                 {!isCollapsed && <span>Login</span>}
               </NavLink>
-              <NavLink to="/signup" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/signup" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Signup")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Signup")} onBlur={hideTooltip} aria-label={isCollapsed ? "Signup" : undefined}>
                 <HiOutlineAcademicCap />
                 {!isCollapsed && <span>Signup</span>}
               </NavLink>
@@ -159,19 +168,19 @@ export default function Sidebar({ extra }) {
 
           {isAuthenticated && !isAdmin ? (
             <>
-              <NavLink to="/user/dashboard" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/user/dashboard" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Dashboard")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Dashboard")} onBlur={hideTooltip} aria-label={isCollapsed ? "Dashboard" : undefined}>
                 <HiOutlineViewColumns />
                 {!isCollapsed && <span>Dashboard</span>}
               </NavLink>
-              <NavLink to="/user/my-courses" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/user/my-courses" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "My Courses")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "My Courses")} onBlur={hideTooltip} aria-label={isCollapsed ? "My Courses" : undefined}>
                 <HiOutlineSquares2X2 />
                 {!isCollapsed && <span>My Courses</span>}
               </NavLink>
-              <NavLink to="/user/payment-history" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/user/payment-history" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Payment History")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Payment History")} onBlur={hideTooltip} aria-label={isCollapsed ? "Payment History" : undefined}>
                 <HiOutlineCreditCard />
                 {!isCollapsed && <span>Payment History</span>}
               </NavLink>
-              <NavLink to="/user/profile" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/user/profile" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Profile")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Profile")} onBlur={hideTooltip} aria-label={isCollapsed ? "Profile" : undefined}>
                 <HiOutlineUserCircle />
                 {!isCollapsed && <span>Profile</span>}
               </NavLink>
@@ -180,43 +189,43 @@ export default function Sidebar({ extra }) {
 
           {isAuthenticated && isAdmin ? (
             <>
-              <NavLink to="/admin/dashboard" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/dashboard" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Dashboard")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Dashboard")} onBlur={hideTooltip} aria-label={isCollapsed ? "Dashboard" : undefined}>
                 <HiOutlineChartBar />
                 {!isCollapsed && <span>Dashboard</span>}
               </NavLink>
-              <NavLink to="/admin/courses" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/courses" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Manage Courses")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Manage Courses")} onBlur={hideTooltip} aria-label={isCollapsed ? "Manage Courses" : undefined}>
                 <HiOutlineSquares2X2 />
                 {!isCollapsed && <span>Manage Courses</span>}
               </NavLink>
-              <NavLink to="/admin/users" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/users" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Manage Users")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Manage Users")} onBlur={hideTooltip} aria-label={isCollapsed ? "Manage Users" : undefined}>
                 <HiOutlineUsers />
                 {!isCollapsed && <span>Manage Users</span>}
               </NavLink>
-              <NavLink to="/admin/payments" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/payments" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Payments")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Payments")} onBlur={hideTooltip} aria-label={isCollapsed ? "Payments" : undefined}>
                 <HiOutlineCreditCard />
                 {!isCollapsed && <span>Payments</span>}
               </NavLink>
-              <NavLink to="/admin/database" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/database" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Database Edit")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Database Edit")} onBlur={hideTooltip} aria-label={isCollapsed ? "Database Edit" : undefined}>
                 <HiOutlineCircleStack />
                 {!isCollapsed && <span>Database Edit</span>}
               </NavLink>
-              <NavLink to="/admin/reports" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/reports" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "MIS Reports")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "MIS Reports")} onBlur={hideTooltip} aria-label={isCollapsed ? "MIS Reports" : undefined}>
                 <HiOutlinePresentationChartBar />
                 {!isCollapsed && <span>MIS Reports</span>}
               </NavLink>
-              <NavLink to="/admin/chatbot" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/chatbot" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Chatbot QA")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Chatbot QA")} onBlur={hideTooltip} aria-label={isCollapsed ? "Chatbot QA" : undefined}>
                 <HiOutlineCpuChip />
                 {!isCollapsed && <span>Chatbot QA</span>}
               </NavLink>
-              <NavLink to="/admin/lms" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/lms" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "LMS")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "LMS")} onBlur={hideTooltip} aria-label={isCollapsed ? "LMS" : undefined}>
                 <HiOutlineBookOpen />
                 {!isCollapsed && <span>LMS</span>}
               </NavLink>
-              <NavLink to="/admin/quiz" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/quiz" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Quiz")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Quiz")} onBlur={hideTooltip} aria-label={isCollapsed ? "Quiz" : undefined}>
                 <HiOutlineAcademicCap />
                 {!isCollapsed && <span>Quiz</span>}
               </NavLink>
-              <NavLink to="/admin/profile" className="app-sidebar-link" onClick={closeSidebar}>
+              <NavLink to="/admin/profile" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Profile")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Profile")} onBlur={hideTooltip} aria-label={isCollapsed ? "Profile" : undefined}>
                 <HiOutlineUserCircle />
                 {!isCollapsed && <span>Profile</span>}
               </NavLink>
@@ -262,7 +271,11 @@ export default function Sidebar({ extra }) {
                 to={isAdmin ? "/admin/profile" : "/user/profile"}
                 className="user-badge user-badge-link app-sidebar-user"
                 onClick={closeSidebar}
-                title={isCollapsed ? user?.username : undefined}
+                onMouseEnter={(event) => showTooltip(event, user?.username)}
+                onMouseLeave={hideTooltip}
+                onFocus={(event) => showTooltip(event, user?.username)}
+                onBlur={hideTooltip}
+                aria-label={isCollapsed ? user?.username : undefined}
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={`${user?.username || "User"} avatar`} className="user-badge-avatar" />
@@ -278,6 +291,18 @@ export default function Sidebar({ extra }) {
           ) : null}
         </div>
       </aside>
+
+      {tooltip
+        ? createPortal(
+            <div
+              className="sidebar-portal-tooltip"
+              style={{ top: `${tooltip.top}px`, left: `${tooltip.left}px` }}
+            >
+              {tooltip.label}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

@@ -2179,6 +2179,22 @@
   }
 }
 
+.sidebar-portal-tooltip {
+  position: fixed;
+  transform: translateY(-50%);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow);
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 999;
+}
+
 /* Customize the scrollbar for the sidebar */
 .app-sidebar::-webkit-scrollbar {
   width: 5px;
