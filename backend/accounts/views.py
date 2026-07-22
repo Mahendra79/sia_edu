@@ -195,9 +195,33 @@ class LogoutView(APIView):
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsActiveAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "profile"
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        previous_email = instance.email
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = serializer.save()
+        except IntegrityError:
+            logger.exception("Profile update failed due to integrity constraint for user_id=%s", instance.id)
+            return Response(
+                {"detail": "That email, username, or phone number is already in use. Please choose a different one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user.email.lower() != previous_email.lower():
+            user.is_email_verified = False
+            user.save(update_fields=["is_email_verified", "updated_at"])
+            _send_email_verification_token(user)
+
+        return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
 
 
 class VerifyEmailView(APIView):
@@ -356,9 +380,28 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         user = self.get_object()
+        previous_email = user.email
         serializer = self.get_serializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        try:
+            serializer.save()
+        except IntegrityError:
+            logger.exception("Admin user update failed due to integrity constraint for user_id=%s", user.id)
+            return Response(
+                {"detail": "That email, username, or phone number is already in use. Please choose a different one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # If the admin changed the email without explicitly setting the verification
+        # flag in the same request, the new address hasn't actually been confirmed.
+        if (
+            "email" in request.data
+            and user.email.lower() != previous_email.lower()
+            and "is_email_verified" not in request.data
+        ):
+            user.is_email_verified = False
+            user.save(update_fields=["is_email_verified", "updated_at"])
+
         _log_admin_action(request.user, "update_user", "User", str(user.id), user.email)
         return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 

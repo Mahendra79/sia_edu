@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { authService } from "../services/authService";
+import { clearAllCached } from "../utils/sessionCache";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/storage";
 
 const AuthContext = createContext(null);
@@ -35,6 +36,7 @@ export function AuthProvider({ children }) {
   const login = async (credentials) => {
     const response = await authService.login(credentials);
     const { access, refresh, user: loggedInUser } = response.data;
+    clearAllCached();
     setStoredAuth({ access, refresh, user: loggedInUser });
     setUser(loggedInUser);
     return loggedInUser;
@@ -45,6 +47,7 @@ export function AuthProvider({ children }) {
     const data = response.data || {};
     const { access, refresh, user: signedUpUser } = data;
     if (access && refresh && signedUpUser) {
+      clearAllCached();
       setStoredAuth({ access, refresh, user: signedUpUser });
       setUser(signedUpUser);
     }
@@ -61,6 +64,7 @@ export function AuthProvider({ children }) {
       }
     }
     clearStoredAuth();
+    clearAllCached();
     setUser(null);
   };
 

@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { authService } from "../services/authService";
 import { API_BASE_URL } from "../services/api";
 import { getCached, setCached } from "../utils/sessionCache";
+import { validateName, validatePhone, validateUsername } from "../utils/validation";
 import { SkeletonBlock, SkeletonText } from "./Skeleton";
 import "./ProfileTabContent.css";
 
@@ -20,7 +21,6 @@ const EMPTY_FORM = {
   avatar: "",
 };
 
-const USERNAME_REGEX = /^[\w.@+-]+$/;
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -182,6 +182,15 @@ export default function ProfileTabContent() {
     }
   };
 
+  const FIELD_VALIDATORS = { name: validateName, username: validateUsername, phone: validatePhone };
+
+  const handleFieldBlur = (field) => {
+    const validator = FIELD_VALIDATORS[field];
+    if (!validator) return;
+    const message = validator(form[field]);
+    setFieldErrors((prev) => (message ? { ...prev, [field]: message } : prev));
+  };
+
   const handleEdit = () => {
     setFieldErrors({});
     setIsEditing(true);
@@ -242,6 +251,11 @@ export default function ProfileTabContent() {
       return;
     }
 
+    if (!hasChanges()) {
+      addToast({ type: "info", message: "No changes to save." });
+      return;
+    }
+
     if (avatarFile) {
       const validationMessage = validateAvatarFile(avatarFile);
       if (validationMessage) {
@@ -251,18 +265,20 @@ export default function ProfileTabContent() {
       }
     }
 
-    const trimmedUsername = form.username.trim();
-    if (!USERNAME_REGEX.test(trimmedUsername)) {
-      const message = "Username can only contain letters, numbers, and @/./+/-/_ characters.";
-      setFieldErrors((prev) => ({ ...prev, username: message }));
-      addToast({ type: "error", message });
+    const nameError = validateName(form.name);
+    const usernameError = validateUsername(form.username);
+    const phoneError = validatePhone(form.phone);
+    if (nameError || usernameError || phoneError) {
+      const nextErrors = {};
+      if (nameError) nextErrors.name = nameError;
+      if (usernameError) nextErrors.username = usernameError;
+      if (phoneError) nextErrors.phone = phoneError;
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }));
+      addToast({ type: "error", message: nameError || usernameError || phoneError });
       return;
     }
 
-    if (!hasChanges()) {
-      addToast({ type: "info", message: "No changes to save." });
-      return;
-    }
+    const trimmedUsername = form.username.trim();
 
     setSaving(true);
     setFieldErrors({});
@@ -370,6 +386,7 @@ export default function ProfileTabContent() {
             value={form.name}
             disabled={!isEditing || saving}
             onChange={(event) => handleFieldChange("name", event.target.value)}
+            onBlur={() => handleFieldBlur("name")}
             required
           />
           {fieldErrors.name ? <p className="form-error-text">{fieldErrors.name}</p> : null}
@@ -382,6 +399,7 @@ export default function ProfileTabContent() {
             value={form.username}
             disabled={!isEditing || saving}
             onChange={(event) => handleFieldChange("username", event.target.value)}
+            onBlur={() => handleFieldBlur("username")}
             required
           />
           {fieldErrors.username ? <p className="form-error-text">{fieldErrors.username}</p> : null}
@@ -407,6 +425,8 @@ export default function ProfileTabContent() {
             value={form.phone}
             disabled={!isEditing || saving}
             onChange={(event) => handleFieldChange("phone", event.target.value)}
+            onBlur={() => handleFieldBlur("phone")}
+            maxLength={10}
             required
           />
           {fieldErrors.phone ? <p className="form-error-text">{fieldErrors.phone}</p> : null}
@@ -414,7 +434,7 @@ export default function ProfileTabContent() {
 
         {isEditing ? (
           <div className="profile-save-row">
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="submit" className="btn btn-primary" disabled={saving || !hasChanges()}>
               {saving ? "Saving..." : "Save"}
             </button>
             <button type="button" className="btn btn-muted" onClick={handleCancel} disabled={saving}>

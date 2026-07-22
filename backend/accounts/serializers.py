@@ -9,7 +9,10 @@ from accounts.models import EmailVerificationToken, PasswordResetToken, User
 
 
 USERNAME_REGEX = re.compile(r"^[\w.@+-]+\Z")
-NAME_REGEX = re.compile(r"^[A-Za-z ]+\Z")
+# Letters (incl. common accented Latin letters), spaces, hyphens and apostrophes,
+# so names like "O'Brien", "Jean-Luc" or "José" are accepted.
+NAME_REGEX = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ' -]*\Z")
+PHONE_REGEX = re.compile(r"^[0-9]{10}\Z")
 
 
 class UserValidationMixin:
@@ -17,6 +20,8 @@ class UserValidationMixin:
     username_exists_message = "Username is unavailable. Please choose a different one."
     email_exists_message = "This email is already registered."
     phone_exists_message = "Phone number is already registered."
+    phone_invalid_message = "Enter a valid 10-digit phone number."
+    name_invalid_message = "Name can only contain letters, spaces, hyphens, and apostrophes."
 
     def _instance_id(self):
         return getattr(self.instance, "id", None)
@@ -26,7 +31,7 @@ class UserValidationMixin:
         if not value:
             raise serializers.ValidationError("Name is required.")
         if not NAME_REGEX.fullmatch(value):
-            raise serializers.ValidationError("Full name can contain letters and spaces only.")
+            raise serializers.ValidationError(self.name_invalid_message)
         return value
 
     def validate_username(self, value):
@@ -51,6 +56,8 @@ class UserValidationMixin:
         value = (value or "").strip()
         if not value:
             raise serializers.ValidationError("Phone number is required.")
+        if not PHONE_REGEX.fullmatch(value):
+            raise serializers.ValidationError(self.phone_invalid_message)
         if User.objects.filter(phone=value).exclude(id=self._instance_id()).exists():
             raise serializers.ValidationError(self.phone_exists_message)
         return value

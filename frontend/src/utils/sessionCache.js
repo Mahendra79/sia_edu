@@ -21,3 +21,9 @@ export function setCached(key, value) {
 export function clearCached(key) {
   store.delete(key);
 }
+
+// Wipe everything - call this on login/logout so cached data from one
+// account (e.g. profile info) can never leak into another account's session.
+export function clearAllCached() {
+  store.clear();
+}

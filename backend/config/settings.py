@@ -346,6 +346,7 @@ REST_FRAMEWORK = {
         "payments": "20/min",
         "webhook": "60/min",
         "chatbot": "30/min",
+        "profile": "20/min",
     },
 }
 

@@ -10,6 +10,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import { authService } from "../services/authService";
 import { downloadCsv, fetchAllPaginated } from "../utils/export";
 import { formatCurrency, formatDate } from "../utils/format";
+import { validateName, validatePhone, validateUsername } from "../utils/validation";
 import "./admin.css";
 
 const EMPTY_EDIT_FORM = {
@@ -62,6 +63,7 @@ export default function ManageUsers() {
 
   const [editingUserId, setEditingUserId] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [editFieldErrors, setEditFieldErrors] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -117,16 +119,28 @@ export default function ManageUsers() {
   const startEdit = (user) => {
     setEditingUserId(user.id);
     setEditForm(toEditForm(user));
+    setEditFieldErrors({});
   };
 
   const cancelEdit = () => {
     setEditingUserId(null);
     setEditForm(EMPTY_EDIT_FORM);
+    setEditFieldErrors({});
   };
 
   const handleSaveUser = async (event) => {
     event.preventDefault();
     if (!editingUserId) return;
+
+    const nameError = validateName(editForm.name);
+    const usernameError = validateUsername(editForm.username);
+    const phoneError = validatePhone(editForm.phone);
+    if (nameError || usernameError || phoneError) {
+      setEditFieldErrors({ name: nameError, username: usernameError, phone: phoneError });
+      addToast({ type: "error", message: nameError || usernameError || phoneError });
+      return;
+    }
+    setEditFieldErrors({});
 
     setSavingEdit(true);
     try {
@@ -334,8 +348,10 @@ export default function ManageUsers() {
                                   placeholder="Name"
                                   value={editForm.name}
                                   onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))}
+                                  onBlur={() => setEditFieldErrors((prev) => ({ ...prev, name: validateName(editForm.name) }))}
                                   required
                                 />
+                                {editFieldErrors.name ? <p className="form-error-text">{editFieldErrors.name}</p> : null}
                               </InlineField>
                               <InlineField label="Username">
                                 <input
@@ -343,8 +359,12 @@ export default function ManageUsers() {
                                   placeholder="Username"
                                   value={editForm.username}
                                   onChange={(event) => setEditForm((prev) => ({ ...prev, username: event.target.value }))}
+                                  onBlur={() =>
+                                    setEditFieldErrors((prev) => ({ ...prev, username: validateUsername(editForm.username) }))
+                                  }
                                   required
                                 />
+                                {editFieldErrors.username ? <p className="form-error-text">{editFieldErrors.username}</p> : null}
                               </InlineField>
                               <InlineField label="Email">
                                 <input
@@ -362,8 +382,11 @@ export default function ManageUsers() {
                                   placeholder="Phone"
                                   value={editForm.phone}
                                   onChange={(event) => setEditForm((prev) => ({ ...prev, phone: event.target.value }))}
+                                  onBlur={() => setEditFieldErrors((prev) => ({ ...prev, phone: validatePhone(editForm.phone) }))}
+                                  maxLength={10}
                                   required
                                 />
+                                {editFieldErrors.phone ? <p className="form-error-text">{editFieldErrors.phone}</p> : null}
                               </InlineField>
                               <InlineField label="Account Status" className="table-inline-field-toggle">
                                 <label className="toggle-row table-inline-toggle">
