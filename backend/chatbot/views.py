@@ -1,12 +1,13 @@
 import logging
 import time
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdminUserRole
+from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
 from chatbot.serializers import ChatEvaluationRequestSerializer, ChatRequestSerializer
 from chatbot.services import (
     EDUCATION_ONLY_REPLY,
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChatbotMessageView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsActiveAuthenticated]
     throttle_scope = "chatbot"
 
     def post(self, request):
@@ -90,29 +91,42 @@ class ChatbotMessageView(APIView):
                 degraded = False
             else:
                 reply = generate_reply(message=message, history=history, context=context)
-                provider = "groq"
-                model = "configured"
+                provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
+                if provider == "gemini":
+                    model = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+                elif provider == "groq":
+                    model = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+                else:
+                    model = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
                 degraded = False
         except (ChatbotConfigError, ChatbotServiceError):
-            reply = fallback_reply(message=message, context=context)
+            reply = "I am currently experiencing connection issues with my AI service. Please try again later."
             provider = "fallback"
             model = "fallback"
             degraded = True
         except Exception:
             logger.exception("Unhandled chatbot error")
-            reply = fallback_reply(message=message, context=context)
+            reply = "I am currently experiencing connection issues with my AI service. Please try again later."
             provider = "fallback"
             model = "fallback"
             degraded = True
 
+        is_refusal = (
+            reply == EDUCATION_ONLY_REPLY
+            or "I can help only with SIA education" in reply
+            or "I support only education questions" in reply
+            or "connection issues" in reply
+            or "Please rephrase the question" in reply
+        )
+
         return Response(
             {
-                "reply": format_chat_reply(reply),
+                "reply": format_chat_reply(reply, context),
                 "scope": "education_only",
                 "provider": provider,
                 "model": model,
                 "course_access": context.course_access,
-                "sources": context.sources,
+                "sources": [] if is_refusal else context.sources,
                 "retrieval_mode": context.retrieval_mode,
                 "retrieval_hits": context.retrieval_hits,
                 "latency_ms": max(int((time.perf_counter() - started) * 1000), 0),

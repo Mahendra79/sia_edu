@@ -199,6 +199,15 @@ else:
         }
     }
 
+VECTOR_DATABASE_URL = os.getenv("VECTOR_DATABASE_URL", "").strip()
+if VECTOR_DATABASE_URL:
+    DATABASES["vector_db"] = _database_from_url(VECTOR_DATABASE_URL)
+else:
+    DATABASES["vector_db"] = DATABASES["default"]
+
+DATABASE_ROUTERS = ['config.db_router.VectorDatabaseRouter']
+
+
 AUTH_USER_MODEL = "accounts.User"
 
 
@@ -396,6 +405,26 @@ GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/co
 CHATBOT_MAX_HISTORY = int(os.getenv("CHATBOT_MAX_HISTORY", "8"))
 CHATBOT_MAX_TOKENS = int(os.getenv("CHATBOT_MAX_TOKENS", "420"))
 CHATBOT_RAG_CACHE_TTL = int(os.getenv("CHATBOT_RAG_CACHE_TTL", "300"))
+
+CHATBOT_LLM_PROVIDER = os.getenv("CHATBOT_LLM_PROVIDER", "ollama").strip()
+LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1").strip()
+LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "llama3.2:latest").strip()
+LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "ollama").strip()
+
+# Gemini Multi-API Key Rotation & Model Settings
+GEMINI_API_KEYS = []
+for i in range(1, 6):
+    _key = os.getenv(f"GEMINI_API_KEY_{i}", "").strip()
+    if _key:
+        GEMINI_API_KEYS.append(_key)
+
+if not GEMINI_API_KEYS:
+    _single_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if _single_key:
+        GEMINI_API_KEYS.append(_single_key)
+
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-3.5-flash").strip()
+
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 

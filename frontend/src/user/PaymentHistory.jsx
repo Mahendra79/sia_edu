@@ -57,13 +57,24 @@ export default function PaymentHistory() {
   });
 
   const openInvoice = async (paymentId, inline) => {
+    let newWindow = null;
+    if (inline) {
+      newWindow = window.open("", "_blank");
+      if (newWindow) {
+        newWindow.document.write("<p style='font-family: sans-serif; padding: 20px; color: #666;'>Generating invoice PDF, please wait...</p>");
+      }
+    }
     setInvoiceLoadingId(paymentId);
     try {
       const response = await paymentService.getInvoice(paymentId, { inline });
       const blob = new Blob([response.data], { type: "application/pdf" });
       const blobUrl = window.URL.createObjectURL(blob);
       if (inline) {
-        window.open(blobUrl, "_blank", "noopener,noreferrer");
+        if (newWindow) {
+          newWindow.location.href = blobUrl;
+        } else {
+          window.open(blobUrl, "_blank", "noopener,noreferrer");
+        }
       } else {
         const link = document.createElement("a");
         link.href = blobUrl;
@@ -72,8 +83,11 @@ export default function PaymentHistory() {
         link.click();
         document.body.removeChild(link);
       }
-      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), inline ? 10000 : 2000);
     } catch {
+      if (newWindow) {
+        newWindow.close();
+      }
       addToast({ type: "error", message: "Unable to generate invoice." });
     } finally {
       setInvoiceLoadingId(null);

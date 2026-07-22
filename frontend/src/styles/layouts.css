@@ -40,17 +40,17 @@
   border-right: 1px solid var(--border);
   background: var(--navbar-surface);
   overflow-y: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   z-index: 40;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .app-sidebar-brand {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.3rem 0.3rem 0.65rem;
+  padding: 0.3rem 36px 0.65rem 0.3rem;
   margin-bottom: 0.1rem;
-  border-bottom: 1px solid var(--soft-border);
   font-family: "Sora", "Plus Jakarta Sans", sans-serif;
   min-width: 0;
 }
@@ -1183,107 +1183,195 @@
   right: 18px;
   bottom: 18px;
   z-index: 90;
+  width: 0;
+  height: 0;
 }
 
 .chatbot-fab {
-  min-width: 118px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  white-space: nowrap;
+  width: 56px;
   height: 56px;
-  border-radius: 999px;
+  border-radius: 50%;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  padding-inline: 0.9rem;
+  gap: 0;
+  padding: 0;
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 76%, #12203b), var(--accent-strong));
   border-color: color-mix(in srgb, var(--accent-strong) 65%, transparent);
   box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 24%, transparent);
+  opacity: 1;
+  transform: scale(1);
+  visibility: visible;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chatbot-fab svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.chatbot-fab.hidden {
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .chatbot-modal {
+  position: absolute;
+  bottom: 0;
+  right: 0;
   width: min(390px, 92vw);
-  margin-bottom: 0.7rem;
-  border-radius: 18px;
-  border: 1px solid var(--border);
+  border-radius: 20px;
+  border: 1px solid var(--soft-border);
   background: var(--chatbot-surface);
-  box-shadow: var(--card-shadow);
-  animation: slideUp 0.22s ease both;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), var(--card-shadow);
   overflow: hidden;
+  opacity: 0;
+  transform: scale(0.95);
+  transform-origin: bottom right;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(16px);
+}
+
+.chatbot-modal.open {
+  opacity: 1;
+  transform: scale(1);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .chatbot-modal header {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: start;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.78rem 0.8rem;
+  padding: 1.1rem 1.2rem;
   border-bottom: 1px solid var(--soft-border);
-  background: var(--chatbot-header-surface);
+  background: linear-gradient(135deg, var(--chatbot-header-surface), color-mix(in srgb, var(--bg-tertiary) 40%, var(--chatbot-header-surface)));
+  position: relative;
 }
 
 .chatbot-modal header h4 {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   margin: 0;
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.chatbot-header-bot-icon {
+  color: var(--accent);
+  filter: drop-shadow(0 2px 4px var(--accent-soft));
+}
+
+.chatbot-header-sparkle-icon {
+  color: var(--warning);
+  animation: float 2s infinite ease-in-out;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 .chatbot-title-wrap p {
-  margin-top: 0.2rem;
+  margin: 0.25rem 0 0 0;
   color: var(--text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: 0.76rem;
+  line-height: 1.4;
 }
 
 .chat-close-btn {
-  width: 34px;
-  height: 34px;
-  box-shadow: none;
-  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--soft-border);
+  padding: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-close-btn:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.chat-close-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .chatbot-messages {
   display: grid;
-  gap: 0.56rem;
-  padding: 0.8rem;
-  max-height: 292px;
+  gap: 0.85rem;
+  padding: 1.2rem;
+  max-height: 320px;
   overflow-y: auto;
   background: var(--chatbot-surface);
+  scrollbar-width: none;
+}
+
+.chatbot-messages::-webkit-scrollbar {
+  display: none;
 }
 
 .chat-msg {
-  border-radius: 12px;
-  padding: 0.52rem 0.68rem;
-  font-size: 0.86rem;
-  line-height: 1.45;
-  max-width: 88%;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  max-width: 85%;
   display: grid;
-  gap: 0.26rem;
+  gap: 0.3rem;
 }
 
 .chat-msg-body {
   display: grid;
-  gap: 0.18rem;
+  gap: 0.2rem;
 }
 
 .chat-msg-paragraph {
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .chat-msg-list {
-  margin: 0;
-  padding-left: 1.1rem;
+  margin: 0.3rem 0;
+  padding-left: 1.2rem;
   display: grid;
-  gap: 0.14rem;
+  gap: 0.2rem;
+}
+
+.chat-msg-list li {
+  line-height: 1.5;
 }
 
 .chat-msg-list.ordered {
-  padding-left: 1.18rem;
+  padding-left: 1.3rem;
 }
 
 .chat-msg-list.unordered {
-  padding-left: 1.05rem;
+  padding-left: 1.2rem;
 }
 
 .chat-msg strong {
@@ -1292,15 +1380,58 @@
 }
 
 .chat-msg.bot {
-  background: color-mix(in srgb, var(--chatbot-message-surface) 76%, var(--surface-muted-soft));
+  background: var(--bg-tertiary);
   border: 1px solid var(--soft-border);
+  border-radius: 16px 16px 16px 4px;
+  color: var(--text-primary);
   justify-self: start;
+}
+
+.chat-msg.bot strong {
+  color: var(--text-primary);
+}
+
+.chat-loading-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.chat-loading-bubble .dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent);
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: chatPulse 1.4s infinite ease-in-out both;
+}
+
+.chat-loading-bubble .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.chat-loading-bubble .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes chatPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chat-msg.user {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: #fff;
-  justify-self: flex-end;
+  border-radius: 16px 16px 4px 16px;
+  justify-self: end;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .chat-msg.user strong {
@@ -1314,51 +1445,105 @@
 }
 
 .chatbot-suggestions {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: 0.42rem;
+  display: flex;
+  gap: 0.5rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 0 0.8rem 0.8rem;
-  background: var(--chatbot-header-surface);
+  padding: 0 1.2rem 0.9rem;
+  background: var(--chatbot-surface);
+  scrollbar-width: none;
+}
+
+.chatbot-suggestions::-webkit-scrollbar {
+  display: none;
 }
 
 .chat-suggestion-btn {
-  padding: 0.32rem 0.56rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 999px;
   border: 1px solid var(--soft-border);
-  background: color-mix(in srgb, var(--surface-muted-soft) 78%, transparent);
+  background: color-mix(in srgb, var(--bg-tertiary) 80%, transparent);
   box-shadow: none;
   color: var(--text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
   white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .chat-suggestion-btn:hover,
 .chat-suggestion-btn:focus-visible {
-  transform: none;
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--soft-border));
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 .chatbot-input {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.5rem;
-  padding: 0.8rem;
-  background: var(--chatbot-header-surface);
+  gap: 0.6rem;
+  padding: 0.9rem 1.2rem 1.2rem;
+  background: var(--chatbot-surface);
+  border-top: 1px solid var(--soft-border);
 }
 
 .chatbot-input input {
-  background: var(--chatbot-input-surface);
-  font-size: 0.86rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--soft-border);
+  border-radius: 24px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.chatbot-input input:focus {
+  border-color: var(--accent);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.chat-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong)) !important;
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-send-btn:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.chat-send-btn:disabled {
+  background: var(--surface-muted) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.chat-send-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .site-footer {
   width: min(var(--layout-max-width), calc(100% - (var(--layout-side-gap) * 2)));
-  margin: 1.5rem auto 0 var(--layout-side-gap);
+  margin: 1.5rem auto 0;
   border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   border-radius: 18px;
   background: linear-gradient(160deg, var(--surface-glass), color-mix(in srgb, var(--surface-muted-soft) 58%, transparent));
@@ -1819,3 +2004,196 @@
     height: 34px;
   }
 }
+
+/* Sidebar toggle & collapse styling */
+.app-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border-bottom: 1px solid var(--soft-border);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.1rem;
+  position: relative;
+}
+
+.sidebar-collapse-btn {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+  opacity: 1;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) translateY(-0.35rem);
+  z-index: 10;
+  transition: opacity 0.2s ease, background-color 0.2s, color 0.2s;
+}
+
+.sidebar-collapse-btn:hover {
+  background-color: var(--surface-muted-soft);
+  color: var(--text-primary);
+  transform: translateY(-50%) translateY(-0.35rem);
+  box-shadow: none;
+}
+
+.sidebar-collapse-btn:active {
+  transform: translateY(-50%) translateY(-0.35rem);
+}
+
+.sidebar-collapse-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 980px) {
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+}
+
+@media (min-width: 981px) {
+  .app-sidebar.is-collapsed {
+    width: 78px;
+    padding: 1.15rem 0.5rem 1rem;
+    align-items: center;
+  }
+  
+  .app-sidebar.is-collapsed .app-sidebar-header {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 0.5rem;
+    position: relative;
+    border-bottom: none;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-brand {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border-bottom: none;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    z-index: 1;
+    width: 100%;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-header:hover .app-sidebar-brand {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-brand-text {
+    display: none !important;
+  }
+
+  .app-sidebar.is-collapsed .sidebar-collapse-btn {
+    position: absolute;
+    inset: 0;
+    width: 46px;
+    height: 46px;
+    margin: 0 auto;
+    padding: 0;
+    border-radius: 13px;
+    border: 1px solid var(--border);
+    box-shadow: none;
+    background: var(--surface-muted);
+    opacity: 0;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    z-index: 2;
+    transition: opacity 0.2s ease, background-color 0.2s, color 0.2s;
+  }
+
+  .app-sidebar.is-collapsed .sidebar-collapse-btn:hover,
+  .app-sidebar.is-collapsed .sidebar-collapse-btn:active {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-header:hover .sidebar-collapse-btn,
+  .app-sidebar.is-collapsed .sidebar-collapse-btn:focus-visible {
+    opacity: 1;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-link {
+    justify-content: center;
+    padding: 0.58rem 0;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-link span {
+    display: none !important;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-extra,
+  .app-sidebar.is-collapsed .app-sidebar-promo {
+    display: none !important;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-user {
+    padding: 0.4rem;
+    border-radius: 50%;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-user span {
+    display: none !important;
+  }
+}
+
+/* Customize the scrollbar for the sidebar */
+.app-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+

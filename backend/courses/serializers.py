@@ -386,7 +386,20 @@ class QuizQuestionAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuizQuestion
-        fields = ("id", "quiz", "question_text", "marks", "order", "is_active", "options", "created_at", "updated_at")
+        fields = (
+            "id",
+            "quiz",
+            "question_text",
+            "marks",
+            "order",
+            "is_active",
+            "explanation",
+            "reference_lesson",
+            "reference_timestamp_seconds",
+            "options",
+            "created_at",
+            "updated_at",
+        )
         read_only_fields = ("id", "created_at", "updated_at")
         extra_kwargs = {"quiz": {"required": False}}
 
@@ -495,10 +508,23 @@ class QuizOptionLearnerSerializer(serializers.ModelSerializer):
 
 class QuizQuestionLearnerSerializer(serializers.ModelSerializer):
     options = QuizOptionLearnerSerializer(many=True, read_only=True)
+    reference_module_number = serializers.IntegerField(source="reference_lesson.module_number", read_only=True, allow_null=True)
+    reference_lesson_title = serializers.CharField(source="reference_lesson.title", read_only=True, allow_null=True)
 
     class Meta:
         model = QuizQuestion
-        fields = ("id", "question_text", "marks", "order", "options")
+        fields = (
+            "id",
+            "question_text",
+            "marks",
+            "order",
+            "options",
+            "explanation",
+            "reference_lesson_id",
+            "reference_module_number",
+            "reference_lesson_title",
+            "reference_timestamp_seconds",
+        )
 
 
 class LearnerQuizSummarySerializer(serializers.ModelSerializer):
@@ -537,10 +563,15 @@ class LearnerQuizSummarySerializer(serializers.ModelSerializer):
 class QuizAttemptAnswerSerializer(serializers.ModelSerializer):
     question_id = serializers.IntegerField(source="question.id", read_only=True)
     selected_option_id = serializers.IntegerField(source="selected_option.id", read_only=True)
+    correct_option_id = serializers.SerializerMethodField()
 
     class Meta:
         model = QuizAttemptAnswer
-        fields = ("id", "question_id", "selected_option_id", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds")
+        fields = ("id", "question_id", "selected_option_id", "correct_option_id", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds")
+
+    def get_correct_option_id(self, obj):
+        correct_option = obj.question.options.filter(is_correct=True).first()
+        return correct_option.id if correct_option else None
 
 
 class QuizAttemptSerializer(serializers.ModelSerializer):

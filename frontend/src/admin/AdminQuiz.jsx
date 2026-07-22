@@ -28,6 +28,9 @@ const EMPTY_QUESTION = {
   is_active: true,
   correctIndex: 0,
   options: ["", "", "", ""],
+  explanation: "",
+  reference_lesson: "",
+  reference_timestamp_seconds: "",
 };
 
 export default function AdminQuiz() {
@@ -42,6 +45,7 @@ export default function AdminQuiz() {
   const [editingQuizId, setEditingQuizId] = useState(null);
   const [selectedQuizId, setSelectedQuizId] = useState(() => cachedQuizzes?.[0]?.id || null);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(() => !(cachedQuizCourses && cachedQuizzes));
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [savingQuestion, setSavingQuestion] = useState(false);
@@ -102,6 +106,22 @@ export default function AdminQuiz() {
     });
   }, [courseFilter, addToast]);
 
+  useEffect(() => {
+    if (!selectedQuiz?.course) {
+      setLessons([]);
+      return;
+    }
+    const fetchLessons = async () => {
+      try {
+        const response = await courseService.getAdminLmsLessons({ course_id: selectedQuiz.course });
+        setLessons(response.data || []);
+      } catch {
+        addToast({ type: "error", message: "Unable to load course lessons." });
+      }
+    };
+    fetchLessons();
+  }, [selectedQuiz?.course, addToast]);
+
   const resetQuizForm = (course = quizForm.course) => {
     setQuizForm({ ...EMPTY_QUIZ, course });
     setEditingQuizId(null);
@@ -143,6 +163,9 @@ export default function AdminQuiz() {
       is_active: Boolean(question.is_active),
       correctIndex,
       options: options.map((option) => option.option_text).concat(["", "", "", ""]).slice(0, 4),
+      explanation: question.explanation || "",
+      reference_lesson: question.reference_lesson || "",
+      reference_timestamp_seconds: question.reference_timestamp_seconds ?? "",
     });
   };
 
@@ -199,6 +222,9 @@ export default function AdminQuiz() {
         order: index + 1,
         is_correct: index === Number(questionForm.correctIndex),
       })),
+      explanation: questionForm.explanation || "",
+      reference_lesson: questionForm.reference_lesson ? Number(questionForm.reference_lesson) : null,
+      reference_timestamp_seconds: questionForm.reference_timestamp_seconds !== "" && questionForm.reference_timestamp_seconds !== null ? Number(questionForm.reference_timestamp_seconds) : null,
     };
     try {
       if (editingQuestionId) {
@@ -484,7 +510,7 @@ export default function AdminQuiz() {
                 <div className="quiz-import-panel">
                   <div>
                     <strong>Bulk import questions</strong>
-                    <p className="meta-note">CSV columns: question, option_1, option_2, option_3, option_4, correct_option, marks</p>
+                    <p className="meta-note">CSV columns: question, option_1, option_2, option_3, option_4, correct_option, marks, explanation (optional), reference_lesson (optional ID), reference_timestamp_seconds (optional)</p>
                   </div>
                   <label className="btn btn-muted">
                     {importingQuestions ? "Importing..." : "Import CSV"}
@@ -503,6 +529,41 @@ export default function AdminQuiz() {
                       required
                     />
                   </label>
+                  <label className="table-inline-field">
+                    <span className="table-inline-field-label">Explanation</span>
+                    <textarea
+                      rows={3}
+                      value={questionForm.explanation}
+                      onChange={(e) => setQuestionForm((prev) => ({ ...prev, explanation: e.target.value }))}
+                      placeholder="Enter explanation text shown to students after answering"
+                    />
+                  </label>
+                  <div className="quiz-question-meta-grid" style={{ marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+                    <label className="table-inline-field">
+                      <span className="table-inline-field-label">Reference Lesson</span>
+                      <select
+                        value={questionForm.reference_lesson}
+                        onChange={(e) => setQuestionForm((prev) => ({ ...prev, reference_lesson: e.target.value }))}
+                      >
+                        <option value="">No reference lesson</option>
+                        {lessons.map((lesson) => (
+                          <option key={lesson.id} value={lesson.id}>
+                            M{lesson.module_number} L{lesson.lesson_number}: {lesson.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="table-inline-field">
+                      <span className="table-inline-field-label">Reference Timestamp (seconds)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 120"
+                        value={questionForm.reference_timestamp_seconds}
+                        onChange={(e) => setQuestionForm((prev) => ({ ...prev, reference_timestamp_seconds: e.target.value }))}
+                      />
+                    </label>
+                  </div>
                   <div className="quiz-question-meta-grid">
                     <label className="table-inline-field">
                       <span className="table-inline-field-label">Marks</span>
@@ -579,6 +640,17 @@ export default function AdminQuiz() {
                         <p className="meta-note">
                           {question.marks} marks | {question.is_active ? "Active" : "Inactive"}
                         </p>
+                        {question.explanation && (
+                          <p className="meta-note" style={{ marginTop: "0.2rem", fontStyle: "italic" }}>
+                            <strong>Explanation:</strong> {question.explanation}
+                          </p>
+                        )}
+                        {question.reference_lesson && (
+                          <p className="meta-note" style={{ marginTop: "0.2rem" }}>
+                            <strong>Ref:</strong> Lesson ID {question.reference_lesson}
+                            {question.reference_timestamp_seconds !== null && ` at ${question.reference_timestamp_seconds}s`}
+                          </p>
+                        )}
                       </div>
                       <div className="inline-controls">
                         <button type="button" className="btn btn-muted" onClick={() => startQuestionEdit(question)}>

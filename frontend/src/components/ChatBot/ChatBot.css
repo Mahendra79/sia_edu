@@ -1,0 +1,130 @@
+/* ChatBot custom animations and styles extension */
+
+.chat-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--chatbot-message-surface);
+  border-radius: 12px;
+  border: 1px solid var(--soft-border);
+  align-self: start;
+}
+
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  animation: chatBlink 1.4s infinite both;
+}
+
+.chat-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes chatBlink {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.chat-clear-btn {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.chat-clear-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.chat-msg-time {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+  text-align: right;
+  display: block;
+}
+
+.chat-msg.bot .chat-msg-time {
+  color: var(--text-secondary);
+}
+
+.chat-skeleton-container {
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.chat-skeleton-line {
+  height: 12px;
+  background: linear-gradient(90deg, var(--soft-border) 25%, var(--border) 50%, var(--soft-border) 75%);
+  background-size: 200% 100%;
+  animation: chatShimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.chat-skeleton-line.short {
+  width: 60%;
+}
+
+.chat-skeleton-line.medium {
+  width: 85%;
+}
+
+@keyframes chatShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Scrollbar customization */
+.chatbot-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chatbot-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb {
+  background: var(--soft-border);
+  border-radius: 99px;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+/* Accessibility focusing */
+.chatbot-fab:focus-visible,
+.chat-close-btn:focus-visible,
+.chat-suggestion-btn:focus-visible,
+.chatbot-input input:focus-visible,
+.chatbot-input button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

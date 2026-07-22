@@ -338,7 +338,12 @@ class CourseListCreateView(generics.ListCreateAPIView):
         queryset = _annotated_course_queryset(self.request.user)
         search = self.request.query_params.get("search", "").strip()
         if search:
-            queryset = queryset.filter(title__icontains=search)
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(short_description__icontains=search) |
+                Q(description__icontains=search) |
+                Q(category__name__icontains=search)
+            )
 
         category_id = self.request.query_params.get("category")
         if category_id:
@@ -1075,8 +1080,43 @@ class AdminQuizQuestionImportView(APIView):
                 if not question_text or any(not option for option in options) or correct_index not in range(4):
                     errors.append(f"Row {row_index}: fill question, 4 options, and correct_option 1-4.")
                     continue
+
+                explanation = str(row.get("explanation") or "").strip()
+
+                reference_lesson_id = None
+                raw_lesson = str(row.get("reference_lesson") or row.get("reference_lesson_id") or "").strip()
+                if raw_lesson:
+                    try:
+                        reference_lesson_id = int(raw_lesson)
+                        if not CourseLesson.objects.filter(id=reference_lesson_id, course=quiz.course).exists():
+                            errors.append(f"Row {row_index}: reference_lesson ID {reference_lesson_id} does not exist in this course.")
+                            continue
+                    except ValueError:
+                        errors.append(f"Row {row_index}: reference_lesson must be a valid integer ID.")
+                        continue
+
+                reference_timestamp_seconds = None
+                raw_timestamp = str(row.get("reference_timestamp_seconds") or row.get("reference_timestamp") or "").strip()
+                if raw_timestamp:
+                    try:
+                        reference_timestamp_seconds = int(raw_timestamp)
+                        if reference_timestamp_seconds < 0:
+                            errors.append(f"Row {row_index}: reference_timestamp_seconds must be positive.")
+                            continue
+                    except ValueError:
+                        errors.append(f"Row {row_index}: reference_timestamp_seconds must be a valid integer.")
+                        continue
+
                 order = existing_count + len(created) + 1
-                question = QuizQuestion.objects.create(quiz=quiz, question_text=question_text, marks=max(1, marks), order=order)
+                question = QuizQuestion.objects.create(
+                    quiz=quiz,
+                    question_text=question_text,
+                    marks=max(1, marks),
+                    order=order,
+                    explanation=explanation,
+                    reference_lesson_id=reference_lesson_id,
+                    reference_timestamp_seconds=reference_timestamp_seconds,
+                )
                 for option_index, option_text in enumerate(options):
                     QuizOption.objects.create(
                         question=question,
