@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { courseService } from "../services/courseService";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { getCourseUrl } from "../utils/courseUrl";
 
 // Module-scoped so it survives Home unmounting/remounting when navigating away and
@@ -34,6 +35,12 @@ const homeCache = {
 };
 
 export default function Home() {
+  useDocumentMeta({
+    title: "SIA Software Innovations Private Limited",
+    description:
+      "SIA Software Innovations Education provides courses, training, and learning resources focused on software engineering and applied problem solving.",
+    path: "/",
+  });
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, isAdmin, user } = useAuth();

@@ -13,6 +13,7 @@ import {
 import PageTransition from "../components/PageTransition";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import MainLayout from "../layouts/MainLayout";
 import companyLogo from "../assets/image.webp";
 import "./AuthPages.css";
@@ -21,6 +22,11 @@ import "./Login.css";
 const INITIAL_LOGIN = { username: "", password: "" };
 
 export default function Login() {
+  useDocumentMeta({
+    title: "Login | SIA Software Innovations Education",
+    description: "Log in to your SIA Software Innovations Education account to continue your courses.",
+    path: "/login",
+  });
   const navigate = useNavigate();
   const { login } = useAuth();
   const { addToast } = useToast();

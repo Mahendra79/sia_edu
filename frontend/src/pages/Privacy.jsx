@@ -1,6 +1,12 @@
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import MainLayout from "../layouts/MainLayout";
 
 export default function Privacy() {
+  useDocumentMeta({
+    title: "Privacy Policy | SIA Software Innovations Education",
+    description: "Read the privacy policy for SIA Software Innovations Education.",
+    path: "/privacy",
+  });
   return (
     <MainLayout>
       <section className="panel-card legal-page">

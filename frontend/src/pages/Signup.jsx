@@ -12,6 +12,7 @@ import {
 import PageTransition from "../components/PageTransition";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import MainLayout from "../layouts/MainLayout";
 import companyLogo from "../assets/image.webp";
 import "./AuthPages.css";
@@ -27,6 +28,11 @@ const INITIAL_FORM = {
 };
 
 export default function Signup() {
+  useDocumentMeta({
+    title: "Sign Up | SIA Software Innovations Education",
+    description: "Create a free account to enroll in courses and track your learning progress.",
+    path: "/signup",
+  });
   const navigate = useNavigate();
   const { signup } = useAuth();
   const { addToast } = useToast();

@@ -1,6 +1,12 @@
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import MainLayout from "../layouts/MainLayout";
 
 export default function Terms() {
+  useDocumentMeta({
+    title: "Terms of Service | SIA Software Innovations Education",
+    description: "Read the terms of service for SIA Software Innovations Education.",
+    path: "/terms",
+  });
   return (
     <MainLayout>
       <section className="panel-card legal-page">

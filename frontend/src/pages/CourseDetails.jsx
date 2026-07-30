@@ -19,6 +19,15 @@ import { getCourseImageUrl } from "../data/courseImages";
 import { getCourseStartLabel } from "../data/featuredCourse";
 import { getCached, setCached } from "../utils/sessionCache";
 import { getCourseUrl, parseCourseIdFromParam } from "../utils/courseUrl";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
+
+const SITE_URL = "https://edu.siasoftwareinnovations.com";
+
+function truncate(text, maxLength) {
+  const value = String(text || "").trim();
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1).trim()}…`;
+}
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
@@ -157,6 +166,49 @@ export default function CourseDetails() {
   const [error, setError] = useState("");
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [imageStage, setImageStage] = useState(0);
+
+  useDocumentMeta({
+    title: course ? `${course.title} | SIA Software Innovations Education` : undefined,
+    description: course ? truncate(course.short_description || course.description, 155) : undefined,
+    path: course ? getCourseUrl(course) : undefined,
+  });
+
+  useEffect(() => {
+    if (!course) return undefined;
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: course.title,
+      description: truncate(course.short_description || course.description, 300),
+      provider: {
+        "@type": "Organization",
+        name: "SIA Software Innovations Private Limited",
+        sameAs: SITE_URL,
+      },
+      url: `${SITE_URL}${getCourseUrl(course)}`,
+      offers: {
+        "@type": "Offer",
+        price: String(course.discounted_price ?? course.price ?? "0"),
+        priceCurrency: "INR",
+        url: `${SITE_URL}${getCourseUrl(course)}`,
+        availability: course.allow_purchase ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      },
+    };
+
+    let script = document.getElementById("course-jsonld");
+    if (!script) {
+      script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.id = "course-jsonld";
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonLd);
+
+    return () => {
+      script?.remove();
+    };
+  }, [course]);
 
   const loadCourseDetails = useCallback(async () => {
     if (!id) {
