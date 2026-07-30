@@ -55,6 +55,25 @@ class Course(models.Model):
         return self.title
 
 
+class FreeCourse(models.Model):
+    title = models.CharField(max_length=255, db_index=True)
+    youtube_url = models.URLField(max_length=1200)
+    thumbnail_url = models.URLField(max_length=1200, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["is_deleted", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+
 class Enrollment(models.Model):
     STATUS_CHOICES = (
         ("enrolled", "Enrolled"),

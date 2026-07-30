@@ -3,6 +3,8 @@ from django.urls import path
 from courses.views import (
     AdminEnrollmentDetailView,
     AdminEnrollmentsView,
+    AdminFreeCourseDetailView,
+    AdminFreeCourseListCreateView,
     AdminLessonDetailView,
     AdminLessonListCreateView,
     AdminQuizDetailView,
@@ -17,6 +19,7 @@ from courses.views import (
     CourseListCreateView,
     CourseRetrieveUpdateDestroyView,
     CourseReviewsView,
+    FreeCourseListView,
     LearnerLessonDetailView,
     LearnerLessonPdfView,
     LearnerLessonProgressView,
@@ -36,6 +39,9 @@ from courses.views import (
 urlpatterns = [
     path("categories/", CategoryListCreateView.as_view(), name="categories"),
     path("categories/<int:pk>/", CategoryRetrieveUpdateDestroyView.as_view(), name="category-detail"),
+    path("free-courses/", FreeCourseListView.as_view(), name="free-courses"),
+    path("admin/free-courses/", AdminFreeCourseListCreateView.as_view(), name="admin-free-courses"),
+    path("admin/free-courses/<int:free_course_id>/", AdminFreeCourseDetailView.as_view(), name="admin-free-course-detail"),
     path("", CourseListCreateView.as_view(), name="courses"),
     path("<int:pk>/", CourseRetrieveUpdateDestroyView.as_view(), name="course-detail"),
     path("<int:course_id>/related/", RelatedCoursesView.as_view(), name="course-related"),

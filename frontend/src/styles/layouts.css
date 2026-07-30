@@ -101,6 +101,12 @@
 .app-sidebar-nav {
   display: grid;
   gap: 0.22rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: start;
+  scrollbar-width: none;
 }
 
 .app-sidebar-link {
@@ -2200,20 +2206,24 @@
 }
 
 /* Customize the scrollbar for the sidebar */
-.app-sidebar::-webkit-scrollbar {
+.app-sidebar::-webkit-scrollbar,
+.app-sidebar-nav::-webkit-scrollbar {
   width: 5px;
 }
 
-.app-sidebar::-webkit-scrollbar-track {
+.app-sidebar::-webkit-scrollbar-track,
+.app-sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.app-sidebar::-webkit-scrollbar-thumb {
+.app-sidebar::-webkit-scrollbar-thumb,
+.app-sidebar-nav::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
 }
 
-.app-sidebar::-webkit-scrollbar-thumb:hover {
+.app-sidebar::-webkit-scrollbar-thumb:hover,
+.app-sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
 

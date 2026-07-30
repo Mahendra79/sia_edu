@@ -23,6 +23,7 @@ import { API_BASE_URL } from "../services/api";
 import { courseService } from "../services/courseService";
 import { lmsPortalCacheKey } from "../data/lmsPrefetch";
 import { getCached, setCached } from "../utils/sessionCache";
+import { getCourseUrl } from "../utils/courseUrl";
 import { LessonPdfViewer } from "./LessonPlayer";
 import "./user.css";
 
@@ -400,7 +401,7 @@ export default function LMSPortal() {
                   My Courses
                 </button>
                 <Link
-                  to={`/course/${course.id}`}
+                  to={getCourseUrl(course)}
                   className="btn btn-muted"
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -448,7 +449,7 @@ export default function LMSPortal() {
               <HiOutlineArrowLeft />
               My Courses
             </button>
-            <Link to={`/course/${course.id}`} className="btn btn-muted">
+            <Link to={getCourseUrl(course)} className="btn btn-muted">
               Course Details
             </Link>
           </div>

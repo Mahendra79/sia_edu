@@ -3,12 +3,14 @@ import logging
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -175,6 +177,10 @@ class LoginView(TokenObtainPairView):
 
 class RefreshTokenView(TokenRefreshView):
     permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        OutstandingToken.objects.filter(expires_at__lt=timezone.now()).delete()
+        return super().post(request, *args, **kwargs)
 
 
 class LogoutView(APIView):

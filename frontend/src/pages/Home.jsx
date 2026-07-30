@@ -9,6 +9,7 @@ import {
 } from "react-icons/hi2";
 
 import CourseCard from "../components/CourseCard";
+import FreeCourseCard from "../components/FreeCourseCard";
 import PageTransition from "../components/PageTransition";
 import Pagination from "../components/Pagination";
 import SearchBar from "../components/SearchBar";
@@ -21,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MainLayout from "../layouts/MainLayout";
 import { courseService } from "../services/courseService";
+import { getCourseUrl } from "../utils/courseUrl";
 
 // Module-scoped so it survives Home unmounting/remounting when navigating away and
 // back (e.g. opening a course then hitting back) within the same browser session.
@@ -28,6 +30,7 @@ const homeCache = {
   catalog: new Map(),
   quickCourses: null,
   continueCourse: null,
+  freeCourses: null,
 };
 
 export default function Home() {
@@ -49,6 +52,8 @@ export default function Home() {
   const [quickLoading, setQuickLoading] = useState(() => homeCache.quickCourses === null);
   const [continueCourse, setContinueCourse] = useState(() => homeCache.continueCourse);
   const [continueLoading, setContinueLoading] = useState(false);
+  const [freeCourses, setFreeCourses] = useState(() => homeCache.freeCourses || []);
+  const [freeCoursesLoading, setFreeCoursesLoading] = useState(() => homeCache.freeCourses === null);
   const catalogRef = useRef(null);
 
   useEffect(() => {
@@ -145,6 +150,37 @@ export default function Home() {
   }, [isAuthenticated, isAdmin]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (homeCache.freeCourses === null) {
+      setFreeCoursesLoading(true);
+    }
+
+    const loadFreeCourses = async () => {
+      try {
+        const response = await courseService.getFreeCourses();
+        const results = response.data || [];
+        if (!cancelled) {
+          setFreeCourses(results);
+          homeCache.freeCourses = results;
+        }
+      } catch {
+        if (!cancelled && homeCache.freeCourses === null) {
+          setFreeCourses([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setFreeCoursesLoading(false);
+        }
+      }
+    };
+
+    loadFreeCourses();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const candidate = quickCourses.find((item) => item.status !== "completed") || quickCourses[0];
     if (!candidate) {
       setContinueCourse(null);
@@ -223,7 +259,7 @@ export default function Home() {
   };
 
   const handleOpenCourse = (course) => {
-    navigate(`/course/${course.id}`);
+    navigate(getCourseUrl(course));
   };
 
   const handleTrackClick = (track) => {
@@ -409,6 +445,22 @@ export default function Home() {
             </section>
             {courses.length === 0 && <p className="empty-state">No courses found. Try a broader keyword.</p>}
             <Pagination count={count} currentPage={page} onPageChange={setPage} />
+          </>
+        )}
+
+        {!freeCoursesLoading && freeCourses.length > 0 && (
+          <>
+            <section className="catalog-header">
+              <div>
+                <h2>Free Courses</h2>
+                <p>Watch free video courses on our YouTube channel — no purchase or login required.</p>
+              </div>
+            </section>
+            <section className="course-grid">
+              {freeCourses.map((freeCourse) => (
+                <FreeCourseCard key={freeCourse.id} freeCourse={freeCourse} />
+              ))}
+            </section>
           </>
         )}
 

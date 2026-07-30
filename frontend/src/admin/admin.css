@@ -301,6 +301,114 @@
   grid-column: span 2;
 }
 
+.free-course-inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-md);
+}
+
+.free-course-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--admin-space-md);
+}
+
+.free-course-thumb-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.free-course-thumb-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.free-course-thumb-preview {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--soft-border);
+  background: color-mix(in srgb, var(--surface-muted-soft) 68%, transparent);
+  overflow: hidden;
+}
+
+.free-course-thumb-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.free-course-form-hint {
+  padding-top: 0.1rem;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .free-course-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.free-course-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  user-select: none;
+  min-height: 44px;
+}
+
+.free-course-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.free-course-switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 38%, transparent);
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.free-course-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.free-course-switch input:checked ~ .free-course-switch-track {
+  background: var(--accent-strong);
+}
+
+.free-course-switch input:checked ~ .free-course-switch-track::after {
+  transform: translateX(18px);
+}
+
+.free-course-switch input:focus-visible ~ .free-course-switch-track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 78%, transparent);
+}
+
+.free-course-switch-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
 .course-inline-edit-form {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }

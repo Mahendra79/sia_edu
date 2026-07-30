@@ -72,6 +72,7 @@ class EmailVerificationToken(BaseUserToken):
 
     @staticmethod
     def issue_for_user(user: User, hours_valid: int = 24) -> "EmailVerificationToken":
+        EmailVerificationToken.objects.filter(created_at__lt=timezone.now() - timedelta(days=7)).delete()
         EmailVerificationToken.objects.filter(user=user, is_used=False).update(is_used=True)
         return EmailVerificationToken.objects.create(
             user=user,
@@ -85,6 +86,7 @@ class PasswordResetToken(BaseUserToken):
 
     @staticmethod
     def issue_for_user(user: User, hours_valid: int = 1) -> "PasswordResetToken":
+        PasswordResetToken.objects.filter(created_at__lt=timezone.now() - timedelta(days=7)).delete()
         PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
         return PasswordResetToken.objects.create(
             user=user,

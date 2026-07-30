@@ -13,6 +13,7 @@ import {
   HiOutlineCreditCard,
   HiOutlineHome,
   HiOutlineMoon,
+  HiOutlinePlayCircle,
   HiOutlinePresentationChartBar,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
@@ -227,6 +228,10 @@ export default function Sidebar({ extra }) {
               <NavLink to="/admin/lms" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "LMS")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "LMS")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "LMS" : undefined}>
                 <HiOutlineBookOpen />
                 {!effectiveCollapsed && <span>LMS</span>}
+              </NavLink>
+              <NavLink to="/admin/free-courses" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Free Courses")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Free Courses")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "Free Courses" : undefined}>
+                <HiOutlinePlayCircle />
+                {!effectiveCollapsed && <span>Free Courses</span>}
               </NavLink>
               <NavLink to="/admin/quiz" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Quiz")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Quiz")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "Quiz" : undefined}>
                 <HiOutlineAcademicCap />

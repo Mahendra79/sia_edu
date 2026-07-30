@@ -28,6 +28,7 @@ const DatabaseEditor = lazy(() => import("./admin/DatabaseEditor"));
 const MISReports = lazy(() => import("./admin/MISReports"));
 const ChatbotQA = lazy(() => import("./admin/ChatbotQA"));
 const AdminLMS = lazy(() => import("./admin/AdminLMS"));
+const ManageFreeCourses = lazy(() => import("./admin/ManageFreeCourses"));
 const AdminQuiz = lazy(() => import("./admin/AdminQuiz"));
 
 const UserDashboard = lazy(() => import("./user/UserDashboard"));
@@ -154,6 +155,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminQuiz />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/free-courses"
+          element={
+            <ProtectedRoute adminOnly>
+              <ManageFreeCourses />
             </ProtectedRoute>
           }
         />

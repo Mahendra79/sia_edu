@@ -136,4 +136,19 @@ export const courseService = {
   submitQuizAttempt(attemptId) {
     return api.post(`/courses/lms/quiz-attempts/${attemptId}/submit/`);
   },
+  getFreeCourses() {
+    return api.get("/courses/free-courses/");
+  },
+  getAdminFreeCourses() {
+    return api.get("/courses/admin/free-courses/");
+  },
+  createAdminFreeCourse(payload) {
+    return api.post("/courses/admin/free-courses/", payload);
+  },
+  updateAdminFreeCourse(id, payload) {
+    return api.patch(`/courses/admin/free-courses/${id}/`, payload);
+  },
+  deleteAdminFreeCourse(id) {
+    return api.delete(`/courses/admin/free-courses/${id}/`);
+  },
 };

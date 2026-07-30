@@ -4,6 +4,8 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.urls import include, path
 
+from config.sitemap import sitemap_view
+
 
 def health_check(_request):
     return JsonResponse({"status": "ok"})
@@ -11,6 +13,7 @@ def health_check(_request):
 
 urlpatterns = [
     path("health/", health_check, name="health-check"),
+    path("sitemap.xml", sitemap_view, name="sitemap"),
     path('admin/', admin.site.urls),
     path("api/auth/", include("accounts.urls")),
     path("api/courses/", include("courses.urls")),

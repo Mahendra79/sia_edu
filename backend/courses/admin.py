@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from courses.models import Category, Course, Enrollment, Review, ReviewVote
+from courses.models import Category, Course, Enrollment, FreeCourse, Review, ReviewVote
 
 
 @admin.register(Category)
@@ -15,6 +15,13 @@ class CourseAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "category", "price", "is_active", "is_deleted", "created_at")
     list_filter = ("is_active", "is_deleted", "category")
     search_fields = ("title", "short_description")
+
+
+@admin.register(FreeCourse)
+class FreeCourseAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "is_active", "is_deleted", "created_at")
+    list_filter = ("is_active", "is_deleted")
+    search_fields = ("title",)
 
 
 @admin.register(Enrollment)

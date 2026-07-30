@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineArrowTopRightOnSquare,
   HiOutlineBookOpen,
@@ -18,6 +18,7 @@ import { courseDetailsCacheKey } from "../data/coursePrefetch";
 import { getCourseImageUrl } from "../data/courseImages";
 import { getCourseStartLabel } from "../data/featuredCourse";
 import { getCached, setCached } from "../utils/sessionCache";
+import { getCourseUrl, parseCourseIdFromParam } from "../utils/courseUrl";
 import "./CourseDetails.css";
 
 const DESCRIPTION_PREVIEW_LIMIT = 620;
@@ -144,8 +145,10 @@ function parseDescriptionPreview(text, expanded) {
 }
 
 export default function CourseDetails() {
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = parseCourseIdFromParam(idParam);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const { addToast } = useToast();
 
@@ -156,6 +159,11 @@ export default function CourseDetails() {
   const [imageStage, setImageStage] = useState(0);
 
   const loadCourseDetails = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      setError("Course not found.");
+      return;
+    }
     const cacheKey = courseDetailsCacheKey(id);
     const cached = getCached(cacheKey);
     if (cached) {
@@ -189,6 +197,15 @@ export default function CourseDetails() {
   useEffect(() => {
     loadCourseDetails();
   }, [loadCourseDetails]);
+
+  useEffect(() => {
+    if (!course) return;
+    const canonicalPath = getCourseUrl(course);
+    if (canonicalPath !== location.pathname) {
+      navigate(`${canonicalPath}${location.search}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course]);
 
   const isPurchased = Boolean(course?.is_purchased);
   const description = String(course?.description || "");

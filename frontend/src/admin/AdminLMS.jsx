@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import ConfirmModal from "../components/ConfirmModal";
+import { SkeletonTable } from "../components/Skeleton";
 import AdminLayout from "../layouts/AdminLayout";
 import { useToast } from "../context/ToastContext";
 import { courseService } from "../services/courseService";
@@ -338,77 +339,81 @@ export default function AdminLMS() {
             ))}
           </select>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Course</th>
-                <th>Module</th>
-                <th>Lesson</th>
-                <th>Title</th>
-                <th>Duration</th>
-                <th>PDF</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lessons.map((lesson) => (
-                <tr key={lesson.id}>
-                  <td>{lesson.course_title || lesson.course}</td>
-                  <td>{lesson.module_number}</td>
-                  <td>{lesson.lesson_number}</td>
-                  <td>{lesson.title}</td>
-                  <td>{lesson.duration || "-"}</td>
-                  <td>
-                    {lesson.pdf_url ? (
-                      <a href={lesson.pdf_url} target="_blank" rel="noreferrer">
-                        View
-                      </a>
-                    ) : (
-                      "No"
-                    )}
-                  </td>
-                  <td>{lesson.is_active ? "Yes" : "No"}</td>
-                  <td>
-                    <div className="lms-row-actions">
-                    <button
-                      type="button"
-                      className="btn btn-muted"
-                      onClick={() => startEdit(lesson)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-muted"
-                      onClick={() => askToggle(lesson)}
-                    >
-                      {lesson.is_active ? "Deactivate" : "Activate"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => askDelete(lesson.id)}
-                    >
-                      Delete
-                    </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {lessons.length === 0 ? (
+        {loading ? (
+          <SkeletonTable rows={6} columns={8} />
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={7} className="meta-note">
-                    No LMS lessons found.
-                  </td>
+                  <th>Course</th>
+                  <th>Module</th>
+                  <th>Lesson</th>
+                  <th>Title</th>
+                  <th>Duration</th>
+                  <th>PDF</th>
+                  <th>Active</th>
+                  <th>Actions</th>
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {lessons.map((lesson) => (
+                  <tr key={lesson.id}>
+                    <td>{lesson.course_title || lesson.course}</td>
+                    <td>{lesson.module_number}</td>
+                    <td>{lesson.lesson_number}</td>
+                    <td>{lesson.title}</td>
+                    <td>{lesson.duration || "-"}</td>
+                    <td>
+                      {lesson.pdf_url ? (
+                        <a href={lesson.pdf_url} target="_blank" rel="noreferrer">
+                          View
+                        </a>
+                      ) : (
+                        "No"
+                      )}
+                    </td>
+                    <td>{lesson.is_active ? "Yes" : "No"}</td>
+                    <td>
+                      <div className="lms-row-actions">
+                      <button
+                        type="button"
+                        className="btn btn-muted"
+                        onClick={() => startEdit(lesson)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-muted"
+                        onClick={() => askToggle(lesson)}
+                      >
+                        {lesson.is_active ? "Deactivate" : "Activate"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={() => askDelete(lesson.id)}
+                      >
+                        Delete
+                      </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {lessons.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="meta-note">
+                      No LMS lessons found.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </AdminLayout>
   );

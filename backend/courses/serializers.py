@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import re
 from decimal import Decimal
+from urllib.parse import parse_qs, urlparse
 
+import requests
 from django.db.models import Avg
 from django.utils import timezone
 from rest_framework import serializers
@@ -13,6 +15,7 @@ from courses.models import (
     Course,
     CourseLesson,
     Enrollment,
+    FreeCourse,
     Quiz,
     QuizAttempt,
     QuizAttemptAnswer,
@@ -22,6 +25,57 @@ from courses.models import (
     ReviewVote,
     UserLessonProgress,
 )
+
+VIDEO_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{11}$")
+
+
+def extract_youtube_video_id(youtube_url: str) -> str:
+    youtube_url = (youtube_url or "").strip()
+    if not youtube_url:
+        return ""
+
+    parsed = urlparse(youtube_url)
+    host = parsed.netloc.lower().removeprefix("www.").removeprefix("m.")
+    query_params = parse_qs(parsed.query)
+
+    if host == "youtu.be":
+        candidate = parsed.path.lstrip("/").split("/")[0]
+        return candidate if VIDEO_ID_PATTERN.match(candidate) else ""
+
+    if host.endswith("youtube.com"):
+        if "v" in query_params:
+            candidate = query_params["v"][0]
+            return candidate if VIDEO_ID_PATTERN.match(candidate) else ""
+
+        for prefix in ("/embed/", "/shorts/", "/live/"):
+            if parsed.path.startswith(prefix):
+                candidate = parsed.path[len(prefix):].split("/")[0]
+                return candidate if VIDEO_ID_PATTERN.match(candidate) else ""
+
+    return ""
+
+
+def fetch_oembed_thumbnail(youtube_url: str) -> str:
+    try:
+        response = requests.get(
+            "https://www.youtube.com/oembed",
+            params={"url": youtube_url, "format": "json"},
+            timeout=6,
+        )
+        response.raise_for_status()
+        return response.json().get("thumbnail_url") or ""
+    except (requests.RequestException, ValueError):
+        return ""
+
+
+def extract_youtube_thumbnail(youtube_url: str) -> str:
+    video_id = extract_youtube_video_id(youtube_url)
+    if video_id:
+        return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+
+    if not youtube_url:
+        return ""
+    return fetch_oembed_thumbnail(youtube_url)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -159,6 +213,48 @@ class CourseSerializer(serializers.ModelSerializer):
         if value.size > max_size:
             raise serializers.ValidationError("Image must be 5MB or smaller.")
         return value
+
+
+def resolve_free_course_thumbnail(thumbnail_url: str, youtube_url: str) -> str:
+    thumbnail_url = (thumbnail_url or "").strip()
+    if thumbnail_url:
+        return thumbnail_url
+    return extract_youtube_thumbnail(youtube_url)
+
+
+class FreeCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FreeCourse
+        fields = (
+            "id",
+            "title",
+            "youtube_url",
+            "thumbnail_url",
+            "is_active",
+            "created_at",
+        )
+        read_only_fields = ("id", "created_at")
+        extra_kwargs = {
+            "thumbnail_url": {"required": False, "allow_blank": True},
+        }
+
+    def validate_youtube_url(self, value):
+        if "youtube.com" not in value and "youtu.be" not in value:
+            raise serializers.ValidationError("Enter a valid YouTube video or playlist URL.")
+        return value
+
+    def create(self, validated_data):
+        validated_data["thumbnail_url"] = resolve_free_course_thumbnail(
+            validated_data.get("thumbnail_url", ""), validated_data.get("youtube_url", "")
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "thumbnail_url" in validated_data or "youtube_url" in validated_data:
+            youtube_url = validated_data.get("youtube_url", instance.youtube_url)
+            thumbnail_url = validated_data.get("thumbnail_url", "")
+            validated_data["thumbnail_url"] = resolve_free_course_thumbnail(thumbnail_url, youtube_url)
+        return super().update(instance, validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
