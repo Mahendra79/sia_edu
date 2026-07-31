@@ -460,7 +460,6 @@ export default function Home() {
             <section className="catalog-header">
               <div>
                 <h2>Free Courses</h2>
-                <p>Watch free video courses on our YouTube channel — no purchase or login required.</p>
               </div>
             </section>
             <section className="course-grid">
