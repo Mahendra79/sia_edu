@@ -183,6 +183,7 @@ def _build_lms_payload(user, course: Course):
 
     total_lessons = sum(lesson_count_for_module(module_number) for module_number in module_numbers)
     completed_lessons = 0
+    previous_lesson_gate_passed = True
 
     for module_number in module_numbers:
         module_lessons = []
@@ -192,8 +193,10 @@ def _build_lms_payload(user, course: Course):
             has_video = bool(lesson and str(lesson.video_url or "").strip())
             has_pdf = bool(lesson and str(lesson.pdf_url or "").strip())
             is_active = bool(lesson and lesson.is_active)
-            is_unlocked = bool(lesson and (has_video or has_pdf) and is_active)
+            has_content = has_video or has_pdf
             is_completed = bool(lesson and lesson.id in completed_ids)
+            is_unlocked = bool(lesson and has_content and is_active and (is_completed or previous_lesson_gate_passed))
+            previous_lesson_gate_passed = is_completed or not (lesson and has_content and is_active)
             if is_completed:
                 completed_lessons += 1
             if not is_completed:
@@ -233,8 +236,9 @@ def _build_lms_payload(user, course: Course):
         has_video = bool(str(lesson.video_url or "").strip())
         has_pdf = bool(str(lesson.pdf_url or "").strip())
         is_active = bool(lesson.is_active)
-        is_unlocked = bool(has_pdf and is_active)
         is_completed = lesson.id in completed_ids
+        is_unlocked = bool(has_pdf and is_active and (is_completed or previous_lesson_gate_passed))
+        previous_lesson_gate_passed = is_completed or not (has_pdf and is_active)
         if not is_completed:
             project_completed = False
 

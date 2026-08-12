@@ -606,6 +606,11 @@ export default function LessonPlayer() {
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
   const previousEnabled = isPlayableLesson(previousLesson);
   const nextEnabled = isPlayableLesson(nextLesson);
+  const getLockedReason = (item) => {
+    if (!item || item.is_unlocked) return "";
+    const hasContent = item.has_video || item.has_pdf;
+    return !hasContent || item.is_active === false ? "Coming soon" : "Finish previous lesson";
+  };
   const lessonSectionLabel = Number(lesson?.module_number) === 9 ? "Projects" : `Module ${lesson?.module_number}`;
   const isProjectLesson = Number(lesson?.module_number) === 9;
 
@@ -1193,7 +1198,7 @@ export default function LessonPlayer() {
                 className="btn btn-muted"
                 onClick={() => openLesson(previousLesson)}
                 disabled={!previousEnabled}
-                title={!previousLesson ? "No previous lesson." : !previousEnabled ? "Previous lesson is locked." : ""}
+                title={!previousLesson ? "No previous lesson." : !previousEnabled ? getLockedReason(previousLesson) : ""}
               >
                 Previous
               </button>
@@ -1202,7 +1207,7 @@ export default function LessonPlayer() {
                 className="btn btn-primary"
                 onClick={() => openLesson(nextLesson)}
                 disabled={!nextEnabled}
-                title={!nextLesson ? "No next lesson." : !nextEnabled ? "Next lesson is locked." : ""}
+                title={!nextLesson ? "No next lesson." : !nextEnabled ? getLockedReason(nextLesson) : ""}
               >
                 Next
               </button>

@@ -339,6 +339,17 @@ export default function LMSPortal() {
     return "Continue";
   };
 
+  const getLessonLockReason = (lesson) => {
+    if (lesson.is_completed || lesson.is_unlocked) {
+      return null;
+    }
+    const hasContent = lesson.has_video || lesson.has_pdf;
+    if (!hasContent || lesson.is_active === false) {
+      return "Coming soon";
+    }
+    return "Finish previous lesson";
+  };
+
   const getModuleTitle = (module) => {
     if (module.is_project_section || Number(module.module_number) === 9) {
       return "Projects";
@@ -908,7 +919,10 @@ export default function LMSPortal() {
                                       <HiOutlinePlayCircle className="drawer-lesson-icon is-unlocked" />
                                     )
                                   ) : (
-                                    <HiOutlineLockClosed className="drawer-lesson-icon is-locked" />
+                                    <HiOutlineLockClosed
+                                      className="drawer-lesson-icon is-locked"
+                                      title={getLessonLockReason(lesson)}
+                                    />
                                   )}
                                   <div className="lesson-info-details">
                                     <span className="lesson-info-title">{lesson.title}</span>
@@ -982,7 +996,9 @@ export default function LMSPortal() {
                                       </button>
                                     )
                                   ) : (
-                                    <span className="drawer-lesson-status-badge">Locked</span>
+                                    <span className="drawer-lesson-status-badge" title={getLessonLockReason(lesson)}>
+                                      {getLessonLockReason(lesson)}
+                                    </span>
                                   )}
                                 </div>
                               </li>

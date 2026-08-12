@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
-from courses.models import Category, Course, Enrollment, Review, ReviewVote
+from courses.models import Category, Course, CourseLesson, Enrollment, Review, ReviewVote, UserLessonProgress
 
 
 class CourseApiTests(APITestCase):
@@ -262,4 +262,90 @@ class CourseApiTests(APITestCase):
         self.assertEqual(switch_response.data["helpful_likes_count"], 1)
         self.assertEqual(switch_response.data["helpful_dislikes_count"], 0)
         self.assertEqual(ReviewVote.objects.filter(review=review, user=voter).count(), 1)
+
+
+class LmsSequentialUnlockTests(APITestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Development", description="Development")
+        self.course = Course.objects.create(
+            category=self.category,
+            title="Sequential Course",
+            short_description="Sequential",
+            description="Sequential description",
+            price="99.00",
+            is_active=True,
+        )
+        self.lessons = [
+            CourseLesson.objects.create(
+                course=self.course,
+                module_number=1,
+                lesson_number=lesson_number,
+                title=f"Lesson {lesson_number}",
+                video_url="https://example.com/video.mp4",
+                is_active=True,
+            )
+            for lesson_number in range(1, 6)
+        ]
+        self.learner = User.objects.create_user(
+            username="sequential_learner",
+            email="sequential_learner@example.com",
+            phone="7999999999",
+            name="Sequential Learner",
+            password="StrongPass123!",
+        )
+        Enrollment.objects.create(
+            user=self.learner,
+            course=self.course,
+            payment_status="success",
+            status="enrolled",
+            is_deleted=False,
+        )
+        self.client.force_authenticate(self.learner)
+
+    def _lesson_flags(self, response):
+        flags = {}
+        for module in response.data["modules"]:
+            for lesson in module["lessons"]:
+                if isinstance(lesson["id"], int):
+                    flags[lesson["id"]] = (lesson["is_unlocked"], lesson["is_completed"])
+        return flags
+
+    def test_only_first_lesson_unlocked_initially(self):
+        response = self.client.get(reverse("learner-lms-overview", kwargs={"course_id": self.course.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        flags = self._lesson_flags(response)
+
+        self.assertEqual(flags[self.lessons[0].id], (True, False))
+        for lesson in self.lessons[1:]:
+            self.assertEqual(flags[lesson.id], (False, False))
+
+    def test_completing_a_lesson_unlocks_the_next_one(self):
+        progress_url = reverse("learner-lesson-progress", kwargs={"lesson_id": self.lessons[0].id})
+        response = self.client.post(progress_url, {"action": "complete"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        overview_response = self.client.get(reverse("learner-lms-overview", kwargs={"course_id": self.course.id}))
+        flags = self._lesson_flags(overview_response)
+
+        self.assertEqual(flags[self.lessons[0].id], (True, True))
+        self.assertEqual(flags[self.lessons[1].id], (True, False))
+        for lesson in self.lessons[2:]:
+            self.assertEqual(flags[lesson.id], (False, False))
+
+    def test_locked_lesson_cannot_be_marked_complete(self):
+        progress_url = reverse("learner-lesson-progress", kwargs={"lesson_id": self.lessons[2].id})
+        response = self.client.post(progress_url, {"action": "complete"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preexisting_completion_is_grandfathered_in(self):
+        UserLessonProgress.objects.create(user=self.learner, lesson=self.lessons[4], is_completed=True)
+
+        response = self.client.get(reverse("learner-lms-overview", kwargs={"course_id": self.course.id}))
+        flags = self._lesson_flags(response)
+
+        self.assertEqual(flags[self.lessons[0].id], (True, False))
+        self.assertEqual(flags[self.lessons[1].id], (False, False))
+        self.assertEqual(flags[self.lessons[2].id], (False, False))
+        self.assertEqual(flags[self.lessons[3].id], (False, False))
+        self.assertEqual(flags[self.lessons[4].id], (True, True))
 
