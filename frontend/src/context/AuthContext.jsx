@@ -1,10 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { authService } from "../services/authService";
+import { AUTH_EXPIRED_EVENT, ensureFreshAccessToken } from "../services/api";
 import { clearAllCached } from "../utils/sessionCache";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/storage";
 
 const AuthContext = createContext(null);
+
+// Comfortably under the 30-minute access token lifetime so the token is renewed
+// even if the user is idle/passive (e.g. watching a video) for long stretches
+// with no API traffic to trigger the reactive refresh in services/api.js.
+const PROACTIVE_REFRESH_INTERVAL_MS = 20 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getStoredAuth().user);
@@ -32,6 +38,22 @@ export function AuthProvider({ children }) {
 
     bootstrapAuth();
   }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => setUser(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+    const intervalId = window.setInterval(() => {
+      ensureFreshAccessToken();
+    }, PROACTIVE_REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [user]);
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
