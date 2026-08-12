@@ -161,8 +161,6 @@ class LoginView(TokenObtainPairView):
                 if user_id:
                     user = User.objects.filter(id=user_id, is_deleted=False).first()
                     if user:
-                        if not user.is_email_verified:
-                            token = _send_email_verification_token(user)
                         response_data = _attach_verification_meta(response_data, user, token)
             if settings.DEBUG:
                 logger.warning("Login attempt received for '%s' with status %s", username, status.HTTP_200_OK)
