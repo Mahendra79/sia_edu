@@ -29,18 +29,6 @@ export default function Footer() {
         </section>
 
         <section className="site-footer-section">
-          <h3>Company</h3>
-          <div className="site-footer-item">
-            <span className="site-footer-item-label">CIN</span>
-            <span className="site-footer-item-value">U62013AP2025PTC122642</span>
-          </div>
-          <div className="site-footer-item">
-            <span className="site-footer-item-label">DPIIT Recognition</span>
-            <span className="site-footer-item-value">DIPP235818</span>
-          </div>
-        </section>
-
-        <section className="site-footer-section">
           <h3>Platform</h3>
           <div className="site-footer-links">
             <Link to="/privacy" aria-label="Privacy">
