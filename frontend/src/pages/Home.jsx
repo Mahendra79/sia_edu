@@ -455,19 +455,30 @@ export default function Home() {
           </>
         )}
 
-        {!freeCoursesLoading && freeCourses.length > 0 && (
+        {freeCoursesLoading ? (
           <>
-            <section className="catalog-header">
+            <section className="catalog-header free-courses-header">
               <div>
                 <h2>Free Courses</h2>
               </div>
             </section>
-            <section className="course-grid">
-              {freeCourses.map((freeCourse) => (
-                <FreeCourseCard key={freeCourse.id} freeCourse={freeCourse} />
-              ))}
-            </section>
+            <SkeletonCardGrid count={4} />
           </>
+        ) : (
+          freeCourses.length > 0 && (
+            <>
+              <section className="catalog-header free-courses-header">
+                <div>
+                  <h2>Free Courses</h2>
+                </div>
+              </section>
+              <section className="course-grid">
+                {freeCourses.map((freeCourse) => (
+                  <FreeCourseCard key={freeCourse.id} freeCourse={freeCourse} />
+                ))}
+              </section>
+            </>
+          )
         )}
 
         {continueLoading ? (

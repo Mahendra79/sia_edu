@@ -13,6 +13,7 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Billing = lazy(() => import("./pages/Billing"));
 const CourseDetails = lazy(() => import("./pages/CourseDetails"));
+const FreeCourseWatch = lazy(() => import("./pages/FreeCourseWatch"));
 const Success = lazy(() => import("./pages/Success"));
 const Failure = lazy(() => import("./pages/Failure"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/course/:id" element={<CourseDetails />} />
+        <Route path="/free-course/:id" element={<FreeCourseWatch />} />
         <Route
           path="/billing/:courseId"
           element={

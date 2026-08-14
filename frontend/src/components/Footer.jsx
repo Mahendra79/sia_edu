@@ -30,12 +30,14 @@ export default function Footer() {
 
         <section className="site-footer-section">
           <h3>Company</h3>
-          <p className="site-footer-meta">
-            <span>CIN:</span> U62013AP2025PTC122642
-          </p>
-          <p className="site-footer-meta">
-            <span>DPIIT Recognition:</span> DIPP235818
-          </p>
+          <div className="site-footer-item">
+            <span className="site-footer-item-label">CIN</span>
+            <span className="site-footer-item-value">U62013AP2025PTC122642</span>
+          </div>
+          <div className="site-footer-item">
+            <span className="site-footer-item-label">DPIIT Recognition</span>
+            <span className="site-footer-item-value">DIPP235818</span>
+          </div>
         </section>
 
         <section className="site-footer-section">
@@ -59,16 +61,14 @@ export default function Footer() {
         <section className="site-footer-section">
           <h3>Connect</h3>
           <div className="site-footer-contact-list">
-            <p className="site-footer-contact-item">
-              <span className="site-footer-label">General Information</span>
-              <span className="site-footer-colon">:</span>
+            <div className="site-footer-item">
+              <span className="site-footer-item-label">General Information</span>
               <a href="mailto:info@siasoftwareinnovations.com">info@siasoftwareinnovations.com</a>
-            </p>
-            <p className="site-footer-contact-item">
-              <span className="site-footer-label">Product &amp; Collaboration</span>
-              <span className="site-footer-colon">:</span>
+            </div>
+            <div className="site-footer-item">
+              <span className="site-footer-item-label">Product &amp; Collaboration</span>
               <a href="mailto:contact@siasoftwareinnovations.com">contact@siasoftwareinnovations.com</a>
-            </p>
+            </div>
           </div>
           <div className="social-links">
             <a
@@ -99,11 +99,17 @@ export default function Footer() {
         </section>
       </div>
 
-      <p className="site-footer-copy">
-        &copy; {currentYear} SIA Software Innovations Private Limited. All rights reserved.
-      </p>
+      <div className="site-footer-bottom">
+        <p className="site-footer-copy">
+          &copy; {currentYear} SIA Software Innovations Private Limited. All rights reserved.
+        </p>
+        <div className="site-footer-bottom-links">
+          <Link to="/privacy">Privacy</Link>
+          <span className="site-footer-dot" aria-hidden="true" />
+          <Link to="/terms">Terms</Link>
+        </div>
+      </div>
     </footer>
   );
 }
-
 

@@ -1,10 +1,12 @@
 import { Fragment, useEffect, useState } from "react";
 
 import ConfirmModal from "../components/ConfirmModal";
+import { SkeletonTable } from "../components/Skeleton";
 import { useToast } from "../context/ToastContext";
 import AdminLayout from "../layouts/AdminLayout";
 import { courseService } from "../services/courseService";
 import { extractYoutubeThumbnail } from "../utils/youtube";
+import FreeCourseContentManager from "./FreeCourseContentManager";
 import "./admin.css";
 
 const EMPTY_FORM = {
@@ -116,6 +118,8 @@ export default function ManageFreeCourses() {
   const { addToast } = useToast();
 
   const [freeCourses, setFreeCourses] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -128,8 +132,14 @@ export default function ManageFreeCourses() {
   const loadFreeCourses = async () => {
     setLoading(true);
     try {
-      const response = await courseService.getAdminFreeCourses();
-      setFreeCourses(response.data || []);
+      const [coursesResponse, modulesResponse, lessonsResponse] = await Promise.all([
+        courseService.getAdminFreeCourses(),
+        courseService.getAdminFreeCourseModules(),
+        courseService.getAdminFreeCourseLessons(),
+      ]);
+      setFreeCourses(coursesResponse.data || []);
+      setModules(modulesResponse.data || []);
+      setLessons(lessonsResponse.data || []);
     } catch {
       addToast({ type: "error", message: "Unable to load free courses." });
     } finally {
@@ -143,7 +153,7 @@ export default function ManageFreeCourses() {
   }, []);
 
   const startEdit = (freeCourse) => {
-    setEditingId(freeCourse.id);
+    setEditingId((prev) => (prev === freeCourse.id ? null : freeCourse.id));
     setEditForm(toFreeCourseForm(freeCourse));
     setShowCreateRow(false);
   };
@@ -222,7 +232,7 @@ export default function ManageFreeCourses() {
         </div>
 
         {loading ? (
-          <p className="meta-note">Loading free courses...</p>
+          <SkeletonTable rows={5} columns={5} />
         ) : (
           <div className="table-wrap">
             <table>
@@ -279,7 +289,7 @@ export default function ManageFreeCourses() {
                       <td>
                         <div className="inline-controls">
                           <button type="button" className="btn btn-muted" onClick={() => startEdit(freeCourse)}>
-                            {editingId === freeCourse.id ? "Editing" : "Edit"}
+                            {editingId === freeCourse.id ? "Close" : "Edit"}
                           </button>
                           <button type="button" className="btn btn-danger" onClick={() => setDeleteTarget(freeCourse)}>
                             Delete
@@ -299,6 +309,12 @@ export default function ManageFreeCourses() {
                             submitLabel="Update"
                             savingLabel="Updating..."
                             saving={savingMode === "edit"}
+                          />
+                          <FreeCourseContentManager
+                            freeCourse={freeCourse}
+                            modules={modules.filter((module) => module.free_course === freeCourse.id)}
+                            lessons={lessons}
+                            onRefresh={loadFreeCourses}
                           />
                         </td>
                       </tr>

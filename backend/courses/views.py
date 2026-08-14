@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 from accounts.permissions import IsActiveAuthenticated, IsAdminUserRole
 from analytics.models import AdminActivityLog
 from config.pagination import StandardResultsSetPagination
-from courses.models import Category, Course, CourseLesson, Enrollment, FreeCourse, Quiz, QuizAttempt, QuizAttemptAnswer, QuizOption, QuizQuestion, Review, ReviewVote, UserLessonProgress
+from courses.models import Category, Course, CourseLesson, Enrollment, FreeCourse, FreeCourseLesson, FreeCourseModule, Quiz, QuizAttempt, QuizAttemptAnswer, QuizOption, QuizQuestion, Review, ReviewVote, UserLessonProgress
 from courses.serializers import (
     AdminEnrollmentSerializer,
     AdminEnrollmentUpdateSerializer,
@@ -32,6 +32,9 @@ from courses.serializers import (
     CategorySerializer,
     CourseSerializer,
     EnrollmentSerializer,
+    FreeCourseLessonAdminSerializer,
+    FreeCourseModuleAdminSerializer,
+    FreeCoursePublicDetailSerializer,
     FreeCourseSerializer,
     QuizAdminSerializer,
     QuizAnswerSaveSerializer,
@@ -769,6 +772,12 @@ class FreeCourseListView(generics.ListAPIView):
     pagination_class = None
 
 
+class FreeCourseDetailView(generics.RetrieveAPIView):
+    serializer_class = FreeCoursePublicDetailSerializer
+    permission_classes = [AllowAny]
+    queryset = FreeCourse.objects.filter(is_active=True, is_deleted=False).prefetch_related("modules__lessons")
+
+
 class AdminFreeCourseListCreateView(APIView):
     permission_classes = [IsAdminUserRole]
 
@@ -810,6 +819,96 @@ class AdminFreeCourseDetailView(APIView):
         free_course.save(update_fields=["is_deleted", "updated_at"])
         _log_admin_action(request.user, "delete_free_course", "FreeCourse", str(free_course_id))
         return Response({"message": "Free course deleted."}, status=status.HTTP_200_OK)
+
+
+class AdminFreeCourseModuleListCreateView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        free_course_id = request.query_params.get("free_course_id")
+        queryset = FreeCourseModule.objects.select_related("free_course").order_by("free_course_id", "module_number")
+        if free_course_id:
+            queryset = queryset.filter(free_course_id=free_course_id)
+        serializer = FreeCourseModuleAdminSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = FreeCourseModuleAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        module = serializer.save()
+        _log_admin_action(request.user, "create_free_course_module", "FreeCourseModule", str(module.id), module.title)
+        return Response(FreeCourseModuleAdminSerializer(module).data, status=status.HTTP_201_CREATED)
+
+
+class AdminFreeCourseModuleDetailView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    @staticmethod
+    def _get_module(module_id: int):
+        return FreeCourseModule.objects.filter(id=module_id).first()
+
+    def patch(self, request, module_id: int):
+        module = self._get_module(module_id)
+        if not module:
+            return Response({"detail": "Module not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = FreeCourseModuleAdminSerializer(module, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        _log_admin_action(request.user, "update_free_course_module", "FreeCourseModule", str(updated.id), updated.title)
+        return Response(FreeCourseModuleAdminSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, module_id: int):
+        module = self._get_module(module_id)
+        if not module:
+            return Response({"detail": "Module not found."}, status=status.HTTP_404_NOT_FOUND)
+        module.delete()
+        _log_admin_action(request.user, "delete_free_course_module", "FreeCourseModule", str(module_id))
+        return Response({"message": "Module deleted."}, status=status.HTTP_200_OK)
+
+
+class AdminFreeCourseLessonListCreateView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        module_id = request.query_params.get("module_id")
+        queryset = FreeCourseLesson.objects.select_related("module").order_by("module_id", "lesson_number")
+        if module_id:
+            queryset = queryset.filter(module_id=module_id)
+        serializer = FreeCourseLessonAdminSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = FreeCourseLessonAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lesson = serializer.save()
+        _log_admin_action(request.user, "create_free_course_lesson", "FreeCourseLesson", str(lesson.id), lesson.title)
+        return Response(FreeCourseLessonAdminSerializer(lesson).data, status=status.HTTP_201_CREATED)
+
+
+class AdminFreeCourseLessonDetailView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    @staticmethod
+    def _get_lesson(lesson_id: int):
+        return FreeCourseLesson.objects.filter(id=lesson_id).first()
+
+    def patch(self, request, lesson_id: int):
+        lesson = self._get_lesson(lesson_id)
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = FreeCourseLessonAdminSerializer(lesson, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        _log_admin_action(request.user, "update_free_course_lesson", "FreeCourseLesson", str(updated.id), updated.title)
+        return Response(FreeCourseLessonAdminSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, lesson_id: int):
+        lesson = self._get_lesson(lesson_id)
+        if not lesson:
+            return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+        lesson.delete()
+        _log_admin_action(request.user, "delete_free_course_lesson", "FreeCourseLesson", str(lesson_id))
+        return Response({"message": "Lesson deleted."}, status=status.HTTP_200_OK)
 
 
 class LearnerLMSOverviewView(APIView):

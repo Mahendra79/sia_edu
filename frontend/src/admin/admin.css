@@ -409,6 +409,92 @@
   font-size: 0.9rem;
 }
 
+.free-course-content-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-md);
+  margin-top: var(--admin-space-md);
+  padding-top: var(--admin-space-md);
+  border-top: 1px dashed var(--soft-border);
+}
+
+.free-course-content-manager-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.free-course-module-block {
+  border: 1px solid var(--soft-border);
+  border-radius: var(--radius-md);
+  padding: var(--admin-space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--surface-muted-soft) 40%, transparent);
+}
+
+.free-course-module-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.free-course-lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-glass);
+  border: 1px solid var(--soft-border);
+}
+
+.free-course-lesson-row-thumb {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--soft-border);
+  background: color-mix(in srgb, var(--surface-muted-soft) 68%, transparent);
+  overflow: hidden;
+}
+
+.free-course-lesson-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.free-course-lesson-row-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.free-course-lesson-form,
+.free-course-module-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--soft-border);
+}
+
+.free-course-lesson-form input[type="text"],
+.free-course-lesson-form input:not([type]),
+.free-course-module-form input[type="text"],
+.free-course-module-form input:not([type]) {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
 .course-inline-edit-form {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }

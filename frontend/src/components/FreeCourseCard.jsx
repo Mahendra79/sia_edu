@@ -1,19 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { HiOutlineBookOpen, HiOutlinePlayCircle } from "react-icons/hi2";
 
 import { extractYoutubeThumbnail } from "../utils/youtube";
 
 export default function FreeCourseCard({ freeCourse }) {
+  const navigate = useNavigate();
   const [imageFailed, setImageFailed] = useState(false);
   const thumbnailUrl = freeCourse.thumbnail_url || extractYoutubeThumbnail(freeCourse.youtube_url);
 
   const handleOpen = () => {
-    window.open(freeCourse.youtube_url, "_blank", "noopener,noreferrer");
+    navigate(`/free-course/${freeCourse.id}`);
   };
 
   return (
     <article
-      className="course-card course-card-interactive"
+      className="course-card course-card-interactive free-course-card"
       role="link"
       tabIndex={0}
       onClick={handleOpen}

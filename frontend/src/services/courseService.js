@@ -139,6 +139,9 @@ export const courseService = {
   getFreeCourses() {
     return api.get("/courses/free-courses/");
   },
+  getFreeCourse(id) {
+    return api.get(`/courses/free-courses/${id}/`);
+  },
   getAdminFreeCourses() {
     return api.get("/courses/admin/free-courses/");
   },
@@ -150,5 +153,29 @@ export const courseService = {
   },
   deleteAdminFreeCourse(id) {
     return api.delete(`/courses/admin/free-courses/${id}/`);
+  },
+  getAdminFreeCourseModules(params) {
+    return api.get("/courses/admin/free-course-modules/", { params });
+  },
+  createAdminFreeCourseModule(payload) {
+    return api.post("/courses/admin/free-course-modules/", payload);
+  },
+  updateAdminFreeCourseModule(id, payload) {
+    return api.patch(`/courses/admin/free-course-modules/${id}/`, payload);
+  },
+  deleteAdminFreeCourseModule(id) {
+    return api.delete(`/courses/admin/free-course-modules/${id}/`);
+  },
+  getAdminFreeCourseLessons(params) {
+    return api.get("/courses/admin/free-course-lessons/", { params });
+  },
+  createAdminFreeCourseLesson(payload) {
+    return api.post("/courses/admin/free-course-lessons/", payload);
+  },
+  updateAdminFreeCourseLesson(id, payload) {
+    return api.patch(`/courses/admin/free-course-lessons/${id}/`, payload);
+  },
+  deleteAdminFreeCourseLesson(id) {
+    return api.delete(`/courses/admin/free-course-lessons/${id}/`);
   },
 };

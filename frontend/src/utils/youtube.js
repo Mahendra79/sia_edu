@@ -40,3 +40,26 @@ export function extractYoutubeThumbnail(youtubeUrl) {
   const videoId = extractYoutubeVideoId(youtubeUrl);
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : "";
 }
+
+export function extractYoutubePlaylistId(youtubeUrl) {
+  const trimmed = String(youtubeUrl || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.searchParams.get("list") || "";
+  } catch {
+    return "";
+  }
+}
+
+export function getYoutubeEmbedUrl(youtubeUrl) {
+  const videoId = extractYoutubeVideoId(youtubeUrl);
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  const playlistId = extractYoutubePlaylistId(youtubeUrl);
+  return playlistId ? `https://www.youtube.com/embed/videoseries?list=${playlistId}` : "";
+}

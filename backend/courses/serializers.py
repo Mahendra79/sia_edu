@@ -16,6 +16,8 @@ from courses.models import (
     CourseLesson,
     Enrollment,
     FreeCourse,
+    FreeCourseLesson,
+    FreeCourseModule,
     Quiz,
     QuizAttempt,
     QuizAttemptAnswer,
@@ -255,6 +257,82 @@ class FreeCourseSerializer(serializers.ModelSerializer):
             thumbnail_url = validated_data.get("thumbnail_url", "")
             validated_data["thumbnail_url"] = resolve_free_course_thumbnail(thumbnail_url, youtube_url)
         return super().update(instance, validated_data)
+
+
+class FreeCourseModuleAdminSerializer(serializers.ModelSerializer):
+    free_course_title = serializers.CharField(source="free_course.title", read_only=True)
+
+    class Meta:
+        model = FreeCourseModule
+        fields = ("id", "free_course", "free_course_title", "module_number", "title", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class FreeCourseLessonAdminSerializer(serializers.ModelSerializer):
+    module_title = serializers.CharField(source="module.title", read_only=True)
+
+    class Meta:
+        model = FreeCourseLesson
+        fields = (
+            "id",
+            "module",
+            "module_title",
+            "lesson_number",
+            "title",
+            "youtube_url",
+            "thumbnail_url",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+        extra_kwargs = {
+            "thumbnail_url": {"required": False, "allow_blank": True},
+        }
+
+    def validate_youtube_url(self, value):
+        if "youtube.com" not in value and "youtu.be" not in value:
+            raise serializers.ValidationError("Enter a valid YouTube video URL.")
+        return value
+
+    def create(self, validated_data):
+        validated_data["thumbnail_url"] = resolve_free_course_thumbnail(
+            validated_data.get("thumbnail_url", ""), validated_data.get("youtube_url", "")
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "thumbnail_url" in validated_data or "youtube_url" in validated_data:
+            youtube_url = validated_data.get("youtube_url", instance.youtube_url)
+            thumbnail_url = validated_data.get("thumbnail_url", "")
+            validated_data["thumbnail_url"] = resolve_free_course_thumbnail(thumbnail_url, youtube_url)
+        return super().update(instance, validated_data)
+
+
+class FreeCourseLessonPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FreeCourseLesson
+        fields = ("id", "lesson_number", "title", "youtube_url", "thumbnail_url")
+
+
+class FreeCourseModulePublicSerializer(serializers.ModelSerializer):
+    lessons = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FreeCourseModule
+        fields = ("id", "module_number", "title", "lessons")
+
+    def get_lessons(self, obj):
+        active_lessons = obj.lessons.filter(is_active=True).order_by("lesson_number")
+        return FreeCourseLessonPublicSerializer(active_lessons, many=True).data
+
+
+class FreeCoursePublicDetailSerializer(serializers.ModelSerializer):
+    modules = FreeCourseModulePublicSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FreeCourse
+        fields = ("id", "title", "youtube_url", "thumbnail_url", "modules", "created_at")
 
 
 class ReviewSerializer(serializers.ModelSerializer):

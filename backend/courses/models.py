@@ -74,6 +74,39 @@ class FreeCourse(models.Model):
         return self.title
 
 
+class FreeCourseModule(models.Model):
+    free_course = models.ForeignKey(FreeCourse, on_delete=models.CASCADE, related_name="modules")
+    module_number = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["free_course_id", "module_number"]
+        unique_together = ("free_course", "module_number")
+
+    def __str__(self) -> str:
+        return f"{self.free_course_id} M{self.module_number}: {self.title}"
+
+
+class FreeCourseLesson(models.Model):
+    module = models.ForeignKey(FreeCourseModule, on_delete=models.CASCADE, related_name="lessons")
+    lesson_number = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=255)
+    youtube_url = models.URLField(max_length=1200)
+    thumbnail_url = models.URLField(max_length=1200, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["module_id", "lesson_number"]
+        unique_together = ("module", "lesson_number")
+
+    def __str__(self) -> str:
+        return f"{self.module_id} L{self.lesson_number}: {self.title}"
+
+
 class Enrollment(models.Model):
     STATUS_CHOICES = (
         ("enrolled", "Enrolled"),
