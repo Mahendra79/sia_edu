@@ -6,6 +6,16 @@
   margin: 0 auto;
 }
 
+/* Extra clearance so this message doesn't render underneath the fixed
+   error toast (which fires from the same failed request and briefly
+   overlaps the top of the page, full-width on mobile). */
+.free-course-watch-empty-state {
+  margin-top: 5rem;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
 .free-course-watch-back {
   display: inline-flex;
   align-items: center;

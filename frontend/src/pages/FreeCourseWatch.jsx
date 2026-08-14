@@ -47,8 +47,14 @@ export default function FreeCourseWatch() {
   }, [activeLesson?.id]);
 
   useEffect(() => {
-    document.body.style.overflow = mobileContentOpen ? "hidden" : "";
+    // html is the actual scrolling root here (no overflow set on it in base.css,
+    // so it's the browser's default scroller), not body — locking body alone
+    // left the page scrollable underneath the open drawer.
+    const overflowValue = mobileContentOpen ? "hidden" : "";
+    document.documentElement.style.overflow = overflowValue;
+    document.body.style.overflow = overflowValue;
     return () => {
+      document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     };
   }, [mobileContentOpen]);
@@ -147,7 +153,7 @@ export default function FreeCourseWatch() {
               </div>
             </>
           ) : error || !freeCourse ? (
-            <div className="empty-state">
+            <div className="empty-state free-course-watch-empty-state">
               <p>{error || "This free course is unavailable."}</p>
               <Link to="/" className="btn btn-primary">
                 Back to Home
