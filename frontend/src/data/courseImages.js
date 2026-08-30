@@ -2,12 +2,12 @@ export const DEFAULT_COURSE_IMAGE_URL =
   "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
 
 export const COURSE_IMAGE_URLS_BY_ID = {
-  52: "https://cdn.imageurlgenerator.com/uploads/325cd468-f435-4654-a4e3-644420e95c47.png", // Advanced Quantum Computing using HDQS
-  56: "https://cdn.imageurlgenerator.com/uploads/2121f97a-7ec7-4823-92b6-fdb60ef15a04.png", // Quantum Gates and Circuit Design
-  58: "https://cdn.imageurlgenerator.com/uploads/5712684b-bec5-4e80-b82c-123f28a78451.png", // AI & ML
-  60: "https://cdn.imageurlgenerator.com/uploads/2ee1b84b-0e83-4943-83b4-ab2e704fa64f.png", // Quantum Algorithms and Complex Computations
-  59: "https://cdn.imageurlgenerator.com/uploads/91a72dbc-b7c0-45cb-b218-2fc9713c025d.png", // Data Science
-  57: "https://cdn.imageurlgenerator.com/uploads/3a85d066-30ed-4327-8f99-4e02c0ec28c2.png", // Agentic AI
+  52: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_49_43%20PM.png", // Advanced Quantum Computing using HDQS
+  56: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_46_41%20PM.png", // Quantum Gates and Circuit Design
+  58: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_40_14%20PM.png", // AI & ML
+  60: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_09_19%20PM.png", // Quantum Algorithms and Complex Computations
+  59: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_36_55%20PM.png", // Data Science
+  57: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_41_29%20PM.png", // Agentic AI
 };
 
 export function getCourseImageUrl(course) {
