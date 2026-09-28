@@ -619,3 +619,287 @@ body { font-size: 16px; line-height: 1.5; }
   html.embedded .app-shell { min-height: 100vh; }
   html.embedded .sidebar { top: 0; height: 100vh; }
 }
+
+/* On phones the guide owns the single menu button. The brand returns learners
+   to the main SIA website, while the button opens the curriculum. */
+@media (max-width: 900px) {
+  html.embedded .topbar { z-index: 20; }
+}
+
+/* The guide runs in an iframe, so it explicitly mirrors the host theme. */
+html.theme-dark {
+  --paper: #04060a;
+  --paper-deep: #0f1724;
+  --ink: #f2f6ff;
+  --ink-soft: #b4c0d2;
+  --muted: #9caac3;
+  --line: rgba(148, 172, 216, .21);
+  --teal: #60a5fa;
+  --teal-dark: #93c5fd;
+  --mint: rgba(96, 165, 250, .16);
+  --coral: #60a5fa;
+  --white: #0a1019;
+  --shadow: 0 20px 42px rgba(0, 0, 0, .56);
+}
+
+html.theme-dark body,
+html.theme-dark .main-content { background: #04060a; }
+
+html.theme-dark .main-content {
+  background: linear-gradient(135deg, #04060a 0%, #090d14 58%, #0a1019 100%);
+}
+
+html.theme-dark .topbar,
+html.theme-dark .sidebar,
+html.theme-dark .search-box,
+html.theme-dark .visual-card,
+html.theme-dark .gate-button,
+html.theme-dark .quiz-option,
+html.theme-dark .code-block,
+html.theme-dark .basis-line,
+html.theme-dark .key-idea { background: #0a1019; }
+
+html.theme-dark .lesson-header h1,
+html.theme-dark .lesson-body h2,
+html.theme-dark .lesson-body h3,
+html.theme-dark .fundamentals-section h2,
+html.theme-dark .fundamentals-quiz h3,
+html.theme-dark .sidebar h2,
+html.theme-dark .chapter-name,
+html.theme-dark .sidebar .chapter-item,
+html.theme-dark .quiz h3 { color: #f2f6ff; }
+
+html.theme-dark .lesson-intro,
+html.theme-dark .lesson-body p,
+html.theme-dark .lesson-body ul,
+html.theme-dark .fundamentals-section p,
+html.theme-dark .fundamentals-comparison span,
+html.theme-dark .learn-points ul,
+html.theme-dark .subtopic-copy small { color: #b4c0d2; }
+
+html.theme-dark .sidebar .nav-label,
+html.theme-dark .sidebar .chapter-topic,
+html.theme-dark .sidebar .progress-block p,
+html.theme-dark .lesson-meta,
+html.theme-dark .aside-label,
+html.theme-dark .up-next div span { color: #9caac3; }
+
+html.theme-dark .chapter-item.active,
+html.theme-dark .chapter-topic.active { color: #93c5fd; background: rgba(96, 165, 250, .16); }
+
+/* Embedded curriculum: a quieter, compact panel alongside the site rail. */
+@media (min-width: 901px) {
+  html.embedded .app-shell { grid-template-columns: 248px minmax(0, 1fr); }
+
+  html.embedded .sidebar {
+    width: 248px;
+    padding: 1.5rem .85rem 1rem;
+    background: color-mix(in srgb, var(--white) 96%, var(--paper-deep));
+  }
+
+  html.embedded .sidebar-heading { padding: 0 .25rem; }
+  html.embedded .sidebar h2 { margin-top: .3rem; font-size: 1.08rem; }
+  html.embedded .progress-block { margin: 1.35rem .25rem 1.1rem; padding: .75rem 0; }
+  html.embedded .chapter-submenu { margin-left: 1.75rem; }
+  html.embedded .sidebar-footnote { margin-top: 1.25rem; padding: .7rem; }
+}
+
+/* Match the main site's button treatment throughout interactive lessons. */
+.gate-button,
+.quiz-option,
+.lesson-nav-button {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.2;
+  transition: transform .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+}
+
+.gate-button {
+  padding: .62rem .88rem;
+  color: var(--teal-dark);
+  background: var(--paper);
+  box-shadow: none;
+}
+
+.quiz-option {
+  padding: .72rem .88rem;
+  color: var(--ink);
+  background: var(--paper-deep);
+  text-align: left;
+  box-shadow: none;
+}
+
+.lesson-nav-button {
+  min-width: 210px;
+  padding: .7rem .85rem;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: none;
+}
+
+.gate-button:hover,
+.quiz-option:hover,
+.lesson-nav-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--line));
+  box-shadow: 0 8px 16px rgba(37, 99, 235, .12);
+}
+
+.gate-button:focus-visible,
+.quiz-option:focus-visible,
+.lesson-nav-button:focus-visible,
+.chapter-item:focus-visible,
+.chapter-topic:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--teal) 85%, white 15%);
+  outline-offset: 2px;
+}
+
+.gate-button:active,
+.quiz-option:active,
+.lesson-nav-button:active { transform: translateY(0); }
+
+html.theme-dark .gate-button,
+html.theme-dark .quiz-option,
+html.theme-dark .lesson-nav-button { background: #0a1019; }
+
+/* Mathematical and circuit visuals previously used fixed light colours. */
+html.theme-dark .qubit-equation,
+html.theme-dark .vector-equation,
+html.theme-dark .basis-line,
+html.theme-dark .fundamentals-formula,
+html.theme-dark .matrix-list > div,
+html.theme-dark .vector-pair > div,
+html.theme-dark .basis-card,
+html.theme-dark .probability-grid > div,
+html.theme-dark .phase-grid > div,
+html.theme-dark .comparison-grid > div,
+html.theme-dark .state-flow,
+html.theme-dark .measure-flow,
+html.theme-dark .amplitude-flow,
+html.theme-dark .superposition-interactive,
+html.theme-dark .entanglement-interactive,
+html.theme-dark .measurement-interactive {
+  border-color: rgba(148, 172, 216, .21);
+  background: #0f1724;
+  color: #bfdbfe;
+}
+
+html.theme-dark .circuit-line-simple,
+html.theme-dark .circuit-sketch,
+html.theme-dark .gate-section h3,
+html.theme-dark .gate-detail h3,
+html.theme-dark .gate-takeaway { color: #bfdbfe; }
+
+html.theme-dark .circuit-line-simple strong,
+html.theme-dark .gate {
+  border-color: rgba(96, 165, 250, .65);
+  background: rgba(96, 165, 250, .18);
+  color: #bfdbfe;
+}
+
+html.theme-dark .circuit-line-simple i,
+html.theme-dark .circuit-sketch i,
+html.theme-dark .gate-use,
+html.theme-dark .simulation-note,
+html.theme-dark .matrix-list small,
+html.theme-dark .basis-card span,
+html.theme-dark .probability-grid span { color: #9caac3; }
+
+/* Comparison cards and the Fundamentals quick-check use legacy selectors. */
+html.theme-dark .comparison-grid > div,
+html.theme-dark .fundamentals-comparison > div,
+html.theme-dark .gate-comparison > div,
+html.theme-dark .subtopic-row,
+html.theme-dark .fundamentals-quiz button {
+  border-color: rgba(148, 172, 216, .21) !important;
+  background: #0f1724 !important;
+  color: #e2e8f0 !important;
+}
+
+html.theme-dark .comparison-grid strong,
+html.theme-dark .comparison-grid h3,
+html.theme-dark .fundamentals-comparison strong,
+html.theme-dark .gate-comparison > div:first-child { color: #bfdbfe !important; }
+
+html.theme-dark .comparison-grid span,
+html.theme-dark .comparison-grid li,
+html.theme-dark .fundamentals-comparison span,
+html.theme-dark .gate-comparison span,
+html.theme-dark .fundamentals-quiz > p { color: #b4c0d2 !important; }
+
+html.theme-dark .gate-comparison > div:first-child { background: rgba(96, 165, 250, .16) !important; }
+
+html.theme-dark .fundamentals-quiz button:hover { background: rgba(96, 165, 250, .16) !important; }
+html.theme-dark .fundamentals-quiz button.correct { border-color: #60a5fa !important; background: rgba(96, 165, 250, .22) !important; }
+html.theme-dark .fundamentals-quiz button.wrong { border-color: #fb7185 !important; background: rgba(251, 113, 133, .14) !important; }
+
+/* Complete dark-mode coverage for legacy lesson demos, code, and diagrams. */
+html.theme-dark .hdqs-code,
+html.theme-dark .code-block,
+html.theme-dark .learn-panel,
+html.theme-dark .fundamentals-interactive,
+html.theme-dark .fundamentals-diagram,
+html.theme-dark .measurement-demo,
+html.theme-dark .euler-circle,
+html.theme-dark .bloch-sphere {
+  border-color: rgba(148, 172, 216, .21) !important;
+  background: #0f1724 !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .hdqs-output {
+  border-color: rgba(96, 165, 250, .42) !important;
+  background: #111b2d !important;
+  color: #e2e8f0 !important;
+}
+
+html.theme-dark .qubit,
+html.theme-dark .qubit.super,
+html.theme-dark .measurement-result,
+html.theme-dark .measure-state,
+html.theme-dark .creation-flow strong,
+html.theme-dark .measurement-outcome-flow strong,
+html.theme-dark .fundamentals-applications span,
+html.theme-dark .subtopic-index,
+html.theme-dark .subtopic-arrow {
+  border-color: rgba(96, 165, 250, .48) !important;
+  background: rgba(96, 165, 250, .16) !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .measure-pair-button {
+  border-color: rgba(96, 165, 250, .48) !important;
+  background: #0f1724 !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .measure-pair-button:hover { background: rgba(96, 165, 250, .16) !important; }
+
+html.theme-dark .learn-panel h3,
+html.theme-dark .fundamentals-comparison strong,
+html.theme-dark .subtopic-copy strong,
+html.theme-dark .euler-label,
+html.theme-dark .bloch-zero,
+html.theme-dark .bloch-one { color: #e2e8f0 !important; }
+
+html.theme-dark .learn-panel,
+html.theme-dark .fundamentals-interactive,
+html.theme-dark .fundamentals-diagram,
+html.theme-dark .measurement-demo,
+html.theme-dark .fundamentals-bar small,
+html.theme-dark .fundamentals-range,
+html.theme-dark .fundamentals-state-readout span,
+html.theme-dark .bloch-labels,
+html.theme-dark .state-counts { color: #9caac3 !important; }
+
+html.theme-dark .euler-axis,
+html.theme-dark .bloch-axis,
+html.theme-dark .bloch-equator { border-color: #64748b !important; background: #64748b !important; }
+
+html.theme-dark .euler-point { box-shadow: 0 0 0 4px rgba(96, 165, 250, .16) !important; }
+
+@media (max-width: 560px) {
+  .lesson-nav-button { min-width: 0; padding: .58rem .72rem; }
+}

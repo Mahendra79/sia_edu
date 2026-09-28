@@ -63,8 +63,9 @@ export default function Sidebar({ extra }) {
   // The icon-only "collapsed rail" is a desktop-only layout (see the
   // min-width: 981px media query in layouts.css). On mobile the hamburger
   // menu always shows full labels regardless of the saved desktop preference.
-  // Keep the main navigation open beside the Learn Quantum curriculum.
-  const effectiveCollapsed = isCollapsed && isDesktop && !isLearnRoute;
+  // Learn has its own curriculum navigation, so the site navigation becomes
+  // the compact desktop rail and leaves room for the lesson content.
+  const effectiveCollapsed = isDesktop && (isCollapsed || isLearnRoute);
 
   const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
 
@@ -112,7 +113,7 @@ export default function Sidebar({ extra }) {
 
   return (
     <>
-      <div className={`sidebar-mobile-bar ${isOpen ? "is-menu-open" : ""}`.trim()}>
+      {!isLearnRoute ? <div className={`sidebar-mobile-bar ${isOpen ? "is-menu-open" : ""}`.trim()}>
         <button
           type="button"
           className="sidebar-mobile-toggle"
@@ -128,8 +129,8 @@ export default function Sidebar({ extra }) {
             Hello, {displayName || "there"} <span aria-hidden="true">👋</span>
           </p>
         ) : null}
-      </div>
-      {isOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeSidebar} /> : null}
+      </div> : null}
+      {!isLearnRoute && isOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeSidebar} /> : null}
 
       <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""} ${effectiveCollapsed ? "is-collapsed" : ""}`.trim()}>
         <div className="app-sidebar-header">
