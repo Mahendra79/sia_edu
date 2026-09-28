@@ -2202,6 +2202,13 @@
     pointer-events: none;
   }
 
+  /* Learn keeps its site navigation compact by default. Unlike other pages it
+     has no separate collapse button, so the logo itself remains clickable. */
+  .app-sidebar.is-collapsed.is-learn-sidebar .app-sidebar-header:hover .app-sidebar-brand {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .app-sidebar.is-collapsed .app-sidebar-brand-text {
     display: none !important;
   }

@@ -133,7 +133,7 @@ export default function Sidebar({ extra }) {
       </div> : null}
       {!isLearnRoute && isOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeSidebar} /> : null}
 
-      <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""} ${effectiveCollapsed ? "is-collapsed" : ""}`.trim()}>
+      <aside id="app-sidebar" className={`app-sidebar ${isLearnRoute ? "is-learn-sidebar" : ""} ${isOpen ? "is-open" : ""} ${effectiveCollapsed ? "is-collapsed" : ""}`.trim()}>
         <div className="app-sidebar-header">
           <Link
             className="app-sidebar-brand"
@@ -162,14 +162,14 @@ export default function Sidebar({ extra }) {
               </span>
             )}
           </Link>
-          {!isLearnRoute ? (
+          {(!isLearnRoute || isLearnSidebarExpanded) ? (
             <button
               type="button"
               className="sidebar-collapse-btn"
-              onClick={handleToggleCollapse}
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              onClick={isLearnRoute ? () => setIsLearnSidebarExpanded(false) : handleToggleCollapse}
+              title={isLearnRoute ? "Collapse Sidebar" : isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              {isCollapsed ? (
+              {!isLearnRoute && isCollapsed ? (
                 <PanelLeftOpen size={20} className="sidebar-toggle-icon" />
               ) : (
                 <PanelLeftClose size={20} className="sidebar-toggle-icon" />
