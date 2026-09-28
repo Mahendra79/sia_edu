@@ -58,10 +58,13 @@ export default function Sidebar({ extra }) {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth > 980);
   const [tooltip, setTooltip] = useState(null);
 
+  const isLearnRoute = location.pathname === "/learn";
+
   // The icon-only "collapsed rail" is a desktop-only layout (see the
   // min-width: 981px media query in layouts.css). On mobile the hamburger
   // menu always shows full labels regardless of the saved desktop preference.
-  const effectiveCollapsed = isCollapsed && isDesktop;
+  // Keep the main navigation open beside the Learn Quantum curriculum.
+  const effectiveCollapsed = isCollapsed && isDesktop && !isLearnRoute;
 
   const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
 
@@ -141,24 +144,31 @@ export default function Sidebar({ extra }) {
               </span>
             )}
           </Link>
-          <button
-            type="button"
-            className="sidebar-collapse-btn"
-            onClick={handleToggleCollapse}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen size={20} className="sidebar-toggle-icon" />
-            ) : (
-              <PanelLeftClose size={20} className="sidebar-toggle-icon" />
-            )}
-          </button>
+          {!isLearnRoute ? (
+            <button
+              type="button"
+              className="sidebar-collapse-btn"
+              onClick={handleToggleCollapse}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? (
+                <PanelLeftOpen size={20} className="sidebar-toggle-icon" />
+              ) : (
+                <PanelLeftClose size={20} className="sidebar-toggle-icon" />
+              )}
+            </button>
+          ) : null}
         </div>
 
         <nav className="app-sidebar-nav">
           <NavLink end to="/" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Home")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Home")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "Home" : undefined}>
             <HiOutlineHome />
             {!effectiveCollapsed && <span>Home</span>}
+          </NavLink>
+
+          <NavLink to="/learn" className="app-sidebar-link" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "Learn")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "Learn")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "Learn" : undefined}>
+            <HiOutlineBookOpen />
+            {!effectiveCollapsed && <span>Learn</span>}
           </NavLink>
 
           {!isAuthenticated ? (

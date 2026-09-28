@@ -11,6 +11,7 @@ const API_BASE_URL = (process.env.VITE_API_BASE_URL || "https://sia-edu.onrender
 
 const STATIC_PAGES = [
   { path: "", priority: "1.0" },
+  { path: "learn", priority: "0.8" },
   { path: "login", priority: "0.3" },
   { path: "signup", priority: "0.3" },
   { path: "privacy", priority: "0.2" },

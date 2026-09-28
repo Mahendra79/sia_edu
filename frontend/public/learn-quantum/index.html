@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Learn Quantum is an interactive field guide to quantum computing.">
+  <title>Learn Quantum | An interactive field guide</title>
+  <script>
+    if (new URLSearchParams(window.location.search).has('embedded')) {
+      document.documentElement.classList.add('embedded');
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Learn Quantum home">
+      <span class="brand-mark" aria-hidden="true">⌁</span>
+      <span>Learn <em>Quantum</em></span>
+    </a>
+    <div class="header-actions">
+      <label class="search-box" for="search-input">
+        <span aria-hidden="true">⌕</span>
+        <input id="search-input" type="search" placeholder="Search the field guide" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+      <button class="menu-button" id="menu-button" type="button" aria-label="Open navigation">Menu
+        <span>☰</span></button>
+    </div>
+  </header>
+
+  <div class="app-shell" id="top">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-heading">
+        <div>
+          <p class="eyebrow">Curriculum</p>
+          <h2>Learn Quantum</h2>
+        </div>
+        <button class="collapse-button" id="collapse-button" type="button" aria-label="Collapse sidebar"
+          title="Collapse sidebar">←</button>
+      </div>
+      <div class="progress-block">
+        <div class="progress-label"><span>Your progress</span><strong id="progress-percent">0%</strong></div>
+        <div class="progress-track"><span id="progress-bar"></span></div>
+        <p><span id="progress-count">0</span> of 8 chapters explored</p>
+      </div>
+      <nav class="chapter-nav" aria-label="Curriculum">
+        <p class="nav-label"></p>
+        <div id="chapter-list"></div>
+      </nav>
+      <div class="sidebar-footnote">
+        <span class="orbit-icon" aria-hidden="true">◌</span>
+        <p>Learn by playing with the ideas. Every chapter has something to explore.</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="mobile-breadcrumb" id="mobile-breadcrumb">Chapter 01 <span>/</span> Quantum Fundamentals</div>
+      <div class="content-wrap">
+        <div class="doc-breadcrumb" id="doc-breadcrumb">Quantum Fundamentals <span>/</span> Introduction</div>
+        <section class="lesson-header" id="lesson-header">
+          <div class="lesson-kicker"><span class="chapter-number" id="lesson-number">01</span><span
+              id="lesson-category">QUANTUM FUNDAMENTALS</span></div>
+          <h1 id="lesson-title">A new way to<br><i>think</i> about information.</h1>
+          <p class="lesson-intro" id="lesson-intro">Quantum computing begins with a deceptively small question: what if
+            information could exist in more than one state at once?</p>
+          <div class="lesson-meta"><span>8 min read</span><span class="meta-dot">·</span><span id="lesson-type">Concepts
+              & intuition</span></div>
+        </section>
+
+        <div class="lesson-grid">
+          <article class="lesson-body" id="lesson-body"></article>
+          <aside class="lesson-aside" aria-label="Lesson tools">
+            <div class="aside-card next-up-card">
+              <p class="aside-label">Up next</p>
+              <div class="up-next"><span id="next-number">02</span>
+                <div><strong id="next-title">Mathematical Foundations</strong><span id="next-time">10 min read</span>
+                </div><span>→</span>
+              </div>
+            </div>
+            <div class="aside-card contents-card">
+              <p class="aside-label">On this page</p>
+              <div id="page-contents"></div>
+            </div>
+          </aside>
+        </div>
+
+        <footer class="lesson-footer">
+          <button class="lesson-nav-button" id="previous-button"
+            type="button"><span>←</span><small>Previous</small><strong id="previous-title">Welcome</strong></button>
+          <button class="lesson-nav-button next" id="next-button" type="button"><small>Next chapter</small><strong
+              id="footer-next-title">Mathematical Foundations</strong><span>→</span></button>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <div class="search-results" id="search-results" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,220 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:5f2c1c2a-6e0a-4b9a-9f8c-lms-cbom-0001",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-11T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "lms-from-scratch",
+      "version": "main"
+    }
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:password-hash",
+      "name": "User password hash",
+      "description": "Password storage for accounts.User via Django's default password hasher",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kdf",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": ["keyderive"]
+        },
+        "oid": "PBKDF2-HMAC-SHA256"
+      },
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/accounts/serializers.py", "line": 142 },
+          { "location": "backend/accounts/serializers.py", "line": 166 },
+          { "location": "backend/accounts/views.py", "line": 335 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:jwt-hs256",
+      "name": "JWT access/refresh token signing",
+      "description": "Auth tokens issued by djangorestframework_simplejwt, HMAC-SHA256 (HS256)",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "mac",
+          "cryptoFunctions": ["sign", "verify"],
+          "parameterSetIdentifier": "HS256"
+        },
+        "oid": "HMAC-SHA256"
+      },
+      "keyMaterial": "DJANGO_SECRET_KEY (env var)",
+      "libraries": ["djangorestframework_simplejwt==5.5.1", "PyJWT==2.11.0"],
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/config/settings.py", "line": 353 },
+          { "location": "backend/accounts/authentication.py", "line": 1 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:django-secret-key",
+      "name": "Django SECRET_KEY",
+      "description": "Root HMAC key material used to derive JWT signing, CSRF, and other Django signing operations",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "secret-key",
+          "state": "active",
+          "securityBits": 256
+        }
+      },
+      "keyMaterial": "env var DJANGO_SECRET_KEY, no hardcoded fallback",
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/config/settings.py", "line": 85 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:lesson-media-signing",
+      "name": "Signed lesson-media URL token",
+      "description": "Time-limited signed token for lesson video access using Django TimestampSigner",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "mac",
+          "cryptoFunctions": ["sign", "verify"]
+        },
+        "oid": "HMAC-SHA256"
+      },
+      "keyMaterial": "DJANGO_SECRET_KEY + salt 'lesson-media'",
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/courses/views.py", "line": 56 },
+          { "location": "backend/courses/views.py", "line": 62 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:razorpay-order-signature",
+      "name": "Razorpay payment order signature verification",
+      "description": "Verifies client-submitted payment confirmation against Razorpay-issued HMAC-SHA256 signature, constant-time compare",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "mac",
+          "cryptoFunctions": ["verify"]
+        },
+        "oid": "HMAC-SHA256"
+      },
+      "keyMaterial": "RAZORPAY_KEY_SECRET (env var, third-party controlled)",
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/payments/views.py", "line": 627 },
+          { "location": "backend/payments/views.py", "line": 628 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:razorpay-webhook-signature",
+      "name": "Razorpay webhook signature verification",
+      "description": "Verifies inbound Razorpay webhook payloads via HMAC-SHA256, constant-time compare",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "mac",
+          "cryptoFunctions": ["verify"]
+        },
+        "oid": "HMAC-SHA256"
+      },
+      "keyMaterial": "RAZORPAY_WEBHOOK_SECRET (env var, third-party controlled)",
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/payments/views.py", "line": 698 },
+          { "location": "backend/payments/views.py", "line": 699 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:otp-generation",
+      "name": "OTP code generation",
+      "description": "6-digit OTP for email verification and password reset, generated via CSPRNG",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "drbg",
+          "cryptoFunctions": ["generate"]
+        },
+        "oid": "CSPRNG (secrets.randbelow)"
+      },
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/accounts/models.py", "line": 66 },
+          { "location": "backend/accounts/models.py", "line": 67 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:token-uuid",
+      "name": "Verification/reset token identifier",
+      "description": "UUID4 identifier for EmailVerificationToken and PasswordResetToken records",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "drbg",
+          "cryptoFunctions": ["generate"]
+        },
+        "oid": "UUID4"
+      },
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/accounts/models.py", "line": 53 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:cache-key-digest",
+      "name": "Cache key digest",
+      "description": "Non-secret SHA-256 digest used to build deterministic Django cache keys",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "cryptoFunctions": ["digest"]
+        },
+        "oid": "SHA256"
+      },
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/courses/views.py", "line": 90 }
+        ]
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "cbom:smtp-tls",
+      "name": "SMTP transport encryption",
+      "description": "TLS for outbound transactional email (OTP delivery, notifications)",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          { "location": "backend/config/settings.py", "line": 367 }
+        ]
+      }
+    }
+  ]
+}
