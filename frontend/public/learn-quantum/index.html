@@ -7,11 +7,15 @@
   <meta name="description" content="Learn Quantum is an interactive field guide to quantum computing.">
   <title>Learn Quantum | An interactive field guide</title>
   <script>
-    if (new URLSearchParams(window.location.search).has('embedded')) {
+    const guideParams = new URLSearchParams(window.location.search);
+    if (guideParams.has('embedded')) {
       document.documentElement.classList.add('embedded');
       const applyTheme = (theme) => {
         document.documentElement.classList.toggle('theme-dark', theme === 'dark');
       };
+      // The URL sets the initial theme before the page is painted. This also works
+      // when the production host prevents parent/iframe DOM access.
+      applyTheme(guideParams.get('theme'));
       window.addEventListener('message', (event) => {
         if (event.origin !== window.location.origin || event.data?.type !== 'sia-education-theme') return;
         applyTheme(event.data.theme);

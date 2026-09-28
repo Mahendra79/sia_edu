@@ -805,6 +805,52 @@ html.theme-dark .chapter-item.active .chapter-index {
   box-shadow: none;
 }
 
+/* Keep iframe edges and native scrollbars dark when the host uses dark mode. */
+html.theme-dark {
+  color-scheme: dark;
+  scrollbar-color: #526176 #04060a;
+}
+
+html.theme-dark .app-shell {
+  background: #04060a;
+  border-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark .sidebar {
+  border-right-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark .chapter-submenu {
+  border-left-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark::-webkit-scrollbar,
+html.theme-dark body::-webkit-scrollbar,
+html.theme-dark .sidebar::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+html.theme-dark::-webkit-scrollbar-track,
+html.theme-dark body::-webkit-scrollbar-track,
+html.theme-dark .sidebar::-webkit-scrollbar-track {
+  background: #04060a;
+}
+
+html.theme-dark::-webkit-scrollbar-thumb,
+html.theme-dark body::-webkit-scrollbar-thumb,
+html.theme-dark .sidebar::-webkit-scrollbar-thumb {
+  border: 3px solid #04060a;
+  border-radius: 999px;
+  background: #526176;
+}
+
+html.theme-dark::-webkit-scrollbar-thumb:hover,
+html.theme-dark body::-webkit-scrollbar-thumb:hover,
+html.theme-dark .sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6d7f96;
+}
+
 /* Mathematical and circuit visuals previously used fixed light colours. */
 html.theme-dark .qubit-equation,
 html.theme-dark .vector-equation,
