@@ -2308,6 +2308,10 @@
   background: #f4f7fb;
 }
 
+[data-theme="dark"] .learn-quantum-frame {
+  background: #04060a;
+}
+
 @media (max-width: 980px) {
   .main-content.learn-quantum-page {
     height: calc(100vh - 58px);

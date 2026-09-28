@@ -9,15 +9,23 @@
   <script>
     if (new URLSearchParams(window.location.search).has('embedded')) {
       document.documentElement.classList.add('embedded');
-      const syncHostTheme = () => {
-        const hostTheme = window.parent.document.documentElement.getAttribute('data-theme');
-        document.documentElement.classList.toggle('theme-dark', hostTheme === 'dark');
+      const applyTheme = (theme) => {
+        document.documentElement.classList.toggle('theme-dark', theme === 'dark');
       };
-      syncHostTheme();
-      new MutationObserver(syncHostTheme).observe(window.parent.document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-theme'],
+      window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin || event.data?.type !== 'sia-education-theme') return;
+        applyTheme(event.data.theme);
       });
+      try {
+        const hostRoot = window.parent.document.documentElement;
+        applyTheme(hostRoot.getAttribute('data-theme'));
+        new MutationObserver(() => applyTheme(hostRoot.getAttribute('data-theme'))).observe(hostRoot, {
+          attributes: true,
+          attributeFilter: ['data-theme'],
+        });
+      } catch {
+        // The parent sends the theme with postMessage when cross-origin access is unavailable.
+      }
       window.addEventListener('DOMContentLoaded', () => {
         const brand = document.querySelector('.brand');
         if (brand) {

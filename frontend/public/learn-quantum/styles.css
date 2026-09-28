@@ -764,6 +764,47 @@ html.theme-dark .gate-button,
 html.theme-dark .quiz-option,
 html.theme-dark .lesson-nav-button { background: #0a1019; }
 
+/* Chapter markers need to remain legible when the curriculum is compact. */
+.chapter-index {
+  border: 1px solid #dce7f4;
+  background: #f3f7fc;
+  color: #7190b5;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.chapter-item:hover .chapter-index {
+  border-color: #c9dcf1;
+  background: #eaf2fb;
+  color: #6486ad;
+}
+
+.chapter-item.active .chapter-index {
+  border-color: #b8d4ee;
+  background: #dceeff;
+  color: #4f7da9;
+  box-shadow: none;
+}
+
+html.theme-dark .chapter-index {
+  border-color: #2d405b;
+  background: #111c2c;
+  color: #aabed6;
+}
+
+html.theme-dark .chapter-item:hover .chapter-index {
+  border-color: #456080;
+  background: #162842;
+  color: #bdcfe3;
+}
+
+html.theme-dark .chapter-item.active .chapter-index {
+  border-color: #42678e;
+  background: #1c3656;
+  color: #c5d8ec;
+  box-shadow: none;
+}
+
 /* Mathematical and circuit visuals previously used fixed light colours. */
 html.theme-dark .qubit-equation,
 html.theme-dark .vector-equation,
