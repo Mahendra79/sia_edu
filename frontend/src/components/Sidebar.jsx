@@ -56,6 +56,7 @@ export default function Sidebar({ extra }) {
     return localStorage.getItem("sidebar-collapsed") === "true";
   });
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth > 980);
+  const [isLearnSidebarExpanded, setIsLearnSidebarExpanded] = useState(false);
   const [tooltip, setTooltip] = useState(null);
 
   const isLearnRoute = location.pathname === "/learn";
@@ -65,7 +66,7 @@ export default function Sidebar({ extra }) {
   // menu always shows full labels regardless of the saved desktop preference.
   // Learn has its own curriculum navigation, so the site navigation becomes
   // the compact desktop rail and leaves room for the lesson content.
-  const effectiveCollapsed = isDesktop && (isCollapsed || isLearnRoute);
+  const effectiveCollapsed = isDesktop && (isLearnRoute ? !isLearnSidebarExpanded : isCollapsed);
 
   const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
 
@@ -134,7 +135,23 @@ export default function Sidebar({ extra }) {
 
       <aside id="app-sidebar" className={`app-sidebar ${isOpen ? "is-open" : ""} ${effectiveCollapsed ? "is-collapsed" : ""}`.trim()}>
         <div className="app-sidebar-header">
-          <Link className="app-sidebar-brand" to="/" onClick={closeSidebar} onMouseEnter={(event) => showTooltip(event, "SIA Software Innovations")} onMouseLeave={hideTooltip} onFocus={(event) => showTooltip(event, "SIA Software Innovations")} onBlur={hideTooltip} aria-label={effectiveCollapsed ? "SIA Software Innovations" : undefined}>
+          <Link
+            className="app-sidebar-brand"
+            to="/"
+            onClick={(event) => {
+              if (isLearnRoute && isDesktop) {
+                event.preventDefault();
+                setIsLearnSidebarExpanded((expanded) => !expanded);
+                return;
+              }
+              closeSidebar();
+            }}
+            onMouseEnter={(event) => showTooltip(event, isLearnRoute ? "Expand sidebar" : "SIA Software Innovations")}
+            onMouseLeave={hideTooltip}
+            onFocus={(event) => showTooltip(event, isLearnRoute ? "Expand sidebar" : "SIA Software Innovations")}
+            onBlur={hideTooltip}
+            aria-label={effectiveCollapsed && isLearnRoute ? "Expand sidebar" : undefined}
+          >
             <span className="app-sidebar-logo">
               <img src={companyLogo} alt="SIA Software Innovations logo" loading="lazy" decoding="async" />
             </span>
