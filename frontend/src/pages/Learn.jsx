@@ -30,7 +30,7 @@ export default function Learn() {
       <iframe
         ref={guideFrameRef}
         className="learn-quantum-frame"
-        src={`/learn-quantum/index.html?embedded=1&theme=${theme}`}
+        src={`/learn-quantum/index.html?embedded=1&theme=${theme}&v=20260928-3`}
         title="Learn Quantum interactive field guide"
         allow="clipboard-write"
         onLoad={sendThemeToGuide}

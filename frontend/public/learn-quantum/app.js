@@ -1,3 +1,19 @@
+// This file always runs when the guide is rendered. Apply the host theme here
+// as a second, production-safe path in case an inline iframe script is delayed.
+(() => {
+  const applyGuideTheme = (theme) => {
+    document.documentElement.classList.toggle('theme-dark', theme === 'dark');
+  };
+  const guideTheme = new URLSearchParams(window.location.search).get('theme');
+  applyGuideTheme(guideTheme);
+
+  window.addEventListener('message', (event) => {
+    if (event.origin === window.location.origin && event.data?.type === 'sia-education-theme') {
+      applyGuideTheme(event.data.theme);
+    }
+  });
+})();
+
 const chapters = [
   { title: 'Quantum Fundamentals', time: '8 min read', intro: 'Quantum computing begins with a deceptively small question: what if information could exist in more than one state at once?', type: 'Concepts & intuition' },
   { title: 'Mathematical Foundations', time: '10 min read', intro: 'The math of quantum mechanics is a language for possibility. Let us learn just enough of it to make the invisible legible.', type: 'Vectors & probability' },
