@@ -82,18 +82,6 @@ button { cursor: pointer; }
 .lesson-body p strong { color: var(--ink); }
 .lesson-body ul { padding-left: 18px; margin: 12px 0 24px; color: var(--ink-soft); font-size: 14px; line-height: 1.8; }
 .lesson-body li::marker { color: var(--coral); }
-.lesson-aside { padding-top: 36px; }
-.aside-card { border-top: 1px solid var(--line); padding-top: 16px; margin-bottom: 35px; }
-.up-next { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; margin-top: 14px; }
-.up-next > span:first-child { color: var(--coral); font: 10px var(--mono); }
-.up-next > span:last-child { color: var(--teal); font-size: 18px; }
-.up-next strong, .up-next div span { display: block; }
-.up-next strong { font: 600 13px/1.25 var(--serif); }
-.up-next div span { margin-top: 4px; color: var(--muted); font: 9px var(--mono); }
-.contents-card { position: sticky; top: 105px; }
-#page-contents { border-left: 1px solid var(--line); margin-top: 14px; }
-#page-contents button { display: block; width: 100%; padding: 5px 0 5px 13px; border: 0; border-left: 2px solid transparent; background: transparent; color: var(--muted); text-align: left; font-size: 10px; line-height: 1.4; }
-#page-contents button:hover, #page-contents button.active { border-left-color: var(--coral); color: var(--ink); }
 .lesson-footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); }
 .lesson-nav-button { display: grid; grid-template-columns: auto 1fr; column-gap: 11px; align-items: center; min-width: 190px; border: 0; background: transparent; text-align: left; color: var(--ink); }
 .lesson-nav-button.next { grid-template-columns: 1fr auto; text-align: right; }
@@ -153,8 +141,6 @@ button { cursor: pointer; }
   .mobile-breadcrumb { display: block; padding: 22px 7vw 0; color: var(--muted); font: 10px var(--mono); }
   .mobile-breadcrumb span { margin: 0 8px; color: var(--coral); }
   .lesson-grid { grid-template-columns: 1fr; gap: 0; }
-  .lesson-aside { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; }
-  .contents-card { position: static; }
 }
 @media (max-width: 560px) {
   .topbar { height: 64px; padding: 0 18px; }
@@ -172,8 +158,6 @@ button { cursor: pointer; }
   .lesson-grid { display: flex; flex-direction: column; }
   .lesson-body { padding-top: 28px; }
   .lesson-body h2 { font-size: 27px; }
-  .lesson-aside { display: block; width: 100%; }
-  .contents-card { display: none; }
   .visual-card { padding: 17px; }
   .visual-card-header { display: block; }
   .visual-card-header .card-label { display: block; margin-bottom: 10px; }
@@ -218,7 +202,6 @@ body { background: #f7f9fc; }
 .lesson-body { border-top: 0; padding-top: 0; }
 .lesson-body h2 { margin-bottom: 7px; font-size: 15px; color: #102b52; }
 .lesson-body > p { font-size: 11px; line-height: 1.55; margin-bottom: 13px; }
-.lesson-aside { display: none; }
 .learn-panel { display: flex; align-items: center; gap: 26px; margin: 17px 0; padding: 18px 22px; border: 1px solid #d9edf8; border-radius: 10px; background: linear-gradient(110deg, #f0f9fe, #f7fbff); }
 .learn-panel-icon { width: 64px; color: #208bd4; font-size: 47px; line-height: 1; text-align: center; }
 .learn-panel h3 { margin: 0 0 7px; font-size: 13px; color: #19385f; }
@@ -403,6 +386,7 @@ body { background: #fff; }
 .gate-section p { margin-bottom: 11px; }
 .gate-image { width: min(100%, 520px); margin: 18px 0 0; }
 .gate-image img { display: block; width: 100%; height: auto; }
+.gate-detail .gate-image img[src$="swap_gate.svg"] { width: min(100%, 360px); margin-inline: auto; }
 .gate-section .qubit-equation { margin: 11px 0; }
 .gate-use { display: block; margin: 8px 0; color: #71839d; font-size: 10px; line-height: 1.5; }
 .gate-takeaway { color: var(--teal-dark) !important; font-size: 11px !important; }
@@ -517,7 +501,6 @@ body { background: #fff; }
 .quiz-option { border-color: var(--line); color: var(--ink); background: #f7f9fc; }
 .quiz-option:hover { background: var(--paper-deep); }
 .code-block { display: block; border-radius: 0; box-shadow: none; }
-.lesson-aside { display: none; }
 .lesson-footer { max-width: 780px; justify-content: space-between; margin-top: 42px; padding-top: 20px; border-top: 1px solid var(--line); }
 .lesson-nav-button { justify-content: flex-start; border: 0; border-radius: 0; background: transparent; }
 .lesson-nav-button.next { justify-content: flex-end; border: 0; background: transparent; }
@@ -567,426 +550,601 @@ body { background: #fff; }
 .fundamentals-section h2,
 .fundamentals-quiz h3,
 .sidebar h2 { color: #09294f; }
-
-/* Match the SIA Education website's typography and component scale. */
-:root {
-  --paper: #ffffff;
-  --paper-deep: #f8fafc;
-  --ink: #0f172a;
-  --ink-soft: #64748b;
-  --muted: #64748b;
-  --line: rgba(15, 23, 42, .1);
-  --teal: #3b82f6;
-  --teal-dark: #2563eb;
-  --mint: rgba(59, 130, 246, .1);
-  --coral: #3b82f6;
-  --shadow: 0 10px 24px rgba(15, 23, 42, .06);
-  --serif: 'Sora', 'Plus Jakarta Sans', sans-serif;
-  --sans: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+/* Sidebar refinement: calmer hierarchy, lighter spacing, and clearer learning stages. */
+.sidebar {
+  padding: 28px 22px 22px 2.2vw;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
-
-body { font-size: 16px; line-height: 1.5; }
-.sidebar h2 { font-family: var(--serif); font-size: 1.35rem; letter-spacing: -.02em; }
-.eyebrow, .nav-label, .aside-label { font-size: .72rem; }
-.progress-label, .progress-block p { font-size: .78rem; }
-.chapter-item { padding: .58rem .68rem; border-radius: 11px; }
-.chapter-name { font-size: .85rem; font-weight: 600; }
-.chapter-index { font-size: .72rem; }
-.chapter-topic { padding: .45rem .55rem; font-size: .78rem; line-height: 1.45; }
-.sidebar-footnote p { font-family: var(--sans); font-size: .8rem; }
-.content-wrap { max-width: 1120px; padding-top: 3rem; }
-.lesson-header h1 { font-family: var(--serif); font-size: clamp(2.15rem, 4.5vw, 3.5rem); line-height: 1.08; letter-spacing: -.035em; }
-.lesson-intro { font-family: var(--sans); font-size: 1rem; line-height: 1.7; }
-.lesson-meta, .lesson-kicker { font-size: .72rem; }
-.lesson-body h2, .fundamentals-section h2 { font-family: var(--serif); font-size: 1.5rem; letter-spacing: -.02em; }
-.lesson-body h3, .fundamentals-quiz h3 { font-family: var(--serif); font-size: 1.08rem; letter-spacing: -.02em; }
-.lesson-body p, .lesson-body ul, .fundamentals-section p { font-size: .95rem; line-height: 1.75; }
-.gate-button, .quiz-option, .lesson-nav-button { border-radius: 10px; font-family: var(--serif); }
-.gate-button, .quiz-option { font-size: .84rem; }
-.lesson-nav-button strong { font-family: var(--serif); font-size: .95rem; }
-.visual-card, .quiz, .code-block { border-radius: 12px; }
-
-@media (max-width: 560px) {
-  .lesson-header h1 { font-size: 2rem; }
-  .lesson-intro { font-size: .95rem; }
-  .lesson-body h2, .fundamentals-section h2 { font-size: 1.3rem; }
+.sidebar-heading { align-items: center; }
+.sidebar h2 { font-size: 22px; }
+.progress-block {
+  margin: 20px 0 22px;
+  padding: 11px 0 12px;
 }
-
-/* The host application supplies the global navigation. The guide retains its
-   curriculum rail, while avoiding a second desktop header. */
-@media (min-width: 901px) {
-  html.embedded .topbar { display: none; }
-  html.embedded .app-shell { min-height: 100vh; }
-  html.embedded .sidebar { top: 0; height: 100vh; }
+.progress-track { height: 4px; margin: 9px 0 7px; }
+.nav-label { margin-bottom: 9px; }
+.chapter-list { gap: 2px; }
+.nav-group-label {
+  margin: 15px 0 5px 4px;
+  color: var(--muted);
+  font: 9px var(--mono);
+  letter-spacing: .12em;
 }
+.nav-group-label:first-child { margin-top: 0; }
+.chapter-item {
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 7px;
+}
+.chapter-index { width: 18px; font-size: 9px; }
+.chapter-name { font-size: 11px; line-height: 1.3; }
+.chapter-toggle { font-size: 14px; }
+.chapter-submenu { margin: 1px 0 7px 29px; gap: 1px; }
+.chapter-topic {
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.sidebar-footnote {
+  margin-top: 18px;
+  padding: 11px;
+  gap: 8px;
+}
+.sidebar-footnote p { font-size: 10px; }
+.orbit-icon { font-size: 19px; }
 
-/* On phones the guide owns the single menu button. The brand returns learners
-   to the main SIA website, while the button opens the curriculum. */
 @media (max-width: 900px) {
-  html.embedded .topbar { z-index: 20; }
+  .sidebar { padding: 26px 22px 22px; }
 }
 
-/* The guide runs in an iframe, so it explicitly mirrors the host theme. */
-html.theme-dark {
-  --paper: #04060a;
-  --paper-deep: #0f1724;
-  --ink: #f2f6ff;
-  --ink-soft: #b4c0d2;
-  --muted: #9caac3;
-  --line: rgba(148, 172, 216, .21);
-  --teal: #60a5fa;
-  --teal-dark: #93c5fd;
-  --mint: rgba(96, 165, 250, .16);
-  --coral: #60a5fa;
-  --white: #0a1019;
-  --shadow: 0 20px 42px rgba(0, 0, 0, .56);
+.complex-numbers-lesson { gap: 20px; }
+.complex-numbers-lesson .qubit-section { min-width: 0; }
+.complex-numbers-lesson .complex-concept { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.complex-numbers-lesson .qubit-section h2 { margin: 0 0 10px; font-size: 19px; line-height: 1.35; }
+.complex-numbers-lesson .qubit-section h3 { margin: 19px 0 7px; color: var(--teal-dark); font-size: 13px; }
+.complex-numbers-lesson .qubit-section p { max-width: 760px; font-size: 12px; line-height: 1.7; }
+.complex-equations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px; margin: 14px 0 18px; }
+.complex-equation { min-width: 0; padding: 12px 0; border-bottom: 1px solid #e5edf5; }
+.complex-equation math { min-height: 27px; color: var(--teal-dark); font-size: 21px; text-align: left; }
+.tensor-lesson .complex-equation math { font-size: 20px; }
+.complex-numbers-lesson .complex-equation p { margin: 8px 0 0; font-size: 10px; line-height: 1.6; }
+.complex-example { padding: 19px 0 22px; border-bottom: 1px solid var(--line); }
+.complex-example-label { margin: 0 0 4px !important; color: var(--teal) !important; font: 10px var(--mono) !important; letter-spacing: .08em; text-transform: uppercase; }
+.complex-numbers-lesson .complex-example h2 { margin-bottom: 15px; }
+.complex-example-step { margin-top: 15px; }
+.complex-numbers-lesson .complex-example-step h3 { margin: 0 0 7px; }
+.complex-example-step .hdqs-code,
+.complex-example-step .hdqs-output { margin: 8px 0 0; }
+.complex-output-figure { width: min(100%, 563px); margin: 14px 0 0; }
+.complex-output-figure img { display: block; width: 100%; height: auto; }
+.complex-output-figure figcaption { margin-top: 7px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.documented-output-figure { margin: 14px 0 0; }
+.documented-output-figure figcaption { margin-top: 7px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+@media (max-width: 700px) {
+  .complex-equations { grid-template-columns: minmax(0, 1fr); }
 }
 
-html.theme-dark body,
-html.theme-dark .main-content { background: #04060a; }
-
-html.theme-dark .main-content {
-  background: linear-gradient(135deg, #04060a 0%, #090d14 58%, #0a1019 100%);
+.vectors-lesson { gap: 20px; }
+.vectors-lesson .qubit-section { min-width: 0; }
+.vectors-lesson .qubit-section h2 { margin: 0 0 10px; font-size: 19px; line-height: 1.4; }
+.vectors-lesson .qubit-section h3 { margin: 0 0 7px; color: var(--teal-dark); font-size: 13px; }
+.vectors-lesson .qubit-section p { max-width: 760px; font-size: 12px; line-height: 1.7; }
+.vectors-lesson .vectors-concept { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.vectors-formula {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5edf5;
 }
+.vectors-formula math { max-width: 100%; color: var(--teal-dark); font-size: 20px; }
+.vectors-lesson .vectors-formula p { margin: 0; font-size: 11px; }
+.vectors-example { padding: 17px 0 21px; border-bottom: 1px solid var(--line); }
+.vectors-example-label { margin: 0 0 4px !important; color: var(--teal) !important; font: 10px var(--mono) !important; letter-spacing: .08em; text-transform: uppercase; }
+.vectors-lesson .vectors-example h2 { margin-bottom: 14px; }
+.vectors-example-step { margin-top: 14px; }
+.vectors-example-step .hdqs-code,
+.vectors-example-step .hdqs-output { margin: 8px 0 0; }
+.vectors-code-explanation { margin: 8px 0 0; padding-left: 20px; color: var(--ink-soft); font-size: 12px; line-height: 1.7; }
+.vectors-code-explanation li { padding: 2px 0; }
+.vectors-code-explanation li::marker { color: var(--coral); }
+.vectors-code-explanation code { color: var(--teal-dark); font: 11px var(--mono); overflow-wrap: anywhere; }
+.vectors-output-figure { width: min(100%, 890px); margin: 14px 0 0; }
+.vectors-output-figure img { display: block; width: 100%; height: auto; }
+.vectors-output-figure figcaption { margin-top: 7px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 
-html.theme-dark .topbar,
-html.theme-dark .sidebar,
-html.theme-dark .search-box,
-html.theme-dark .visual-card,
-html.theme-dark .gate-button,
-html.theme-dark .quiz-option,
-html.theme-dark .code-block,
-html.theme-dark .basis-line,
-html.theme-dark .key-idea { background: #0a1019; }
-
-html.theme-dark .lesson-header h1,
-html.theme-dark .lesson-body h2,
-html.theme-dark .lesson-body h3,
-html.theme-dark .fundamentals-section h2,
-html.theme-dark .fundamentals-quiz h3,
-html.theme-dark .sidebar h2,
-html.theme-dark .chapter-name,
-html.theme-dark .sidebar .chapter-item,
-html.theme-dark .quiz h3 { color: #f2f6ff; }
-
-html.theme-dark .lesson-intro,
-html.theme-dark .lesson-body p,
-html.theme-dark .lesson-body ul,
-html.theme-dark .fundamentals-section p,
-html.theme-dark .fundamentals-comparison span,
-html.theme-dark .learn-points ul,
-html.theme-dark .subtopic-copy small { color: #b4c0d2; }
-
-html.theme-dark .sidebar .nav-label,
-html.theme-dark .sidebar .chapter-topic,
-html.theme-dark .sidebar .progress-block p,
-html.theme-dark .lesson-meta,
-html.theme-dark .aside-label,
-html.theme-dark .up-next div span { color: #9caac3; }
-
-html.theme-dark .chapter-item.active,
-html.theme-dark .chapter-topic.active { color: #93c5fd; background: rgba(96, 165, 250, .16); }
-
-/* Embedded curriculum: a quieter, compact panel alongside the site rail. */
-@media (min-width: 901px) {
-  html.embedded .app-shell { grid-template-columns: 248px minmax(0, 1fr); }
-
-  html.embedded .sidebar {
-    width: 248px;
-    padding: 1.5rem .85rem 1rem;
-    background: color-mix(in srgb, var(--white) 96%, var(--paper-deep));
-  }
-
-  html.embedded .sidebar-heading { padding: 0 .25rem; }
-  html.embedded .sidebar h2 { margin-top: .3rem; font-size: 1.08rem; }
-  html.embedded .progress-block { margin: 1.35rem .25rem 1.1rem; padding: .75rem 0; }
-  html.embedded .chapter-submenu { margin-left: 1.75rem; }
-  html.embedded .sidebar-footnote { margin-top: 1.25rem; padding: .7rem; }
+.app-shell { grid-template-columns: 235px minmax(0, 1fr); }
+.sidebar { padding: 20px 12px; }
+.chapter-list { display: grid; gap: 2px; }
+.nav-section { min-width: 0; }
+.chapter-item {
+  min-height: 34px;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
 }
-
-/* Match the main site's button treatment throughout interactive lessons. */
-.gate-button,
-.quiz-option,
-.lesson-nav-button {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-family: var(--serif);
-  font-weight: 600;
-  line-height: 1.2;
-  transition: transform .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
-}
-
-.gate-button {
-  padding: .62rem .88rem;
-  color: var(--teal-dark);
-  background: var(--paper);
-  box-shadow: none;
-}
-
-.quiz-option {
-  padding: .72rem .88rem;
-  color: var(--ink);
-  background: var(--paper-deep);
-  text-align: left;
-  box-shadow: none;
-}
-
-.lesson-nav-button {
-  min-width: 210px;
-  padding: .7rem .85rem;
-  color: var(--ink);
-  background: var(--paper);
-  box-shadow: none;
-}
-
-.gate-button:hover,
-.quiz-option:hover,
-.lesson-nav-button:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--teal) 55%, var(--line));
-  box-shadow: 0 8px 16px rgba(37, 99, 235, .12);
-}
-
-.gate-button:focus-visible,
-.quiz-option:focus-visible,
-.lesson-nav-button:focus-visible,
 .chapter-item:focus-visible,
 .chapter-topic:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--teal) 85%, white 15%);
-  outline-offset: 2px;
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
 }
-
-.gate-button:active,
-.quiz-option:active,
-.lesson-nav-button:active { transform: translateY(0); }
-
-html.theme-dark .gate-button,
-html.theme-dark .quiz-option,
-html.theme-dark .lesson-nav-button { background: #0a1019; }
-
-/* Chapter markers need to remain legible when the curriculum is compact. */
-.chapter-index {
-  border: 1px solid #dce7f4;
-  background: #f3f7fc;
-  color: #7190b5;
-  font-weight: 700;
-  letter-spacing: .01em;
+.chapter-index { flex: 0 0 20px; }
+.chapter-name { min-width: 0; font-size: 11px; }
+.chapter-toggle { flex: 0 0 auto; }
+.chapter-submenu {
+  margin: 1px 0 5px 10px;
+  gap: 0;
+  border-left: 1px solid var(--line);
 }
-
-.chapter-item:hover .chapter-index {
-  border-color: #c9dcf1;
-  background: #eaf2fb;
-  color: #6486ad;
+.chapter-submenu[hidden] { display: none; }
+.chapter-topic {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1.4;
 }
-
-.chapter-item.active .chapter-index {
-  border-color: #b8d4ee;
-  background: #dceeff;
-  color: #4f7da9;
-  box-shadow: none;
+.chapter-topic:hover,
+.chapter-topic.active {
+  border-left-color: var(--teal);
+  color: var(--teal-dark);
 }
+.chapter-topic.active { background: #f2f9fd; }
+.chapter-topic.navigation-only { cursor: default; }
+.chapter-topic.navigation-only:hover { border-left-color: transparent; color: var(--ink-soft); }
 
-html.theme-dark .chapter-index {
-  border-color: #2d405b;
-  background: #111c2c;
-  color: #aabed6;
+@media (max-width: 900px) {
+  .app-shell { display: block; }
+  .sidebar { width: 285px; padding: 24px 18px; }
+  .sidebar.open { transform: translateX(0); }
 }
-
-html.theme-dark .chapter-item:hover .chapter-index {
-  border-color: #456080;
-  background: #162842;
-  color: #bdcfe3;
-}
-
-html.theme-dark .chapter-item.active .chapter-index {
-  border-color: #42678e;
-  background: #1c3656;
-  color: #c5d8ec;
-  box-shadow: none;
-}
-
-/* Keep iframe edges and native scrollbars dark when the host uses dark mode. */
-html.theme-dark {
-  color-scheme: dark;
-  scrollbar-color: #526176 #04060a;
-}
-
-html.theme-dark .app-shell {
-  background: #04060a;
-  border-color: rgba(148, 172, 216, .16);
-}
-
-html.theme-dark .sidebar {
-  border-right-color: rgba(148, 172, 216, .16);
-}
-
-html.theme-dark .chapter-submenu {
-  border-left-color: rgba(148, 172, 216, .16);
-}
-
-html.theme-dark::-webkit-scrollbar,
-html.theme-dark body::-webkit-scrollbar,
-html.theme-dark .sidebar::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
-}
-
-html.theme-dark::-webkit-scrollbar-track,
-html.theme-dark body::-webkit-scrollbar-track,
-html.theme-dark .sidebar::-webkit-scrollbar-track {
-  background: #04060a;
-}
-
-html.theme-dark::-webkit-scrollbar-thumb,
-html.theme-dark body::-webkit-scrollbar-thumb,
-html.theme-dark .sidebar::-webkit-scrollbar-thumb {
-  border: 3px solid #04060a;
-  border-radius: 999px;
-  background: #526176;
-}
-
-html.theme-dark::-webkit-scrollbar-thumb:hover,
-html.theme-dark body::-webkit-scrollbar-thumb:hover,
-html.theme-dark .sidebar::-webkit-scrollbar-thumb:hover {
-  background: #6d7f96;
-}
-
-/* Mathematical and circuit visuals previously used fixed light colours. */
-html.theme-dark .qubit-equation,
-html.theme-dark .vector-equation,
-html.theme-dark .basis-line,
-html.theme-dark .fundamentals-formula,
-html.theme-dark .matrix-list > div,
-html.theme-dark .vector-pair > div,
-html.theme-dark .basis-card,
-html.theme-dark .probability-grid > div,
-html.theme-dark .phase-grid > div,
-html.theme-dark .comparison-grid > div,
-html.theme-dark .state-flow,
-html.theme-dark .measure-flow,
-html.theme-dark .amplitude-flow,
-html.theme-dark .superposition-interactive,
-html.theme-dark .entanglement-interactive,
-html.theme-dark .measurement-interactive {
-  border-color: rgba(148, 172, 216, .21);
-  background: #0f1724;
-  color: #bfdbfe;
-}
-
-html.theme-dark .circuit-line-simple,
-html.theme-dark .circuit-sketch,
-html.theme-dark .gate-section h3,
-html.theme-dark .gate-detail h3,
-html.theme-dark .gate-takeaway { color: #bfdbfe; }
-
-html.theme-dark .circuit-line-simple strong,
-html.theme-dark .gate {
-  border-color: rgba(96, 165, 250, .65);
-  background: rgba(96, 165, 250, .18);
-  color: #bfdbfe;
-}
-
-html.theme-dark .circuit-line-simple i,
-html.theme-dark .circuit-sketch i,
-html.theme-dark .gate-use,
-html.theme-dark .simulation-note,
-html.theme-dark .matrix-list small,
-html.theme-dark .basis-card span,
-html.theme-dark .probability-grid span { color: #9caac3; }
-
-/* Comparison cards and the Fundamentals quick-check use legacy selectors. */
-html.theme-dark .comparison-grid > div,
-html.theme-dark .fundamentals-comparison > div,
-html.theme-dark .gate-comparison > div,
-html.theme-dark .subtopic-row,
-html.theme-dark .fundamentals-quiz button {
-  border-color: rgba(148, 172, 216, .21) !important;
-  background: #0f1724 !important;
-  color: #e2e8f0 !important;
-}
-
-html.theme-dark .comparison-grid strong,
-html.theme-dark .comparison-grid h3,
-html.theme-dark .fundamentals-comparison strong,
-html.theme-dark .gate-comparison > div:first-child { color: #bfdbfe !important; }
-
-html.theme-dark .comparison-grid span,
-html.theme-dark .comparison-grid li,
-html.theme-dark .fundamentals-comparison span,
-html.theme-dark .gate-comparison span,
-html.theme-dark .fundamentals-quiz > p { color: #b4c0d2 !important; }
-
-html.theme-dark .gate-comparison > div:first-child { background: rgba(96, 165, 250, .16) !important; }
-
-html.theme-dark .fundamentals-quiz button:hover { background: rgba(96, 165, 250, .16) !important; }
-html.theme-dark .fundamentals-quiz button.correct { border-color: #60a5fa !important; background: rgba(96, 165, 250, .22) !important; }
-html.theme-dark .fundamentals-quiz button.wrong { border-color: #fb7185 !important; background: rgba(251, 113, 133, .14) !important; }
-
-/* Complete dark-mode coverage for legacy lesson demos, code, and diagrams. */
-html.theme-dark .hdqs-code,
-html.theme-dark .code-block,
-html.theme-dark .learn-panel,
-html.theme-dark .fundamentals-interactive,
-html.theme-dark .fundamentals-diagram,
-html.theme-dark .measurement-demo,
-html.theme-dark .euler-circle,
-html.theme-dark .bloch-sphere {
-  border-color: rgba(148, 172, 216, .21) !important;
-  background: #0f1724 !important;
-  color: #bfdbfe !important;
-}
-
-html.theme-dark .hdqs-output {
-  border-color: rgba(96, 165, 250, .42) !important;
-  background: #111b2d !important;
-  color: #e2e8f0 !important;
-}
-
-html.theme-dark .qubit,
-html.theme-dark .qubit.super,
-html.theme-dark .measurement-result,
-html.theme-dark .measure-state,
-html.theme-dark .creation-flow strong,
-html.theme-dark .measurement-outcome-flow strong,
-html.theme-dark .fundamentals-applications span,
-html.theme-dark .subtopic-index,
-html.theme-dark .subtopic-arrow {
-  border-color: rgba(96, 165, 250, .48) !important;
-  background: rgba(96, 165, 250, .16) !important;
-  color: #bfdbfe !important;
-}
-
-html.theme-dark .measure-pair-button {
-  border-color: rgba(96, 165, 250, .48) !important;
-  background: #0f1724 !important;
-  color: #bfdbfe !important;
-}
-
-html.theme-dark .measure-pair-button:hover { background: rgba(96, 165, 250, .16) !important; }
-
-html.theme-dark .learn-panel h3,
-html.theme-dark .fundamentals-comparison strong,
-html.theme-dark .subtopic-copy strong,
-html.theme-dark .euler-label,
-html.theme-dark .bloch-zero,
-html.theme-dark .bloch-one { color: #e2e8f0 !important; }
-
-html.theme-dark .learn-panel,
-html.theme-dark .fundamentals-interactive,
-html.theme-dark .fundamentals-diagram,
-html.theme-dark .measurement-demo,
-html.theme-dark .fundamentals-bar small,
-html.theme-dark .fundamentals-range,
-html.theme-dark .fundamentals-state-readout span,
-html.theme-dark .bloch-labels,
-html.theme-dark .state-counts { color: #9caac3 !important; }
-
-html.theme-dark .euler-axis,
-html.theme-dark .bloch-axis,
-html.theme-dark .bloch-equator { border-color: #64748b !important; background: #64748b !important; }
-
-html.theme-dark .euler-point { box-shadow: 0 0 0 4px rgba(96, 165, 250, .16) !important; }
-
 @media (max-width: 560px) {
-  .lesson-nav-button { min-width: 0; padding: .58rem .72rem; }
+  .sidebar { width: min(300px, 88vw); padding: 20px 16px; }
+}
+
+#lesson-body figure img {
+  display: block;
+  width: 78%;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  object-fit: contain;
+}
+
+.basic-circuits-lesson .qubit-section > h2 {
+  margin-bottom: 15px;
+  font-size: 23px;
+}
+.basic-circuits-lesson > .qubit-section {
+  border-bottom: 0;
+}
+.basic-circuits-lesson .qubit-section > h3 {
+  margin: 23px 0 8px;
+  color: var(--teal-dark);
+  font-size: 15px;
+}
+.basic-circuit-example {
+  min-width: 0;
+  margin: 17px 0 25px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.82);
+}
+.basic-circuit-example h4 {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font: 700 14px/1.5 var(--sans);
+}
+.basic-circuit-example .basic-example-concept {
+  font-size: 12px;
+}
+.basic-circuit-example .card-label {
+  margin: 13px 0 0;
+}
+.basic-circuit-example .hdqs-code,
+.basic-circuit-example .hdqs-output {
+  margin: 7px 0 12px;
+}
+.basic-circuit-example .code-explanation {
+  margin: 6px 0 12px;
+  font-size: 11px;
+}
+.basic-circuit-example > p:last-child {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.basic-circuits-lesson .token-keyword { color: #8d3e87; font-weight: 600; }
+.basic-circuits-lesson .token-string { color: #26734d; }
+.basic-circuits-lesson .token-comment { color: #71839d; font-style: italic; }
+.basic-circuits-lesson .token-number { color: #b15a2b; }
+.basic-circuit-visual {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 560px);
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid #dce9f4;
+  background: #fbfdff;
+}
+.basic-circuit-visual svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font: 11px var(--mono);
+}
+.basic-circuit-visual figcaption {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.basic-circuit-visual .circuit-wire {
+  stroke: #71839d;
+  stroke-width: 1.5;
+}
+.basic-circuit-visual .circuit-control-line,
+.basic-circuit-visual .circuit-target-mark {
+  stroke: var(--teal-dark);
+  stroke-width: 1.7;
+}
+.basic-circuit-visual .circuit-gate {
+  fill: #eefaff;
+  stroke: var(--teal);
+}
+.basic-circuit-visual .circuit-gate-label,
+.basic-circuit-visual .circuit-measure-label {
+  fill: var(--teal-dark);
+  font-weight: 700;
+}
+.basic-circuit-visual .circuit-control { fill: var(--teal-dark); }
+.basic-circuit-visual .circuit-target,
+.basic-circuit-visual .circuit-measure {
+  fill: #fff;
+  stroke: var(--teal);
+  stroke-width: 1.5;
+}
+.basic-w-state { gap: 8px; }
+.w-state-term {
+  display: grid;
+  grid-template-columns: 58px minmax(40px, 1fr);
+  gap: 5px 10px;
+  align-items: center;
+  color: var(--teal-dark);
+}
+.w-state-term strong { font: 13px var(--mono); }
+.w-state-term small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 9px;
+}
+.w-state-bar {
+  display: block;
+  height: 9px;
+  border-radius: 99px;
+  background: #e7edf5;
+}
+.w-state-bar i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+}
+.basic-probability-visual > div {
+  display: grid;
+  grid-template-columns: 42px minmax(40px, 1fr) 36px;
+  gap: 9px;
+  align-items: center;
+  color: var(--teal-dark);
+  font: 10px var(--mono);
+}
+.basic-probability-visual > div > i {
+  display: block;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e7edf5;
+}
+.basic-probability-visual > div > i > b {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+}
+.basic-probability-visual > div > strong { text-align: right; }
+@media (max-width: 560px) {
+  .basic-circuits-lesson .qubit-section > h2 { font-size: 20px; }
+  .basic-circuit-example { padding: 13px; }
+  .basic-circuit-visual { padding: 10px; }
+  .basic-circuit-visual svg { font-size: 9px; }
+}
+/* Lessons now use the full article column; navigation lives in the footer and sidebar. */
+.lesson-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.lesson-body {
+  width: 100%;
+  max-width: none;
+}
+.notebook-example { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.notebook-example h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.4; }
+.notebook-example h4 { margin: 22px 0 7px; font: 600 11px/1.4 var(--mono); letter-spacing: .045em; color: var(--teal-dark); text-transform: uppercase; }
+.notebook-example-note { margin: 0 0 14px; font-family: var(--serif); }
+.notebook-gate-diagrams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; margin: 12px 0 16px; }
+.notebook-gate-diagram { min-width: 0; margin: 0; }
+.notebook-gate-diagram img { display: block; width: 100%; height: 112px; object-fit: contain; border: 1px solid var(--line); background: #fff; }
+.notebook-gate-diagram figcaption { margin-top: 6px; color: var(--muted); font: 10px/1.5 var(--sans); }
+.notebook-example > .hdqs-code { margin-top: 0; }
+.notebook-example > .hdqs-output { margin-top: 0; }
+.notebook-explanation { font-size: 13px !important; line-height: 1.7; }
+.notebook-output-figure { margin: 18px 0 22px; }
+.notebook-output-figure img { display: block; width: auto; max-width: min(100%, 760px); max-height: 620px; object-fit: contain; border: 1px solid var(--line); background: #fff; }
+.notebook-output-figure figcaption { margin-top: 7px; color: var(--muted); font: 10px var(--mono); }
+.lesson-body code { overflow-wrap: anywhere; }
+
+/* Consistent documentation layout for the five individual algorithm lessons. */
+.algorithm-lesson {
+  display: grid;
+  width: 100%;
+  max-width: 900px;
+  gap: 14px;
+}
+.algorithm-lesson > .qubit-section {
+  min-width: 0;
+  margin: 0;
+  padding: 19px 21px;
+  border: 1px solid #dce7f1;
+  border-left: 3px solid #9dcfe2;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(20, 42, 74, .035);
+}
+.algorithm-lesson > .qubit-section h2 {
+  margin: 0 0 11px;
+  padding: 0;
+  border: 0;
+  color: #15385f;
+  font-size: 19px;
+  line-height: 1.4;
+}
+.algorithm-lesson > .qubit-section h3 {
+  margin: 18px 0 7px;
+  color: var(--teal-dark);
+  font-size: 14px;
+}
+.algorithm-lesson > .qubit-section h2 + h3 {
+  margin-top: 0;
+}
+.algorithm-lesson > .qubit-section p,
+.algorithm-lesson > .qubit-section li {
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.algorithm-lesson > .qubit-section ol,
+.algorithm-lesson > .qubit-section ul {
+  margin: 10px 0 0;
+  padding-left: 21px;
+}
+.algorithm-lesson > .qubit-section li + li {
+  margin-top: 5px;
+}
+.algorithm-lesson > .qubit-section:has(.circuit-sketch) {
+  border-left-color: var(--teal);
+}
+.algorithm-lesson .circuit-sketch {
+  max-width: 100%;
+  margin: 14px 0 2px;
+  padding: 13px 15px;
+  overflow-x: auto;
+  border: 1px solid #dce9f4;
+  background: #f6faff;
+  color: var(--teal-dark);
+  font-size: 12px;
+  line-height: 1.75;
+}
+.algorithm-lesson > .qubit-section:has(> .hdqs-code) {
+  border-left-color: var(--coral);
+  background: #fcfdff;
+}
+.algorithm-lesson .hdqs-code {
+  margin: 12px 0 0;
+  padding: 15px 17px;
+  border: 1px solid #dce7f1;
+  border-left: 3px solid var(--coral);
+  border-radius: 6px;
+  background: #f6f9fd;
+  color: #183451;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.algorithm-lesson > .qubit-section:has(> .hdqs-output) {
+  border-left-color: var(--teal);
+}
+.algorithm-lesson .hdqs-output {
+  margin: 12px 0 0;
+  padding: 15px 17px;
+  border: 1px solid #274666;
+  border-left: 3px solid var(--teal);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.algorithm-lesson > .key-idea {
+  margin: 0;
+  padding: 17px 20px;
+  border: 1px solid #cfe7ef;
+  border-top: 2px solid var(--teal);
+  border-radius: 8px;
+  background: #f3f9fb;
+}
+.algorithm-lesson > .key-idea .card-label {
+  display: block;
+  margin-bottom: 7px;
+}
+.algorithm-lesson > .key-idea p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+@media (max-width: 560px) {
+  .algorithm-lesson { gap: 10px; }
+  .algorithm-lesson > .qubit-section { padding: 15px 16px; }
+  .algorithm-lesson > .qubit-section h2 { font-size: 17px; }
+  .algorithm-lesson .circuit-sketch,
+  .algorithm-lesson .hdqs-code,
+  .algorithm-lesson .hdqs-output { padding: 12px 13px; font-size: 11px; }
+  .algorithm-lesson > .key-idea { padding: 15px 16px; }
+}
+
+/* Compact Phase 1 support blocks within the existing documentation layout. */
+.lesson-body:has(> .lesson-support-card) {
+  border-top: 0;
+  padding-top: 0;
+}
+.lesson-body > .lesson-support-card {
+  display: block;
+  margin: 0;
+  padding: 20px 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.lesson-body > .lesson-support-card h3 {
+  margin: 0 0 7px;
+  line-height: 1.4;
+}
+.lesson-body > .lesson-support-card h3:not(:first-child) {
+  margin-top: 17px;
+}
+.lesson-body > .lesson-support-card ul,
+.lesson-body > .lesson-support-card ol {
+  margin: 7px 0 0;
+  padding-left: 20px;
+}
+.lesson-body > .lesson-support-card li + li {
+  margin-top: 4px;
+}
+.lesson-body > .lesson-support-card p {
+  margin-bottom: 0;
+}
+.lesson-body > .lesson-support-card[aria-label="Step-by-step explanation"] {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+.lesson-body > .lesson-support-takeaways {
+  margin-top: 14px;
+}
+.interactive-visualization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.interactive-visualization-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.82);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.interactive-visualization-card:hover,
+.interactive-visualization-card:focus-visible {
+  border-color: var(--teal);
+  box-shadow: 0 8px 24px rgba(26, 83, 104, .09);
+  transform: translateY(-2px);
+}
+.interactive-visualization-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.interactive-visualization-card strong { font: 600 18px/1.3 var(--serif); }
+.interactive-visualization-card > span:not(.card-label):not(.visualization-open) { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.interactive-visualization-card .visualization-open { margin-top: auto; padding-top: 8px; color: var(--teal-dark); font: 10px var(--mono); }
+.interactive-3d-models { margin-top: 34px; }
+.structured-3d-section + .structured-3d-section { margin-top: 36px; }
+.structured-3d-section > h2 { margin-bottom: 10px; }
+.structured-3d-example { margin-top: 22px; padding-top: 20px; }
+.structured-example-step { margin-top: 17px; }
+.structured-example-step > h4 { margin: 0 0 7px; color: var(--teal-dark); font: 600 11px/1.4 var(--mono); letter-spacing: .045em; text-transform: uppercase; }
+.structured-example-step > p { margin: 0; font-size: 13px; line-height: 1.7; }
+.structured-example-step > .hdqs-code,
+.structured-example-step > .hdqs-output { margin: 0; }
+.structured-example-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.structured-example-step > .structured-example-links { margin-top: 8px; }
+.structured-example-links > h4 { flex-basis: 100%; }
+.model-action-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  color: var(--teal-dark);
+  font: 10px var(--mono);
+  text-decoration: none;
+}
+.model-action-link:hover, .model-action-link:focus-visible { border-color: var(--teal); background: #f3fbfc; }
+.model-action-link:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.model-no-preview { margin-top: 10px !important; padding: 10px; border-left: 2px solid var(--line); color: var(--muted); }
+.interactive-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.interactive-model-card { align-items: stretch; }
+.interactive-model-card > strong { overflow-wrap: anywhere; }
+.model-preview {
+  position: relative;
+  width: 100%;
+  height: clamp(320px, 34vw, 420px);
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #f8fafb;
+  touch-action: none;
+}
+.model-preview canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.model-preview canvas:active { cursor: grabbing; }
+.model-preview-status {
+  position: absolute;
+  inset: auto 8px 8px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,.9);
+  color: var(--muted);
+  font: 10px/1.5 var(--mono);
+  pointer-events: none;
+}
+.model-preview-unavailable { display: flex; height: auto; min-height: 88px; align-items: center; padding: 12px; }
+.model-preview-unavailable .model-preview-status { position: static; inset: auto; padding: 0; background: transparent; }
+.model-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 14px; }
+.model-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  color: var(--teal-dark);
+  font: 10px var(--mono);
+  text-decoration: none;
+}
+.model-actions a:hover, .model-actions a:focus-visible { border-color: var(--teal); background: #f3fbfc; }
+.model-actions a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .notebook-example { margin-top: 24px; padding-top: 18px; }
+  .notebook-example h3 { font-size: 17px; }
+  .notebook-output-figure img { max-height: 460px; }
+  .interactive-visualization-card { padding: 15px; }
+  .interactive-model-grid { grid-template-columns: minmax(0, 1fr); }
+  .model-preview { height: 280px; }
+  .model-preview-unavailable { height: auto; min-height: 88px; }
 }

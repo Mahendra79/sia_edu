@@ -1,0 +1,1179 @@
+/* SIA Education theme for the Learn Quantum guide.
+   Loaded after the upstream styles.css. All SIA-specific styling lives here
+   (with behaviour in sia-embed.js and sia-extend.js) so new releases of the
+   guide (app.js, styles.css, sia-notebook.js, sia-docs.js, images/, assets/)
+   can be copied in unchanged.
+
+   Part 1: dark-mode coverage for the guide's interactive demos.
+   Part 2: SIA design layer. */
+
+/* The host application supplies the global navigation. The guide retains its
+   curriculum rail, while avoiding a second desktop header. */
+@media (min-width: 901px) {
+  html.embedded .topbar { display: none; }
+  html.embedded .app-shell { min-height: 100vh; }
+  html.embedded .sidebar { top: 0; height: 100vh; }
+}
+
+/* On phones the guide owns the single menu button. The brand returns learners
+   to the main SIA website, while the button opens the curriculum. */
+@media (max-width: 900px) {
+  html.embedded .topbar { z-index: 20; }
+}
+
+/* The guide runs in an iframe, so it explicitly mirrors the host theme. */
+html.theme-dark {
+  --paper: #04060a;
+  --paper-deep: #0f1724;
+  --ink: #f2f6ff;
+  --ink-soft: #b4c0d2;
+  --muted: #9caac3;
+  --line: rgba(148, 172, 216, .21);
+  --teal: #60a5fa;
+  --teal-dark: #93c5fd;
+  --mint: rgba(96, 165, 250, .16);
+  --coral: #60a5fa;
+  --white: #0a1019;
+  --shadow: 0 20px 42px rgba(0, 0, 0, .56);
+}
+
+html.theme-dark body,
+html.theme-dark .main-content { background: #04060a; }
+
+html.theme-dark .main-content {
+  background: linear-gradient(135deg, #04060a 0%, #090d14 58%, #0a1019 100%);
+}
+
+html.theme-dark .topbar,
+html.theme-dark .sidebar,
+html.theme-dark .search-box,
+html.theme-dark .visual-card,
+html.theme-dark .gate-button,
+html.theme-dark .quiz-option,
+html.theme-dark .code-block,
+html.theme-dark .basis-line,
+html.theme-dark .key-idea { background: #0a1019; }
+
+html.theme-dark .lesson-header h1,
+html.theme-dark .lesson-body h2,
+html.theme-dark .lesson-body h3,
+html.theme-dark .fundamentals-section h2,
+html.theme-dark .fundamentals-quiz h3,
+html.theme-dark .sidebar h2,
+html.theme-dark .chapter-name,
+html.theme-dark .sidebar .chapter-item,
+html.theme-dark .quiz h3 { color: #f2f6ff; }
+
+html.theme-dark .lesson-intro,
+html.theme-dark .lesson-body p,
+html.theme-dark .lesson-body ul,
+html.theme-dark .fundamentals-section p,
+html.theme-dark .fundamentals-comparison span,
+html.theme-dark .learn-points ul,
+html.theme-dark .subtopic-copy small { color: #b4c0d2; }
+
+html.theme-dark .sidebar .nav-label,
+html.theme-dark .sidebar .chapter-topic,
+html.theme-dark .sidebar .progress-block p,
+html.theme-dark .lesson-meta,
+html.theme-dark .aside-label,
+html.theme-dark .up-next div span { color: #9caac3; }
+
+html.theme-dark .chapter-item.active,
+html.theme-dark .chapter-topic.active { color: #93c5fd; background: rgba(96, 165, 250, .16); }
+
+/* Embedded curriculum: a quieter, compact panel alongside the site rail. */
+@media (min-width: 901px) {
+  html.embedded .app-shell { grid-template-columns: 248px minmax(0, 1fr); }
+
+  html.embedded .sidebar {
+    width: 248px;
+    padding: 1.5rem .85rem 1rem;
+    background: color-mix(in srgb, var(--white) 96%, var(--paper-deep));
+  }
+
+  html.embedded .sidebar-heading { padding: 0 .25rem; }
+  html.embedded .sidebar h2 { margin-top: .3rem; font-size: 1.08rem; }
+  html.embedded .progress-block { margin: 1.35rem .25rem 1.1rem; padding: .75rem 0; }
+  html.embedded .chapter-submenu { margin-left: 1.75rem; }
+  html.embedded .sidebar-footnote { margin-top: 1.25rem; padding: .7rem; }
+}
+
+html.theme-dark .chapter-index {
+  border-color: #2d405b;
+  background: #111c2c;
+  color: #aabed6;
+}
+
+html.theme-dark .chapter-item:hover .chapter-index {
+  border-color: #456080;
+  background: #162842;
+  color: #bdcfe3;
+}
+
+html.theme-dark .chapter-item.active .chapter-index {
+  border-color: #42678e;
+  background: #1c3656;
+  color: #c5d8ec;
+  box-shadow: none;
+}
+
+/* Keep iframe edges and native scrollbars dark when the host uses dark mode. */
+html.theme-dark {
+  color-scheme: dark;
+  scrollbar-color: #526176 #04060a;
+}
+
+html.theme-dark .app-shell {
+  background: #04060a;
+  border-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark .sidebar {
+  border-right-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark .chapter-submenu {
+  border-left-color: rgba(148, 172, 216, .16);
+}
+
+html.theme-dark::-webkit-scrollbar,
+html.theme-dark body::-webkit-scrollbar,
+html.theme-dark .sidebar::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+html.theme-dark::-webkit-scrollbar-track,
+html.theme-dark body::-webkit-scrollbar-track,
+html.theme-dark .sidebar::-webkit-scrollbar-track {
+  background: #04060a;
+}
+
+html.theme-dark::-webkit-scrollbar-thumb,
+html.theme-dark body::-webkit-scrollbar-thumb,
+html.theme-dark .sidebar::-webkit-scrollbar-thumb {
+  border: 3px solid #04060a;
+  border-radius: 999px;
+  background: #526176;
+}
+
+html.theme-dark::-webkit-scrollbar-thumb:hover,
+html.theme-dark body::-webkit-scrollbar-thumb:hover,
+html.theme-dark .sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6d7f96;
+}
+
+/* Mathematical and circuit visuals previously used fixed light colours. */
+html.theme-dark .qubit-equation,
+html.theme-dark .vector-equation,
+html.theme-dark .basis-line,
+html.theme-dark .fundamentals-formula,
+html.theme-dark .matrix-list > div,
+html.theme-dark .vector-pair > div,
+html.theme-dark .basis-card,
+html.theme-dark .probability-grid > div,
+html.theme-dark .phase-grid > div,
+html.theme-dark .comparison-grid > div,
+html.theme-dark .state-flow,
+html.theme-dark .measure-flow,
+html.theme-dark .amplitude-flow,
+html.theme-dark .superposition-interactive,
+html.theme-dark .entanglement-interactive,
+html.theme-dark .measurement-interactive {
+  border-color: rgba(148, 172, 216, .21);
+  background: #0f1724;
+  color: #bfdbfe;
+}
+
+html.theme-dark .circuit-line-simple,
+html.theme-dark .circuit-sketch,
+html.theme-dark .gate-section h3,
+html.theme-dark .gate-detail h3,
+html.theme-dark .gate-takeaway { color: #bfdbfe; }
+
+html.theme-dark .circuit-line-simple strong,
+html.theme-dark .gate {
+  border-color: rgba(96, 165, 250, .65);
+  background: rgba(96, 165, 250, .18);
+  color: #bfdbfe;
+}
+
+html.theme-dark .circuit-line-simple i,
+html.theme-dark .circuit-sketch i,
+html.theme-dark .gate-use,
+html.theme-dark .simulation-note,
+html.theme-dark .matrix-list small,
+html.theme-dark .basis-card span,
+html.theme-dark .probability-grid span { color: #9caac3; }
+
+/* Comparison cards and the Fundamentals quick-check use legacy selectors. */
+html.theme-dark .comparison-grid > div,
+html.theme-dark .fundamentals-comparison > div,
+html.theme-dark .gate-comparison > div,
+html.theme-dark .subtopic-row,
+html.theme-dark .fundamentals-quiz button {
+  border-color: rgba(148, 172, 216, .21) !important;
+  background: #0f1724 !important;
+  color: #e2e8f0 !important;
+}
+
+html.theme-dark .comparison-grid strong,
+html.theme-dark .comparison-grid h3,
+html.theme-dark .fundamentals-comparison strong,
+html.theme-dark .gate-comparison > div:first-child { color: #bfdbfe !important; }
+
+html.theme-dark .comparison-grid span,
+html.theme-dark .comparison-grid li,
+html.theme-dark .fundamentals-comparison span,
+html.theme-dark .gate-comparison span,
+html.theme-dark .fundamentals-quiz > p { color: #b4c0d2 !important; }
+
+html.theme-dark .gate-comparison > div:first-child { background: rgba(96, 165, 250, .16) !important; }
+
+html.theme-dark .fundamentals-quiz button:hover { background: rgba(96, 165, 250, .16) !important; }
+html.theme-dark .fundamentals-quiz button.correct { border-color: #60a5fa !important; background: rgba(96, 165, 250, .22) !important; }
+html.theme-dark .fundamentals-quiz button.wrong { border-color: #fb7185 !important; background: rgba(251, 113, 133, .14) !important; }
+
+/* Complete dark-mode coverage for legacy lesson demos and diagrams. */
+html.theme-dark .learn-panel,
+html.theme-dark .fundamentals-interactive,
+html.theme-dark .fundamentals-diagram,
+html.theme-dark .measurement-demo,
+html.theme-dark .euler-circle,
+html.theme-dark .bloch-sphere {
+  border-color: rgba(148, 172, 216, .21) !important;
+  background: #0f1724 !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .qubit,
+html.theme-dark .qubit.super,
+html.theme-dark .measurement-result,
+html.theme-dark .measure-state,
+html.theme-dark .creation-flow strong,
+html.theme-dark .measurement-outcome-flow strong,
+html.theme-dark .fundamentals-applications span,
+html.theme-dark .subtopic-index,
+html.theme-dark .subtopic-arrow {
+  border-color: rgba(96, 165, 250, .48) !important;
+  background: rgba(96, 165, 250, .16) !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .measure-pair-button {
+  border-color: rgba(96, 165, 250, .48) !important;
+  background: #0f1724 !important;
+  color: #bfdbfe !important;
+}
+
+html.theme-dark .measure-pair-button:hover { background: rgba(96, 165, 250, .16) !important; }
+
+html.theme-dark .learn-panel h3,
+html.theme-dark .fundamentals-comparison strong,
+html.theme-dark .subtopic-copy strong,
+html.theme-dark .euler-label,
+html.theme-dark .bloch-zero,
+html.theme-dark .bloch-one { color: #e2e8f0 !important; }
+
+html.theme-dark .learn-panel,
+html.theme-dark .fundamentals-interactive,
+html.theme-dark .fundamentals-diagram,
+html.theme-dark .measurement-demo,
+html.theme-dark .fundamentals-bar small,
+html.theme-dark .fundamentals-range,
+html.theme-dark .fundamentals-state-readout span,
+html.theme-dark .bloch-labels,
+html.theme-dark .state-counts { color: #9caac3 !important; }
+
+html.theme-dark .euler-axis,
+html.theme-dark .bloch-axis,
+html.theme-dark .bloch-equator { border-color: #64748b !important; background: #64748b !important; }
+
+html.theme-dark .euler-point { box-shadow: 0 0 0 4px rgba(96, 165, 250, .16) !important; }
+
+/* =====================================================================
+   SIA design layer
+   Matches the SIA Education site (Plus Jakarta Sans + Sora, site colours)
+   with a quantum-notebook identity: ket-numbered chapters |01⟩, numbered
+   sections, notebook-style code cells, and an "On this page" rail.
+   Scoped to html.sia-guide so it outranks the guide's stacked style layers.
+   ===================================================================== */
+
+html.sia-guide {
+  --sia-bg: #ffffff;
+  --sia-bg-soft: #f8fafc;
+  --sia-bg-softer: #f1f5f9;
+  --sia-surface: #ffffff;
+  --sia-text: #0f172a;
+  --sia-body: #334155;
+  --sia-muted: #64748b;
+  --sia-faint: #94a3b8;
+  --sia-border: rgba(15, 23, 42, 0.1);
+  --sia-border-soft: rgba(15, 23, 42, 0.06);
+  --sia-accent: #2563eb;
+  --sia-accent-text: #1d4ed8;
+  --sia-accent-soft: rgba(59, 130, 246, 0.09);
+  --sia-ket: #1d4ed8;
+  --sia-ket-soft: rgba(59, 130, 246, 0.1);
+  --sia-code-bg: #f8fafc;
+  --sia-code-text: #0f172a;
+  --sia-code-head: #1e293b;
+  --sia-output-bg: #f8fafc;
+  --sia-output-text: #0f172a;
+  --sia-dot: rgba(37, 99, 235, 0.16);
+  --sia-radius: 12px;
+  --sia-font: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --sia-heading: "Sora", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --sia-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+
+  --paper: var(--sia-bg-soft);
+  --paper-deep: var(--sia-bg-softer);
+  --ink: var(--sia-text);
+  --ink-soft: var(--sia-body);
+  --muted: var(--sia-muted);
+  --line: var(--sia-border);
+  --teal: var(--sia-accent);
+  --teal-dark: var(--sia-accent-text);
+  --mint: var(--sia-accent-soft);
+  --coral: var(--sia-accent);
+  --white: var(--sia-surface);
+  --shadow: none;
+  --serif: var(--sia-heading);
+  --sans: var(--sia-font);
+  --mono: var(--sia-mono);
+
+  color-scheme: light;
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.sia-guide.theme-dark {
+  --sia-bg: #04060a;
+  --sia-bg-soft: #0a1019;
+  --sia-bg-softer: #0f1724;
+  --sia-surface: #0a1019;
+  --sia-text: #f2f6ff;
+  --sia-body: #c3cede;
+  --sia-muted: #9caac3;
+  --sia-faint: #64748b;
+  --sia-border: rgba(148, 172, 216, 0.2);
+  --sia-border-soft: rgba(148, 172, 216, 0.11);
+  --sia-accent: #60a5fa;
+  --sia-accent-text: #93c5fd;
+  --sia-accent-soft: rgba(96, 165, 250, 0.13);
+  --sia-ket: #93c5fd;
+  --sia-ket-soft: rgba(96, 165, 250, 0.14);
+  --sia-code-bg: #070b12;
+  --sia-code-text: #e2e8f0;
+  --sia-code-head: #0f1724;
+  --sia-output-bg: #0b111b;
+  --sia-output-text: #e2e8f0;
+  --sia-dot: rgba(96, 165, 250, 0.18);
+  color-scheme: dark;
+}
+
+/* ---------- Frame ---------- */
+html.sia-guide body { background: var(--sia-bg); color: var(--sia-text); font: 400 16px/1.6 var(--sia-font); }
+html.sia-guide .main-content,
+html.sia-guide .app-shell { background: var(--sia-bg); }
+html.sia-guide .app-shell { grid-template-columns: 280px minmax(0, 1fr); max-width: none; margin: 0; border: 0; }
+html.sia-guide .content-wrap { max-width: 1080px; margin: 0 auto; padding: 28px 40px 48px; }
+html.sia-guide ::selection { background: color-mix(in srgb, var(--sia-accent) 22%, transparent); }
+
+/* ---------- Top bar (phones / standalone) ---------- */
+html.sia-guide .topbar {
+  height: 58px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--sia-surface) 94%, transparent);
+  border-bottom: 1px solid var(--sia-border);
+  box-shadow: none;
+}
+html.sia-guide .brand { flex: 0 0 auto; font: 700 17px var(--sia-heading); letter-spacing: -0.02em; color: var(--sia-text); }
+html.sia-guide .brand em { color: var(--sia-accent); font-style: normal; font-weight: 600; }
+html.sia-guide .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--sia-accent); transform: none; font-size: 16px; }
+html.sia-guide .header-actions { min-width: 0; gap: 10px; }
+html.sia-guide .menu-button { font: 600 14px var(--sia-font); color: var(--sia-text); white-space: nowrap; }
+
+/* ---------- Search ---------- */
+html.sia-guide .sia-search { position: relative; min-width: 0; }
+html.sia-guide .sia-search.in-sidebar { margin: 0 4px 14px; }
+html.sia-guide .search-box {
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--sia-border);
+  border-radius: 10px;
+  background: var(--sia-bg-soft);
+  color: var(--sia-muted);
+  box-shadow: none;
+}
+html.sia-guide .topbar .search-box { width: min(260px, 34vw); }
+html.sia-guide .search-box:focus-within { border-color: var(--sia-accent); background: var(--sia-surface); box-shadow: 0 0 0 3px var(--sia-accent-soft); }
+html.sia-guide .search-box input { font: 14px var(--sia-font); color: var(--sia-text); }
+html.sia-guide .search-box input::placeholder { color: var(--sia-muted); }
+html.sia-guide .search-box kbd { padding: 0 6px; border: 1px solid var(--sia-border); border-radius: 5px; background: var(--sia-surface); color: var(--sia-muted); font: 11px var(--sia-mono); }
+
+html.sia-guide .sia-search .search-results:not([hidden]) {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  gap: 2px;
+  width: max(100%, 340px);
+  max-height: min(70vh, 460px);
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--sia-border);
+  border-radius: var(--sia-radius);
+  background: var(--sia-surface);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+}
+html.sia-guide .topbar .sia-search .search-results:not([hidden]) { position: fixed; top: 64px; left: auto; right: 12px; width: min(380px, calc(100vw - 24px)); }
+html.sia-guide .sia-search-result {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sia-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+html.sia-guide .sia-search-result:hover,
+html.sia-guide .sia-search-result.is-active { background: var(--sia-accent-soft); }
+html.sia-guide .sia-search-result strong { font: 600 14px/1.35 var(--sia-font); }
+html.sia-guide .sia-search-section { color: var(--sia-muted); font: 600 11px var(--sia-font); letter-spacing: 0.06em; text-transform: uppercase; }
+html.sia-guide .sia-search-result small { color: var(--sia-muted); font: 400 12.5px/1.45 var(--sia-font); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.sia-guide .sia-search-result mark { padding: 0 1px; border-radius: 3px; background: color-mix(in srgb, var(--sia-accent) 22%, transparent); color: inherit; }
+html.sia-guide .sia-search-empty { margin: 10px; color: var(--sia-muted); font-size: 14px; }
+
+/* ---------- Curriculum sidebar ---------- */
+html.sia-guide .sidebar {
+  padding: 18px 12px 24px;
+  background: var(--sia-surface);
+  border-right: 1px solid var(--sia-border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sia-border) transparent;
+}
+html.sia-guide .nav-label { margin: 0 8px 8px; color: var(--sia-muted); font: 700 11px var(--sia-font); letter-spacing: 0.1em; }
+html.sia-guide #chapter-list { display: grid; gap: 1px; }
+
+html.sia-guide .chapter-item {
+  gap: 10px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--sia-text);
+  font: 600 13.5px/1.35 var(--sia-font);
+  box-shadow: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+html.sia-guide .chapter-item:hover { background: var(--sia-bg-soft); }
+html.sia-guide .chapter-item.active,
+html.sia-guide.theme-dark .chapter-item.active { border: 0; background: transparent; color: var(--sia-text); }
+html.sia-guide .chapter-name { font: inherit; color: inherit; }
+
+/* Ket-style chapter numbers: |01⟩ */
+html.sia-guide .chapter-index,
+html.sia-guide.theme-dark .chapter-index {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 40px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--sia-bg-softer);
+  color: var(--sia-muted);
+  font: 500 12px var(--sia-mono);
+  letter-spacing: 0;
+  box-shadow: none;
+}
+html.sia-guide .chapter-index::before { content: "|"; opacity: 0.7; }
+html.sia-guide .chapter-index::after { content: "⟩"; opacity: 0.7; }
+html.sia-guide .chapter-index { display: inline-flex; align-items: center; justify-content: center; }
+html.sia-guide .chapter-item:hover .chapter-index,
+html.sia-guide.theme-dark .chapter-item:hover .chapter-index { border: 0; background: var(--sia-bg-softer); color: var(--sia-text); }
+html.sia-guide .chapter-item.active .chapter-index,
+html.sia-guide.theme-dark .chapter-item.active .chapter-index { border: 0; background: var(--sia-ket-soft); color: var(--sia-ket); }
+html.sia-guide .chapter-toggle { color: var(--sia-faint); font-size: 15px; font-weight: 500; }
+
+html.sia-guide .chapter-submenu,
+html.sia-guide.embedded .chapter-submenu { gap: 0; margin: 2px 0 8px 27px; padding-left: 10px; border-left: 1px solid var(--sia-border); }
+
+html.sia-guide .chapter-topic {
+  position: relative;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--sia-muted);
+  font: 500 13px/1.4 var(--sia-font);
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+html.sia-guide .chapter-topic:hover { background: var(--sia-bg-soft); color: var(--sia-text); }
+html.sia-guide .chapter-topic.active,
+html.sia-guide.theme-dark .chapter-topic.active { border: 0; background: var(--sia-accent-soft); color: var(--sia-accent-text); font-weight: 600; }
+html.sia-guide .chapter-topic.active::before { content: ""; position: absolute; left: -11px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--sia-accent); }
+
+/* Group labels inside a section ("Gate reference", "Applications", …) */
+html.sia-guide .chapter-topic.sia-nav-label,
+html.sia-guide .chapter-topic.navigation-only {
+  margin-top: 8px;
+  padding: 4px 9px 2px;
+  background: transparent;
+  color: var(--sia-faint);
+  font: 700 10.5px var(--sia-font);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: default;
+}
+html.sia-guide .chapter-topic.sia-nav-label:hover { background: transparent; color: var(--sia-faint); }
+
+html.sia-guide .sidebar-heading,
+html.sia-guide .sidebar-footnote,
+html.sia-guide .progress-block { display: none; }
+
+/* ---------- Lesson header (plain, as in the earlier design) ---------- */
+html.sia-guide .doc-breadcrumb { margin-bottom: 12px; color: var(--sia-muted); font: 500 13px var(--sia-font); letter-spacing: 0; text-transform: none; }
+html.sia-guide .doc-breadcrumb span { margin: 0 6px; color: var(--sia-faint); }
+
+html.sia-guide .lesson-header {
+  max-width: none;
+  margin: 0 0 4px;
+  padding: 0 0 20px;
+  border: 0;
+  border-bottom: 1px solid var(--sia-border);
+  border-radius: 0;
+  background: none;
+}
+
+html.sia-guide .lesson-kicker { gap: 10px; color: var(--sia-accent-text); font: 600 12px var(--sia-font); letter-spacing: 0.08em; text-transform: uppercase; }
+html.sia-guide .chapter-number,
+html.sia-guide.theme-dark .chapter-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--sia-accent-soft);
+  color: var(--sia-accent-text);
+  font: 700 12px var(--sia-font);
+  letter-spacing: 0;
+}
+
+html.sia-guide .lesson-header h1,
+html.sia-guide.theme-dark .lesson-header h1 {
+  margin: 12px 0 8px;
+  max-width: 28ch;
+  color: var(--sia-text);
+  font: 700 clamp(28px, 3vw, 36px)/1.15 var(--sia-heading);
+  letter-spacing: -0.025em;
+}
+html.sia-guide .lesson-header h1 i { color: var(--sia-accent); font-style: normal; }
+html.sia-guide .lesson-intro,
+html.sia-guide.theme-dark .lesson-intro { max-width: 68ch; color: var(--sia-body); font: 400 16.5px/1.6 var(--sia-font); }
+html.sia-guide .lesson-meta { display: none; }
+
+/* ---------- Body + "On this page" rail ---------- */
+html.sia-guide .lesson-grid { display: block; }
+html.sia-guide .sia-toc { display: none; }
+
+@media (min-width: 1180px) {
+  html.sia-guide .lesson-grid.has-toc { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 40px; align-items: start; }
+  html.sia-guide .lesson-grid.has-toc .sia-toc:not([hidden]) {
+    display: block;
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    margin-top: 24px;
+    padding-left: 14px;
+    border-left: 1px solid var(--sia-border);
+    scrollbar-width: none;
+  }
+}
+html.sia-guide .sia-toc-title { margin: 0 0 8px; color: var(--sia-faint); font: 700 11px var(--sia-font); letter-spacing: 0.09em; text-transform: uppercase; }
+html.sia-guide .sia-toc ol { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
+html.sia-guide .sia-toc button {
+  position: relative;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--sia-muted);
+  text-align: left;
+  font: 500 13px/1.4 var(--sia-font);
+  cursor: pointer;
+}
+html.sia-guide .sia-toc button:hover { color: var(--sia-text); }
+html.sia-guide .sia-toc button.is-current { color: var(--sia-accent-text); font-weight: 600; }
+html.sia-guide .sia-toc button.is-current::before { content: ""; position: absolute; left: -15px; top: 5px; bottom: 5px; width: 2px; border-radius: 2px; background: var(--sia-accent); }
+
+/* ---------- Typography (normalises every lesson type) ---------- */
+html.sia-guide .lesson-body { counter-reset: sia-section; padding-top: 0; border-top: 0; color: var(--sia-body); font-size: 16px; }
+
+html.sia-guide .lesson-body h2,
+html.sia-guide.theme-dark .lesson-body h2 {
+  counter-increment: sia-section;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  max-width: none;
+  margin: 30px 0 10px;
+  padding: 0;
+  border: 0;
+  color: var(--sia-text);
+  font: 650 22px/1.3 var(--sia-heading);
+  letter-spacing: -0.02em;
+  scroll-margin-top: 20px;
+}
+html.sia-guide .lesson-body h2::before {
+  content: counter(sia-section, decimal-leading-zero);
+  flex: 0 0 auto;
+  color: var(--sia-accent);
+  font: 500 13px var(--sia-mono);
+  letter-spacing: 0;
+  transform: translateY(-2px);
+}
+
+html.sia-guide .lesson-body h3,
+html.sia-guide.theme-dark .lesson-body h3 { margin: 20px 0 6px; padding: 0; border: 0; color: var(--sia-text); font: 600 17.5px/1.35 var(--sia-heading); letter-spacing: -0.015em; }
+html.sia-guide .lesson-body h4,
+html.sia-guide.theme-dark .lesson-body h4 { margin: 16px 0 6px; color: var(--sia-text); font: 600 15.5px/1.4 var(--sia-font); letter-spacing: 0; text-transform: none; }
+
+html.sia-guide .lesson-body > :first-child,
+html.sia-guide .lesson-body > :first-child > :first-child,
+html.sia-guide .lesson-body > :first-child > :first-child > :first-child { margin-top: 22px; }
+
+html.sia-guide .lesson-body p,
+html.sia-guide.theme-dark .lesson-body p { max-width: 72ch; margin: 0 0 12px; color: var(--sia-body); font: 400 16px/1.7 var(--sia-font); }
+
+html.sia-guide .lesson-body ul,
+html.sia-guide .lesson-body ol,
+html.sia-guide.theme-dark .lesson-body ul,
+html.sia-guide.theme-dark .lesson-body ol { max-width: 72ch; margin: 4px 0 14px; padding-left: 20px; color: var(--sia-body); font: 400 16px/1.65 var(--sia-font); }
+html.sia-guide .lesson-body li { margin: 0 0 4px; padding: 0; color: var(--sia-body); font: inherit; }
+html.sia-guide .lesson-body li::marker { color: var(--sia-accent); }
+html.sia-guide .lesson-body strong,
+html.sia-guide .lesson-body b { color: var(--sia-text); font-weight: 650; }
+html.sia-guide .lesson-body a { color: var(--sia-accent-text); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--sia-accent) 40%, transparent); text-underline-offset: 3px; }
+html.sia-guide .lesson-body a:hover { text-decoration-color: currentColor; }
+html.sia-guide .lesson-body section,
+html.sia-guide .lesson-body article { max-width: none; }
+
+html.sia-guide .lesson-body .sia-reference-lesson,
+html.sia-guide.theme-dark .lesson-body .sia-reference-lesson,
+html.sia-guide .lesson-body .qubit-section,
+html.sia-guide .lesson-body .fundamentals-section { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+/* Inline code */
+html.sia-guide .lesson-body code { padding: 0.1em 0.36em; border: 1px solid var(--sia-border-soft); border-radius: 5px; background: var(--sia-bg-soft); color: var(--sia-text); font: 500 0.88em var(--sia-mono); }
+
+/* ---------- Notebook-style code cells ---------- */
+html.sia-guide .lesson-body .sia-code { position: relative; margin: 8px 0 14px; }
+
+html.sia-guide .lesson-body pre,
+html.sia-guide .lesson-body .hdqs-code,
+html.sia-guide .lesson-body .code-block,
+html.sia-guide.theme-dark .lesson-body .hdqs-code,
+html.sia-guide.theme-dark .lesson-body .code-block {
+  max-width: 100%;
+  margin: 8px 0 14px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--sia-border);
+  border-left: 3px solid var(--sia-accent);
+  border-radius: 10px;
+  background: var(--sia-code-bg);
+  color: var(--sia-code-text);
+  font: 400 13.5px/1.65 var(--sia-mono);
+  tab-size: 4;
+  white-space: pre;
+  box-shadow: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+html.sia-guide .lesson-body .sia-code > pre,
+html.sia-guide .lesson-body .sia-code > .hdqs-code { margin: 0; padding-right: 72px; }
+
+html.sia-guide .lesson-body .hdqs-output,
+html.sia-guide.theme-dark .lesson-body .hdqs-output {
+  position: relative;
+  max-width: 100%;
+  margin: 6px 0 14px;
+  padding: 12px 16px 12px 52px;
+  overflow-x: auto;
+  border: 1px solid var(--sia-border);
+  border-radius: 10px;
+  background: var(--sia-output-bg);
+  color: var(--sia-output-text);
+  font: 400 13.5px/1.6 var(--sia-mono);
+  white-space: pre;
+  box-shadow: none;
+}
+html.sia-guide .lesson-body .hdqs-output::before {
+  content: "Out";
+  position: absolute;
+  left: 14px;
+  top: 13px;
+  color: var(--sia-ket);
+  font: 600 11px var(--sia-mono);
+  letter-spacing: 0.04em;
+}
+
+html.sia-guide .lesson-body pre code,
+html.sia-guide .lesson-body .hdqs-code code,
+html.sia-guide .lesson-body .hdqs-output code { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+
+html.sia-guide .sia-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--sia-border);
+  border-radius: 6px;
+  background: var(--sia-surface);
+  color: var(--sia-muted);
+  font: 600 12px var(--sia-font);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+html.sia-guide .sia-code:hover .sia-copy,
+html.sia-guide .sia-copy:focus-visible { opacity: 1; }
+html.sia-guide .sia-copy:hover { border-color: var(--sia-accent); color: var(--sia-accent-text); }
+
+/* Small labels: "SIA SCRIPT", "OUTPUT", "EXPLANATION", card labels */
+html.sia-guide .card-label,
+html.sia-guide .lesson-body .card-label,
+html.sia-guide .lesson-body .notebook-example > h4,
+html.sia-guide .lesson-body .structured-example-step > h4,
+html.sia-guide .lesson-body .structured-example-links > h4,
+html.sia-guide.theme-dark .lesson-body .notebook-example > h4,
+html.sia-guide.theme-dark .lesson-body .structured-example-step > h4,
+html.sia-guide.theme-dark .lesson-body .structured-example-links > h4 {
+  display: block;
+  margin: 12px 0 4px;
+  color: var(--sia-muted);
+  font: 700 11px/1.4 var(--sia-font);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* ---------- Callouts ---------- */
+html.sia-guide .lesson-body .key-idea,
+html.sia-guide .lesson-body .lesson-support-card,
+html.sia-guide .lesson-body .lesson-support-takeaways,
+html.sia-guide .lesson-body .notebook-example-note,
+html.sia-guide .lesson-body .simulation-note,
+html.sia-guide.theme-dark .lesson-body .key-idea,
+html.sia-guide.theme-dark .lesson-body .lesson-support-card,
+html.sia-guide.theme-dark .lesson-body .lesson-support-takeaways {
+  margin: 14px 0 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--sia-border);
+  border-radius: var(--sia-radius);
+  background: var(--sia-bg-soft);
+  box-shadow: none;
+  color: var(--sia-body);
+}
+html.sia-guide .lesson-body .key-idea,
+html.sia-guide .lesson-body .lesson-support-takeaways,
+html.sia-guide.theme-dark .lesson-body .key-idea,
+html.sia-guide.theme-dark .lesson-body .lesson-support-takeaways {
+  border-color: transparent;
+  border-left: 3px solid var(--sia-accent);
+  border-radius: 4px 10px 10px 4px;
+  background: var(--sia-accent-soft);
+}
+html.sia-guide .lesson-body .lesson-support-card h3,
+html.sia-guide .lesson-body .lesson-support-takeaways h3,
+html.sia-guide .lesson-body .key-idea h3 { margin: 12px 0 4px; font-size: 15.5px; }
+html.sia-guide .lesson-body .key-idea > :first-child,
+html.sia-guide .lesson-body .lesson-support-card > :first-child,
+html.sia-guide .lesson-body .lesson-support-takeaways > :first-child,
+html.sia-guide .lesson-body .notebook-example-note > :first-child { margin-top: 0; }
+html.sia-guide .lesson-body .key-idea > :last-child,
+html.sia-guide .lesson-body .lesson-support-card > :last-child,
+html.sia-guide .lesson-body .lesson-support-takeaways > :last-child,
+html.sia-guide .lesson-body .notebook-example-note > :last-child { margin-bottom: 0; }
+html.sia-guide .lesson-body .lesson-support-card p,
+html.sia-guide .lesson-body .lesson-support-card li,
+html.sia-guide .lesson-body .lesson-support-takeaways li { font-size: 15px; }
+
+html.sia-guide .lesson-body .visual-card,
+html.sia-guide.theme-dark .lesson-body .visual-card { margin: 16px 0; padding: 18px; border: 1px solid var(--sia-border); border-radius: var(--sia-radius); background: var(--sia-surface); box-shadow: none; }
+
+html.sia-guide .lesson-body .notebook-example,
+html.sia-guide .lesson-body .complex-example-step,
+html.sia-guide .lesson-body .structured-example-step,
+html.sia-guide .lesson-body .vectors-example-step { margin: 0 0 16px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+
+/* ---------- Figures ---------- */
+html.sia-guide .lesson-body figure { margin: 12px 0 18px; }
+html.sia-guide .lesson-body img { max-width: 100%; height: auto; border-radius: 8px; }
+html.sia-guide .lesson-body figure img { display: block; margin: 0 auto; border: 1px solid var(--sia-border-soft); background: #ffffff; }
+html.sia-guide.theme-dark .lesson-body figure img { padding: 6px; }
+html.sia-guide .lesson-body figcaption { margin-top: 6px; color: var(--sia-muted); font: 400 13.5px/1.5 var(--sia-font); text-align: center; }
+html.sia-guide .lesson-body math { font-size: 1.08em; }
+
+/* ---------- 3D models ---------- */
+html.sia-guide .sia-3d-index {
+  margin: 20px 0 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--sia-border);
+  border-radius: var(--sia-radius);
+  background: var(--sia-bg-soft);
+}
+html.sia-guide .sia-3d-index p { margin: 0 0 10px; color: var(--sia-muted); font: 700 11px var(--sia-font); letter-spacing: 0.09em; text-transform: uppercase; }
+html.sia-guide .sia-3d-index div { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+html.sia-guide .sia-3d-index button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--sia-border);
+  border-radius: 9px;
+  background: var(--sia-surface);
+  color: var(--sia-text);
+  text-align: left;
+  font: 600 13.5px/1.3 var(--sia-font);
+  cursor: pointer;
+}
+html.sia-guide .sia-3d-index button:hover { border-color: var(--sia-accent); background: var(--sia-accent-soft); }
+html.sia-guide .sia-3d-index button span { flex: 0 0 auto; padding: 2px 6px; border-radius: 5px; background: var(--sia-ket-soft); color: var(--sia-ket); font: 600 10.5px var(--sia-mono); }
+
+html.sia-guide .lesson-body .model-preview {
+  position: relative;
+  min-height: 300px;
+  margin: 10px 0 12px;
+  border: 1px solid var(--sia-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f8fafb;
+}
+html.sia-guide .lesson-body .model-preview canvas { display: block; width: 100% !important; height: 100% !important; }
+
+html.sia-guide .model-preview.is-fullscreen { min-height: 100vh; border-radius: 0; }
+html.sia-guide .model-preview-status { position: absolute; inset: auto 0 50% 0; z-index: 1; color: #64748b; font: 500 13px var(--sia-font); text-align: center; }
+
+html.sia-guide .lesson-body .model-action-link {
+  display: inline-flex;
+  align-items: center;
+  margin: 2px 6px 2px 0;
+  padding: 6px 11px;
+  border: 1px solid var(--sia-border);
+  border-radius: 8px;
+  background: var(--sia-surface);
+  color: var(--sia-text);
+  font: 600 13px var(--sia-font);
+  text-decoration: none;
+}
+html.sia-guide .lesson-body .model-action-link:hover { border-color: var(--sia-accent); color: var(--sia-accent-text); }
+
+/* Interactive controls */
+html.sia-guide .lesson-body button,
+html.sia-guide .gate-button,
+html.sia-guide .quiz-option,
+html.sia-guide .measure-pair-button { font-family: var(--sia-font); font-size: 14px; }
+html.sia-guide .lesson-body input[type="range"] { accent-color: var(--sia-accent); }
+
+/* ---------- Previous / next ---------- */
+html.sia-guide .lesson-footer { gap: 12px; margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--sia-border); }
+html.sia-guide .lesson-nav-button,
+html.sia-guide.theme-dark .lesson-nav-button {
+  flex: 1 1 0;
+  max-width: 360px;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--sia-border);
+  border-radius: var(--sia-radius);
+  background: var(--sia-surface);
+  color: var(--sia-text);
+  box-shadow: none;
+  transform: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+html.sia-guide .lesson-nav-button:hover { border-color: var(--sia-accent); background: var(--sia-accent-soft); transform: none; box-shadow: none; }
+html.sia-guide .lesson-nav-button.next { margin-left: auto; }
+html.sia-guide .lesson-nav-button small { margin-bottom: 2px; color: var(--sia-muted); font: 700 11px var(--sia-font); letter-spacing: 0.08em; text-transform: uppercase; }
+html.sia-guide .lesson-nav-button strong { font: 600 15px/1.35 var(--sia-heading); letter-spacing: -0.01em; }
+html.sia-guide .lesson-nav-button span { color: var(--sia-accent); font-size: 18px; }
+html.sia-guide .lesson-nav-button:disabled { visibility: hidden; }
+
+/* ---------- Page changes ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  html.sia-guide .lesson-body > * { animation: sia-lesson-in 0.2s ease-out both; }
+}
+@keyframes sia-lesson-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Embedded in the SIA site ---------- */
+@media (min-width: 901px) {
+  html.sia-guide.embedded .topbar { display: none; }
+  html.sia-guide.embedded .app-shell { grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+  html.sia-guide.embedded .sidebar { width: auto; top: 0; height: 100vh; padding: 18px 12px 24px; background: var(--sia-surface); }
+}
+
+/* ---------- Tablet and phone ---------- */
+@media (max-width: 1100px) {
+  html.sia-guide .content-wrap { padding: 24px 28px 44px; }
+}
+
+@media (max-width: 900px) {
+  html.sia-guide .topbar { height: 58px; padding: 0 14px; }
+  html.sia-guide .app-shell { display: block; min-height: calc(100vh - 58px); }
+  html.sia-guide .sidebar { top: 58px; width: min(310px, 88vw); height: calc(100vh - 58px); box-shadow: none; }
+  html.sia-guide .sidebar.open { box-shadow: 16px 0 40px rgba(15, 23, 42, 0.22); }
+  html.sia-guide .content-wrap { padding: 18px 16px 40px; }
+  html.sia-guide .mobile-breadcrumb { display: none; }
+  html.sia-guide .doc-breadcrumb { margin-bottom: 10px; font-size: 12.5px; }
+  html.sia-guide .lesson-header { padding: 0 0 16px; border-radius: 0; }
+  html.sia-guide .lesson-header h1 { font-size: 26px; }
+  html.sia-guide .lesson-intro { font-size: 15.5px; }
+  html.sia-guide .lesson-body h2 { margin-top: 26px; font-size: 20px; }
+  html.sia-guide .lesson-body h3 { font-size: 16.5px; }
+  html.sia-guide .lesson-body p,
+  html.sia-guide .lesson-body ul,
+  html.sia-guide .lesson-body ol { font-size: 15.5px; }
+  html.sia-guide .lesson-body pre,
+  html.sia-guide .lesson-body .hdqs-code,
+  html.sia-guide .lesson-body .hdqs-output { font-size: 12.5px; }
+  html.sia-guide .lesson-body .model-preview { min-height: 240px; }
+  html.sia-guide .lesson-footer { flex-direction: column; }
+  html.sia-guide .lesson-nav-button { max-width: none; width: 100%; }
+}
+
+@media (max-width: 560px) {
+  /* Phones: a search icon that expands into a full-width bar over the top bar. */
+  html.sia-guide .topbar .sia-search:not(.is-open) .search-box { width: 40px; height: 40px; padding: 0; justify-content: center; cursor: pointer; }
+  html.sia-guide .topbar .sia-search:not(.is-open) .search-box input { display: none; }
+  html.sia-guide .topbar .sia-search.is-open { position: absolute; z-index: 25; left: 12px; right: 12px; top: 9px; }
+  html.sia-guide .topbar .sia-search.is-open .search-box { width: 100%; height: 40px; }
+  html.sia-guide .search-box kbd { display: none; }
+  html.sia-guide .brand { font-size: 16px; }
+  html.sia-guide .lesson-body .model-preview { min-height: 220px; }
+}
+
+/* Quick-jump list for 3D models (beats the lesson paragraph rules). */
+html.sia-guide .lesson-body .sia-3d-index,
+html.sia-guide.theme-dark .lesson-body .sia-3d-index { margin: 18px 0 4px; }
+html.sia-guide .lesson-body .sia-3d-index p,
+html.sia-guide.theme-dark .lesson-body .sia-3d-index p { margin: 0 0 10px; color: var(--sia-muted); font: 700 11px/1.4 var(--sia-font); letter-spacing: 0.09em; text-transform: uppercase; }
+
+/* Sidebar search: pinned at the top, results fit the sidebar width. */
+html.sia-guide .sia-search.in-sidebar {
+  position: sticky;
+  top: -18px;
+  z-index: 6;
+  margin: -18px -12px 10px;
+  padding: 18px 16px 10px;
+  background: var(--sia-surface);
+}
+html.sia-guide .sia-search.in-sidebar .search-results:not([hidden]) { left: 16px; right: 16px; width: auto; max-height: min(70vh, 520px); }
+
+/* Readable sizes for the guide's small-print classes. */
+html.sia-guide .lesson-body .notebook-explanation,
+html.sia-guide.theme-dark .lesson-body .notebook-explanation { font-size: 15.5px !important; line-height: 1.7 !important; }
+html.sia-guide .lesson-body .gate-takeaway,
+html.sia-guide .lesson-body .simulation-note,
+html.sia-guide.theme-dark .lesson-body .gate-takeaway,
+html.sia-guide.theme-dark .lesson-body .simulation-note { font-size: 15px !important; line-height: 1.6 !important; }
+html.sia-guide .lesson-body .gate-use,
+html.sia-guide .lesson-body .math-flow span,
+html.sia-guide .lesson-body small { font-size: 13.5px !important; line-height: 1.5; }
+html.sia-guide .topbar .search-box { height: 40px; align-self: center; }
+html.sia-guide .topbar .sia-search.is-open .search-box input { display: block; }
+html.sia-guide .lesson-body .sia-3d-index > p { margin-top: 0 !important; }
+
+/* Restored Circuit / Algorithm lessons: dark-mode surfaces. */
+html.sia-guide.theme-dark .lesson-body .basic-circuit-example { border-color: var(--sia-border); background: var(--sia-bg-soft); color: var(--sia-body); }
+html.sia-guide .lesson-body .basic-circuit-visual,
+html.sia-guide .lesson-body .circuit-sketch { border-radius: 10px; }
+
+/* Labels written as paragraphs in the older lessons. */
+html.sia-guide .lesson-body p.card-label,
+html.sia-guide.theme-dark .lesson-body p.card-label {
+  margin: 12px 0 4px;
+  color: var(--sia-muted);
+  font: 700 11px/1.4 var(--sia-font);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+/* Comparison cards: title on its own line. */
+html.sia-guide .lesson-body .comparison-grid > div > strong:first-child,
+html.sia-guide .lesson-body .comparison-grid > div > b:first-child { display: block; margin-bottom: 4px; }
+/* Diagram panels stay white in both themes; keep their captions readable. */
+html.sia-guide.theme-dark .lesson-body .basic-circuit-visual figcaption,
+html.sia-guide.theme-dark .lesson-body .basic-circuit-visual p { color: #475569; }
+
+/* 3D viewer: always interactive, icon controls in the top-right corner. */
+html.sia-guide .sia-3d-tools {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+html.sia-guide .sia-3d-tools button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+html.sia-guide .sia-3d-tools button:hover { border-color: #2563eb; background: #fff; color: #1d4ed8; }
+html.sia-guide .sia-3d-tools button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+html.sia-guide .sia-3d-tools svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html.sia-guide .model-preview { cursor: grab; touch-action: pan-y; }
+html.sia-guide .model-preview:active { cursor: grabbing; }
+html.sia-guide .model-preview.is-fullscreen .sia-3d-tools { top: 16px; right: 16px; }
+@media (max-width: 560px) {
+  html.sia-guide .sia-3d-tools { top: 8px; right: 8px; gap: 5px; }
+  html.sia-guide .sia-3d-tools button { width: 32px; height: 32px; }
+}
+
+/* =====================================================================
+   Icons, alignment and contrast polish
+   ===================================================================== */
+html.sia-guide { --sia-faint: #64748b; }
+html.sia-guide.theme-dark { --sia-faint: #8391a7; }
+
+html.sia-guide .sia-icon { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+
+/* Search box: icon, text and the "/" hint on one centred line. */
+html.sia-guide .search-box { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 8px 0 10px; line-height: 1; }
+html.sia-guide .search-box > span[aria-hidden="true"] { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--sia-muted); font-size: 0; }
+html.sia-guide .search-box > span[aria-hidden="true"] .sia-icon { width: 17px; height: 17px; }
+html.sia-guide .search-box input { flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; line-height: 1; }
+html.sia-guide .search-box kbd {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--sia-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--sia-surface);
+  color: var(--sia-muted);
+  font: 600 11px/1 var(--sia-font);
+}
+html.sia-guide .search-box input::-webkit-search-cancel-button { cursor: pointer; }
+html.sia-guide .topbar .sia-search:not(.is-open) .search-box { justify-content: center; padding: 0; }
+html.sia-guide .topbar .sia-search:not(.is-open) .search-box > span[aria-hidden="true"] { color: var(--sia-text); }
+
+/* Top bar (phones): brand mark and menu button. */
+html.sia-guide .brand-mark { display: inline-grid; place-items: center; color: #fff; }
+html.sia-guide .brand-mark .sia-brand-icon { width: 19px; height: 19px; stroke-width: 1.6; }
+html.sia-guide .menu-button { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 4px; }
+html.sia-guide .menu-button > span { display: inline-flex; margin: 0; font-size: 0; }
+html.sia-guide .menu-button .sia-icon { width: 20px; height: 20px; }
+@media (min-width: 901px) { html.sia-guide .menu-button { display: none; } }
+
+/* Sidebar expand/collapse: chevrons instead of + / − characters. */
+html.sia-guide .chapter-toggle {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  font-size: 0;
+  color: var(--sia-faint);
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+html.sia-guide .chapter-item[aria-expanded="true"] .chapter-toggle { transform: rotate(90deg); color: var(--sia-muted); }
+
+/* Previous / next: label above title, chevron at the outer edge. */
+html.sia-guide .lesson-nav-button,
+html.sia-guide.theme-dark .lesson-nav-button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "icon label" "icon title";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  text-align: left;
+}
+html.sia-guide .lesson-nav-button.next,
+html.sia-guide.theme-dark .lesson-nav-button.next {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label icon" "title icon";
+  text-align: right;
+}
+html.sia-guide .lesson-nav-button > small { grid-area: label; grid-column: auto; margin: 0; }
+html.sia-guide .lesson-nav-button > strong { grid-area: title; }
+html.sia-guide .lesson-nav-button > span { grid-area: icon; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--sia-accent-soft); color: var(--sia-accent-text); font-size: 0; }
+html.sia-guide .lesson-nav-button > span .sia-icon { width: 18px; height: 18px; }
+
+/* Copy: icon button. */
+html.sia-guide .sia-copy { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; }
+html.sia-guide .sia-copy .sia-icon { width: 16px; height: 16px; }
+html.sia-guide .sia-copy.is-done { border-color: #16a34a; color: #16a34a; opacity: 1; }
+html.sia-guide .lesson-body .sia-code > pre,
+html.sia-guide .lesson-body .sia-code > .hdqs-code { padding-right: 48px; }
+
+/* Code text: regular weight in both themes. */
+html.sia-guide .lesson-body pre,
+html.sia-guide .lesson-body pre *,
+html.sia-guide .lesson-body .hdqs-code,
+html.sia-guide .lesson-body .hdqs-code *,
+html.sia-guide .lesson-body .hdqs-output,
+html.sia-guide .lesson-body .hdqs-output * { font-weight: 400 !important; }
+html.sia-guide .lesson-body .hdqs-output::before { font-weight: 600 !important; }
+
+/* External-link arrow inside model links keeps the link colour. */
+html.sia-guide .lesson-body .model-action-link { gap: 4px; }
+/* The "/" shortcut hint only makes sense with a keyboard, i.e. the desktop sidebar search. */
+html.sia-guide .topbar .search-box kbd { display: none; }
+@media (hover: none) { html.sia-guide .search-box kbd { display: none; } }
+
+/* Sidebar chapter numbers: same plain chip as the lesson header ("07"). */
+html.sia-guide .chapter-index::before,
+html.sia-guide .chapter-index::after { content: none; }
+html.sia-guide .chapter-index,
+html.sia-guide.theme-dark .chapter-index {
+  min-width: 28px;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  font: 700 12px/1 var(--sia-font);
+  font-variant-numeric: tabular-nums;
+}
+html.sia-guide .chapter-item.active .chapter-index,
+html.sia-guide.theme-dark .chapter-item.active .chapter-index { background: var(--sia-accent-soft); color: var(--sia-accent-text); }
+
+/* Brand: SIA logo image instead of a glyph. */
+html.sia-guide .brand-mark.has-logo { width: 30px; height: 30px; padding: 0; border-radius: 8px; background: none; overflow: hidden; transform: none; }
+html.sia-guide .brand-mark.has-logo .sia-brand-logo { display: block; width: 30px; height: 30px; border-radius: 8px; object-fit: cover; }
+
+/* External-link icon used in place of the "↗" character. */
+html.sia-guide .sia-ext { width: 13px; height: 13px; margin-left: 2px; stroke-width: 2.2; display: inline-block; vertical-align: -1px; }

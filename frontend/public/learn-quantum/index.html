@@ -6,46 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Learn Quantum is an interactive field guide to quantum computing.">
   <title>Learn Quantum | An interactive field guide</title>
+  <meta name="color-scheme" content="light dark">
   <script>
-    const guideParams = new URLSearchParams(window.location.search);
-    if (guideParams.has('embedded')) {
-      document.documentElement.classList.add('embedded');
-      const applyTheme = (theme) => {
-        document.documentElement.classList.toggle('theme-dark', theme === 'dark');
-      };
-      // The URL sets the initial theme before the page is painted. This also works
-      // when the production host prevents parent/iframe DOM access.
-      applyTheme(guideParams.get('theme'));
-      window.addEventListener('message', (event) => {
-        if (event.origin !== window.location.origin || event.data?.type !== 'sia-education-theme') return;
-        applyTheme(event.data.theme);
-      });
-      try {
-        const hostRoot = window.parent.document.documentElement;
-        applyTheme(hostRoot.getAttribute('data-theme'));
-        new MutationObserver(() => applyTheme(hostRoot.getAttribute('data-theme'))).observe(hostRoot, {
-          attributes: true,
-          attributeFilter: ['data-theme'],
-        });
-      } catch {
-        // The parent sends the theme with postMessage when cross-origin access is unavailable.
-      }
-      window.addEventListener('DOMContentLoaded', () => {
-        const brand = document.querySelector('.brand');
-        if (brand) {
-          brand.href = '/';
-          brand.target = '_top';
-          brand.setAttribute('aria-label', 'Back to SIA Education home');
-        }
-      });
-    }
+    // SIA: apply embedded mode and the host theme before first paint (no flash).
+    (function () {
+      var p = new URLSearchParams(location.search), r = document.documentElement, t = p.get('theme');
+      r.classList.add('sia-guide');
+      if (p.has('embedded') && window.parent !== window) r.classList.add('embedded');
+      try { if (!t) t = window.parent.document.documentElement.getAttribute('data-theme'); } catch (e) {}
+      if (!t) { try { t = localStorage.getItem('sia_edu_theme'); } catch (e) {} }
+      if (t === 'dark') r.classList.add('theme-dark');
+    })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260929-1">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261120-6">
+  <link rel="stylesheet" href="sia-theme.css?v=20261120-6">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./assets/interactive-3d/vendor/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 
 <body>
@@ -81,7 +65,7 @@
         <p><span id="progress-count">0</span> of 8 chapters explored</p>
       </div>
       <nav class="chapter-nav" aria-label="Curriculum">
-        <p class="nav-label"></p>
+        <p class="nav-label">Curriculum</p>
         <div id="chapter-list"></div>
       </nav>
       <div class="sidebar-footnote">
@@ -106,19 +90,6 @@
 
         <div class="lesson-grid">
           <article class="lesson-body" id="lesson-body"></article>
-          <aside class="lesson-aside" aria-label="Lesson tools">
-            <div class="aside-card next-up-card">
-              <p class="aside-label">Up next</p>
-              <div class="up-next"><span id="next-number">02</span>
-                <div><strong id="next-title">Mathematical Foundations</strong><span id="next-time">10 min read</span>
-                </div><span>→</span>
-              </div>
-            </div>
-            <div class="aside-card contents-card">
-              <p class="aside-label">On this page</p>
-              <div id="page-contents"></div>
-            </div>
-          </aside>
         </div>
 
         <footer class="lesson-footer">
@@ -133,7 +104,12 @@
 
   <div class="search-results" id="search-results" hidden></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20260929-1"></script>
+  <div class="navigation-metadata" hidden aria-hidden="true"><span id="next-number"></span><span id="next-title"></span><span id="next-time"></span></div>
+  <script src="sia-embed.js?v=20261120-6"></script>
+  <script src="sia-notebook.js?v=20261120-6"></script>
+  <script src="sia-docs.js?v=20261120-6"></script>
+  <script src="app.js?v=20261120-6"></script>
+  <script src="sia-extend.js?v=20261120-6"></script>
 </body>
 
 </html>

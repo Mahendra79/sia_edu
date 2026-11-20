@@ -1959,17 +1959,22 @@
 }
 
 @media (max-width: 980px) {
+  /* A solid bar so page content no longer shows through it when scrolling. */
   .sidebar-mobile-bar {
     display: flex;
     align-items: center;
     gap: 0.7rem;
     position: fixed;
-    top: 10px;
-    left: 12px;
-    right: 12px;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 95;
-    min-height: 38px;
-    pointer-events: none;
+    min-height: 58px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--navbar-surface) 92%, transparent);
+    border-bottom: 1px solid var(--soft-border);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
 
   .sidebar-mobile-toggle {
@@ -1984,7 +1989,7 @@
     background: var(--navbar-surface);
     color: var(--text-primary);
     font-size: 1.15rem;
-    box-shadow: 0 8px 18px color-mix(in srgb, var(--bg-primary) 40%, transparent);
+    box-shadow: none;
     pointer-events: auto;
   }
 
@@ -2102,8 +2107,9 @@
     box-shadow: 18px 0 40px rgba(2, 6, 15, 0.35);
   }
 
+  /* Clears the 58px fixed mobile bar with some breathing room. */
   .main-content {
-    padding-top: 3.8rem;
+    padding-top: 4.5rem;
   }
 
   .admin-grid-two,
@@ -2403,30 +2409,55 @@
 }
 
 .main-content.learn-quantum-page {
+  position: relative;
+  width: auto;
   height: 100vh;
   height: 100dvh;
+  margin: 0;
   padding: 0;
   overflow: hidden;
   background: var(--bg-primary);
 }
 
+/* The guide fills the area beside the site rail edge to edge, and fades in
+   once it has rendered instead of popping in over a blank box. */
 .learn-quantum-frame {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
-  background: #f4f7fb;
+  background: var(--bg-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-[data-theme="dark"] .learn-quantum-frame {
-  background: #04060a;
+.learn-quantum-frame.is-ready {
+  opacity: 1;
+}
+
+.learn-quantum-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learn-quantum-frame {
+    transition: none;
+  }
 }
 
 @media (max-width: 980px) {
+  /* The site's mobile bar is not shown on /learn; the guide has its own. */
   .main-content.learn-quantum-page {
-    height: calc(100vh - 58px);
-    height: calc(100dvh - 58px);
-    margin-top: 58px;
+    height: 100vh;
+    height: 100dvh;
+    margin-top: 0;
   }
 }
 

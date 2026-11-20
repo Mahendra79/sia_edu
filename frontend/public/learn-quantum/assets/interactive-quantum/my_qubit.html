@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hilbert space: gates acting on the state</title>
+<style>
+:root{--bg:#fbfcfe;--panel:#ffffff;--ink:#172033;--muted:#5f6b7d;--edge:#d7e0ea;--grid:#e6ecf3;--soft:#eef3f9;
+ --c1:#2a78d6;--c2:#e8663d;--c3:#13a37a;--c4:#8b5cf6;--accent:#2a78d6}
+[data-theme=dark]{--bg:#0f1520;--panel:#161e2b;--ink:#e6ebf2;--muted:#9aa6b8;--edge:#2a3546;--grid:#1e2838;--soft:#1c2636;
+ --c1:#5b9ff0;--c2:#f08a5d;--c3:#3cc996;--c4:#a78bfa;--accent:#6aa8f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans","Noto Sans Devanagari","Noto Sans Telugu",sans-serif}
+main{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px}.intro{margin:0 0 6px;color:var(--ink)}.try{margin:0 0 14px;color:var(--muted);font-size:14px}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:860px){.wrap{grid-template-columns:1fr}}
+.stage{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.box{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:8px;position:relative;min-width:0}
+.box .cap{font-size:12.5px;color:var(--muted);margin:0 0 4px 2px}
+.box canvas{display:block;width:100%;height:340px;touch-action:none;cursor:grab}
+.box canvas.tall{height:420px}.box canvas.short{height:190px}.box canvas.mat{height:236px}.box canvas.wide{height:220px}
+.box .hint{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--muted);pointer-events:none;background:var(--panel);padding:0 4px;border-radius:4px;opacity:.9}
+.panel{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.grp{border-top:1px solid var(--edge);padding-top:10px}.grp:first-child{border-top:0;padding-top:0}
+.grp h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.ctl{display:block;margin:4px 0}.ctl-top{display:flex;justify-content:space-between;font-size:13.5px}
+.ctl-top b{font-variant-numeric:tabular-nums;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:13.5px;padding:6px 10px;border-radius:7px;border:1px solid var(--edge);background:var(--soft);color:var(--ink);cursor:pointer;min-height:34px}
+button:hover{border-color:var(--accent)}button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+label.chk{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:4px 0;cursor:pointer}
+.read{font-size:13.5px;font-variant-numeric:tabular-nums;line-height:1.6}
+.read .k{color:var(--muted)}.read .big{font-size:15px;font-weight:600}
+.note{font-size:13px;color:var(--muted)}
+.foot{color:var(--muted);font-size:12px;margin-top:16px}
+.box.dark{background:#0b0f17;border-color:#1f2937}.box.dark .cap{color:#8b97ab}.box.dark .hint{background:#0b0f17;color:#8b97ab}
+.dsrow{display:grid;grid-template-columns:minmax(0,3.2fr) minmax(0,1fr);gap:12px}@media (max-width:600px){.dsrow{grid-template-columns:minmax(0,1fr);gap:10px}}
+.dsrow canvas{display:block;width:100%;touch-action:none}
+.box canvas.circ{height:120px}
+.eqtext{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;padding:6px 4px 2px;line-height:1.5;word-break:break-word}
+.brow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.bcell{flex:1 1 140px;max-width:240px}.bcell canvas{width:100%;height:230px;display:block;touch-action:none;cursor:grab}
+.blab{font-size:12px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.svt{max-height:520px;overflow:auto}table.sv th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:2px 6px}table.sv td{padding:3px 6px;white-space:nowrap}
+table.sv .bar{display:inline-block;height:9px;background:var(--c1);border-radius:2px;vertical-align:middle;max-width:70px}table.sv td:nth-child(3){min-width:120px}
+@keyframes flash{from{background:rgba(232,102,61,.35)}to{background:transparent}}tr.chg td{animation:flash 1.4s ease-out}
+pre.code{font-size:11.5px;background:var(--soft);padding:8px;border-radius:6px;white-space:pre-wrap;word-break:break-all;margin:6px 0 0}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 12px}
+button.tool{font-size:12.5px;min-height:30px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;background:var(--panel)}
+table.t{border-collapse:collapse;font-size:13px;width:100%}table.t td{padding:2px 4px;border-bottom:1px solid var(--grid)}
+</style></head><body><main>
+<h1 id="title"></h1><p class="intro" id="intro"></p><p class="try" id="try"></p>
+<div class="wrap"><div class="stage" id="stage"></div><aside class="panel" id="panel"></aside></div>
+<div class="foot" id="foot"></div>
+</main>
+<script type="application/json" id="sia-explore">{"topic": "hilbert", "text": {"title": "Hilbert space: gates acting on the state", "intro": "Choose a qubit and press a gate. The full matrix U multiplies the state vector, each new amplitude is built from its contributions, and every view moves along the gate's own path in Hilbert space. The state vector and the density matrix update together.", "try": "Try: H then H again (the two paths to |1⟩ cancel); the Bell preset (the Bloch arrows shrink into the centre); noise on a superposition (the off-diagonal of ρ fades while the state vector disappears).", "hint3d": "drag to rotate · pinch or scroll to zoom · double-tap to reset", "hint2d": "drag the dots"}, "init": {"n": 1, "ops": [{"g": "ry", "t": 0, "a": 1.0}]}, "lang": "en", "meta": "HDQS · Sia Software Innovations · hdqs.explore(\"hilbert\")"}</script>
+<script>
+(function () {
+'use strict';
+const D = JSON.parse(document.getElementById('sia-explore').textContent);
+const T = D.text, I = D.init || {};
+const $ = id => document.getElementById(id);
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const PI = Math.PI, TAU = 2 * PI;
+if (D.back) { const a = el('a', '', D.back[1]); a.href = D.back[0]; a.style.cssText = 'color:var(--accent);text-decoration:none;display:inline-block;margin-bottom:6px'; $('title').before(a); }
+$('title').textContent = T.title; $('intro').textContent = T.intro; $('try').textContent = T.try; $('foot').textContent = D.meta;
+const stage = $('stage'), panel = $('panel');
+let C = {};
+function readColors() { const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
+  C = { bg: g('--bg'), panel: g('--panel'), ink: g('--ink'), muted: g('--muted'), edge: g('--edge'), grid: g('--grid'),
+        c1: g('--c1'), c2: g('--c2'), c3: g('--c3'), c4: g('--c4') }; }
+readColors();
+function rgb(col) { let h = col.replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function A(col, a) { const [r, g, b] = rgb(col); return `rgba(${r},${g},${b},${a})`; }
+
+// ---------- phase colour: the same OKLCH wheel as q.draw (0 blue, π/2 teal, π amber, −π/2 rose) ----------
+function phaseRGB(phi, dark) { const L = dark ? 0.72 : 0.62, Cc = 0.125, h = ((262 - phi * 180 / Math.PI) % 360 + 360) % 360 * Math.PI / 180;
+  const a = Cc * Math.cos(h), b = Cc * Math.sin(h), l_ = L + 0.3963377774 * a + 0.2158037573 * b, m_ = L - 0.1055613458 * a - 0.0638541728 * b, s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3, lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  return lin.map(x => { x = Math.max(0, Math.min(1, x)); return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055; }); }
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+// ---------- numbers shown the way a student writes them ----------
+const NICE = [[1, '1'], [0.5, '1/2'], [Math.SQRT1_2, '1/√2'], [Math.sqrt(3) / 2, '√3/2'], [0.25, '1/4'], [0.75, '3/4'],
+  [Math.SQRT2, '√2'], [Math.sqrt(3), '√3'], [1 / 3, '1/3'], [2 / 3, '2/3'], [1 / Math.sqrt(3), '1/√3']];
+function num(x, dp) { if (!isFinite(x)) return '—'; const a = Math.abs(x); if (a < 5e-4) return '0'; const s = x < 0 ? '−' : '';
+  for (const [v, t] of NICE) if (Math.abs(a - v) < 5e-4) return s + t;
+  if (Math.abs(a - Math.round(a)) < 5e-4) return s + Math.round(a);
+  return s + a.toFixed(dp === undefined ? 3 : dp).replace(/0+$/, '').replace(/\.$/, ''); }
+function ang(x) { if (Math.abs(x) < 1e-4) return '0'; const s = x < 0 ? '−' : ''; const y = Math.abs(x);
+  for (const d of [1, 2, 3, 4, 6, 8, 12, 24]) { const k = y * d / PI; if (Math.abs(k - Math.round(k)) < 2e-3) { const n = Math.round(k); return s + (n === 1 ? '' : n) + 'π' + (d === 1 ? '' : '/' + d); } }
+  return s + y.toFixed(3); }
+function cstr(re, im) { const a = Math.abs(re) < 5e-4 ? 0 : re, b = Math.abs(im) < 5e-4 ? 0 : im;
+  const ib = Math.abs(Math.abs(b) - 1) < 5e-4 ? 'i' : num(Math.abs(b)) + 'i';
+  if (b === 0) return num(a); if (a === 0) return (b < 0 ? '−' : '') + ib; return num(a) + (b < 0 ? ' − ' : ' + ') + ib; }
+const wrap = x => { let y = x % TAU; if (y > PI) y -= TAU; if (y <= -PI) y += TAU; return y; };
+
+// ---------- canvases ----------
+function fit(cv) { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(20, r.width), h = Math.max(20, r.height), W = Math.round(w * dpr), H = Math.round(h * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return { g, w, h }; }
+function box(parent, caption, cls, hint) { const b = el('div', 'box'); if (caption) b.appendChild(el('div', 'cap', tr(caption)));
+  const cv = el('canvas', cls || ''); b.appendChild(cv); if (hint) b.appendChild(el('div', 'hint', hint)); parent.appendChild(b); return cv; }
+function row(parent) { const r = el('div', 'row'); (parent || stage).appendChild(r); return r; }
+
+// a 2D plane with world coordinates and draggable handles
+function Plane(cv, range) {
+  const p = { range, handles: [], drag: null };
+  p.begin = function () { const s = fit(cv); p.g = s.g; p.w = s.w; p.h = s.h; p.s = Math.min(s.w, s.h) / (2 * p.range); p.cx = s.w / 2; p.cy = s.h / 2; return p.g; };
+  p.X = (x, y) => [p.cx + x * p.s, p.cy - y * p.s];
+  p.inv = (sx, sy) => [(sx - p.cx) / p.s, (p.cy - sy) / p.s];
+  p.line = function (x0, y0, x1, y1, col, w, dash) { const g = p.g, a = p.X(x0, y0), b = p.X(x1, y1); g.beginPath(); g.setLineDash(dash || []); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); };
+  p.poly = function (pts, col, w, fill, dash) { const g = p.g; g.beginPath(); pts.forEach((q, i) => { const a = p.X(q[0], q[1]); i ? g.lineTo(a[0], a[1]) : g.moveTo(a[0], a[1]); });
+    if (fill) { g.closePath(); g.fillStyle = fill; g.fill(); } if (col) { g.setLineDash(dash || []); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); } };
+  p.arrow = function (x0, y0, x1, y1, col, w) { const g = p.g, a = p.X(x0, y0), b = p.X(x1, y1); const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1) return;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L, hl = Math.min(12, L * 0.4), hw = hl * 0.45;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0] - ux * hl * 0.8, b[1] - uy * hl * 0.8); g.strokeStyle = col; g.lineWidth = w || 2.2; g.stroke();
+    g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[0] - ux * hl - uy * hw, b[1] - uy * hl + ux * hw); g.lineTo(b[0] - ux * hl + uy * hw, b[1] - uy * hl - ux * hw); g.closePath(); g.fillStyle = col; g.fill(); };
+  p.dot = function (x, y, r, col, ring) { const g = p.g, a = p.X(x, y); g.beginPath(); g.arc(a[0], a[1], r, 0, TAU); g.fillStyle = col; g.fill(); if (ring) { g.lineWidth = 2; g.strokeStyle = C.panel; g.stroke(); } };
+  p.text = function (x, y, s, col, dx, dy, font) { const g = p.g, a = p.X(x, y); g.font = font || '13px system-ui,sans-serif'; g.fillStyle = col || C.ink; g.fillText(s, a[0] + (dx || 0), a[1] + (dy || 0)); };
+  p.arc = function (r, a0, a1, col, w) { const g = p.g; g.beginPath(); g.arc(p.cx, p.cy, r * p.s, -a0, -a1, a1 > a0); g.strokeStyle = col; g.lineWidth = w || 1.5; g.stroke(); };
+  p.axes = function (step, labels) { const g = p.g, R = p.range * Math.max(p.w, p.h) / Math.min(p.w, p.h);
+    for (let k = -Math.ceil(R / step); k <= Math.ceil(R / step); k++) { const v = k * step; p.line(v, -R, v, R, C.grid, 1); p.line(-R, v, R, v, C.grid, 1); }
+    p.line(-R, 0, R, 0, C.muted, 1.2); p.line(0, -R, 0, R, C.muted, 1.2);
+    if (labels) { g.font = '11px system-ui,sans-serif'; g.fillStyle = C.muted;
+      for (let k = -Math.floor(p.range / step); k <= Math.floor(p.range / step); k++) { if (!k) continue; const v = k * step, a = p.X(v, 0), b = p.X(0, v);
+        g.fillText(num(v, 2), a[0] - 6, a[1] + 14); g.fillText(num(v, 2) + (labels === 'i' ? 'i' : ''), b[0] + 5, b[1] + 4); } } };
+  cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; let best = null, bd = 22;
+    p.handles.forEach(h => { const q = h.get(), a = p.X(q[0], q[1]), d = Math.hypot(a[0] - sx, a[1] - sy); if (d < bd) { bd = d; best = h; } });
+    if (best) { p.drag = best; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; e.preventDefault(); } });
+  cv.addEventListener('pointermove', e => { if (!p.drag) return; const r = cv.getBoundingClientRect(); const q = p.inv(e.clientX - r.left, e.clientY - r.top); p.drag.set(q[0], q[1]); });
+  const up = () => { p.drag = null; cv.style.cursor = 'grab'; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  return p;
+}
+
+// a rotatable 3D view (z up). Several views can share one camera.
+function View3D(cv, opts) {
+  opts = opts || {};
+  const cam = opts.cam || { yaw: opts.yaw !== undefined ? opts.yaw : -0.6, pitch: opts.pitch !== undefined ? opts.pitch : 0.32, zoom: 1 };
+  if (!cam.home) cam.home = [cam.yaw, cam.pitch];
+  const v = { cam, scale: opts.scale || 1, persp: opts.persp === undefined ? 0.12 : opts.persp };
+  const pts = new Map();
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const p = pts.get(e.pointerId);
+    if (pts.size === 1) { cam.yaw += (e.clientX - p[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - p[1]) * 0.01, -1.55, 1.55); }
+    else if (pts.size === 2) { const o = [...pts.entries()].find(([k]) => k !== e.pointerId)[1];
+      const d0 = Math.hypot(p[0] - o[0], p[1] - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); if (d0 > 0) cam.zoom = clamp(cam.zoom * d1 / d0, 0.4, 3); }
+    pts.set(e.pointerId, [e.clientX, e.clientY]); });
+  const up = e => { pts.delete(e.pointerId); if (!pts.size) cv.style.cursor = 'grab'; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); cam.zoom = clamp(cam.zoom * Math.exp(-e.deltaY * 0.001), 0.4, 3); }, { passive: false });
+  cv.addEventListener('dblclick', () => { cam.yaw = cam.home[0]; cam.pitch = cam.home[1]; cam.zoom = 1; });
+  v.begin = function () { const s = fit(cv); v.g = s.g; v.w = s.w; v.h = s.h; v.R = Math.min(s.w, s.h) * 0.36 * cam.zoom * v.scale;
+    v.m = [Math.cos(cam.yaw), Math.sin(cam.yaw), Math.cos(cam.pitch), Math.sin(cam.pitch)]; return v.g; };
+  v.P = function (q) { const [cy, sy, cp, sp] = v.m, x = q[0], y = q[1], z = q[2];
+    const x1 = cy * x - sy * y, y1 = sy * x + cy * y, d = cp * y1 - sp * z, h = sp * y1 + cp * z, f = 1 / (1 + d * v.persp);
+    return [v.w / 2 + x1 * v.R * f, v.h / 2 - h * v.R * f, d]; };
+  v.seg = function (a, b, col, w, dash) { const g = v.g, p = v.P(a), q = v.P(b); g.beginPath(); g.setLineDash(dash || []); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); };
+  v.curve = function (list, col, w, fadeBack, dash) { const g = v.g; const P = list.map(v.P); g.lineWidth = w || 1.4; g.setLineDash(dash || []);
+    for (let i = 1; i < P.length; i++) { const back = fadeBack && (P[i][2] + P[i - 1][2]) > 0; g.strokeStyle = back ? A(col, 0.25) : col;
+      g.beginPath(); g.moveTo(P[i - 1][0], P[i - 1][1]); g.lineTo(P[i][0], P[i][1]); g.stroke(); } g.setLineDash([]); };
+  v.arrow = function (a, b, col, w) { const g = v.g, p = v.P(a), q = v.P(b), L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.strokeStyle = col; g.lineWidth = w || 2.6; g.stroke(); if (L < 4) return;
+    const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L, hl = Math.min(13, L * 0.35), hw = hl * 0.5;
+    g.beginPath(); g.moveTo(q[0] + ux * 2, q[1] + uy * 2); g.lineTo(q[0] - ux * hl - uy * hw, q[1] - uy * hl + ux * hw); g.lineTo(q[0] - ux * hl + uy * hw, q[1] - uy * hl - ux * hw); g.closePath(); g.fillStyle = col; g.fill(); };
+  v.dot = function (a, r, col) { const g = v.g, p = v.P(a); g.beginPath(); g.arc(p[0], p[1], r, 0, TAU); g.fillStyle = col; g.fill(); };
+  v.label = function (a, s, col, font) { const g = v.g, p = v.P(a); g.font = font || '13px system-ui,sans-serif'; g.fillStyle = col || C.muted; g.textAlign = 'center'; g.fillText(s, p[0], p[1] + 4); g.textAlign = 'left'; };
+  v.circle = function (f, col, w, fade, dash) { const L = []; for (let i = 0; i <= 96; i++) L.push(f(i / 96 * TAU)); v.curve(L, col, w, fade, dash); };
+  v.sphere = function (labels) { const g = v.g, c = v.P([0, 0, 0]); g.beginPath(); g.arc(c[0], c[1], v.R / (1 + 0 * v.persp), 0, TAU); g.fillStyle = A(C.c1, 0.05); g.fill(); g.strokeStyle = A(C.muted, 0.5); g.lineWidth = 1; g.stroke();
+    v.circle(t => [Math.cos(t), Math.sin(t), 0], A(C.muted, 0.8), 1, true);
+    v.circle(t => [Math.cos(t), 0, Math.sin(t)], A(C.muted, 0.5), 0.8, true, [3, 3]);
+    v.circle(t => [0, Math.cos(t), Math.sin(t)], A(C.muted, 0.5), 0.8, true, [3, 3]);
+    v.seg([-1.15, 0, 0], [1.15, 0, 0], A(C.muted, 0.7), 1); v.seg([0, -1.15, 0], [0, 1.15, 0], A(C.muted, 0.7), 1); v.seg([0, 0, -1.15], [0, 0, 1.15], A(C.muted, 0.7), 1);
+    if (labels !== false) { v.label([0, 0, 1.3], '|0⟩', C.ink); v.label([0, 0, -1.3], '|1⟩', C.ink); v.label([1.32, 0, 0], '|+⟩'); v.label([-1.32, 0, 0], '|−⟩'); v.label([0, 1.32, 0], '|+i⟩'); v.label([0, -1.32, 0], '|−i⟩'); } };
+  return v;
+}
+
+// ---------- translation of labels (Python fills D.tr for lang='hi' or 'te') ----------
+const TR = D.tr || {};
+const tr = s => (s in TR ? TR[s] : s);
+
+// ---------- a complex matrix (rows of [re, im]) as phase-coloured cells with exact entries ----------
+function matGrid(g, x, y, cs, M, o) { o = o || {}; const r = M.length, c = M[0].length, dark = isDark(), bg = rgb(C.panel);
+  for (let i = 0; i < r; i++) for (let j = 0; j < c; j++) { const z = M[i][j], m = Math.hypot(z[0], z[1]), a = Math.pow(Math.min(1, m / (o.scale || 1)), 0.6);
+    let col = C.panel; if (m > 1e-9) { const p = phaseRGB(Math.atan2(z[1], z[0]), dark); col = `rgb(${Math.round(bg[0] + (p[0] * 255 - bg[0]) * a)},${Math.round(bg[1] + (p[1] * 255 - bg[1]) * a)},${Math.round(bg[2] + (p[2] * 255 - bg[2]) * a)})`; }
+    g.fillStyle = col; g.fillRect(x + j * cs + 0.5, y + i * cs + 0.5, cs - 1, cs - 1); g.strokeStyle = C.grid; g.lineWidth = 1; g.strokeRect(x + j * cs + 0.5, y + i * cs + 0.5, cs - 1, cs - 1);
+    if (m > 5e-4 && cs >= 30) { const s = cstr(z[0], z[1]).replace(/ /g, ''), cx = x + j * cs + cs / 2, cy = y + i * cs + cs / 2, fs = cs >= 44 ? 12 : 10;
+      g.fillStyle = C.ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+      if (s.length <= Math.floor(cs / 6.5)) { g.font = fs + 'px system-ui'; g.fillText(s, cx, cy + 1); }
+      else { const a = ang(Math.atan2(z[1], z[0])), top = num(m, 2), bot = '∠' + (/π/.test(a) && a.length <= 6 ? a : (Math.atan2(z[1], z[0]) * 180 / PI).toFixed(0) + '°');
+        g.font = (fs - 1) + 'px system-ui'; if (Math.max(top.length, bot.length) <= Math.floor(cs / 5.6)) { g.fillText(top, cx, cy - fs * 0.5 + 1); g.fillText(bot, cx, cy + fs * 0.6 + 1); } }
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; } }
+  g.strokeStyle = C.muted; g.lineWidth = 1.2; g.strokeRect(x, y, c * cs, r * cs);
+  if (o.label) { g.fillStyle = C.muted; g.font = '12px system-ui'; g.textAlign = 'center'; g.fillText(o.label, x + c * cs / 2, y - 7); g.textAlign = 'left'; }
+  if (o.rows) { g.fillStyle = C.muted; g.font = '11px system-ui'; g.textAlign = 'right'; o.rows.forEach((t, i) => g.fillText(t, x - 5, y + i * cs + cs / 2 + 4)); g.textAlign = 'left'; } }
+// a note at the foot of a canvas, wrapped to its width
+function footnote(g, text, x, W, H) { g.fillStyle = C.muted; g.font = '11px system-ui'; const words = text.split(' '), lines = []; let ln = '';
+  for (const w of words) { const t = ln ? ln + ' ' + w : w; if (g.measureText(t).width > W - x - 8 && ln) { lines.push(ln); ln = w; } else ln = t; } if (ln) lines.push(ln);
+  lines.forEach((l, i) => g.fillText(l, x, H - 6 - (lines.length - 1 - i) * 14)); }
+const cmul2 = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+function matVec(M, v) { return M.map(row => row.reduce((s, z, j) => { const p = cmul2(z, v[j]); return [s[0] + p[0], s[1] + p[1]]; }, [0, 0])); }
+function outer(v) { return v.map(a => v.map(b => cmul2(a, [b[0], -b[1]]))); }
+
+// ---------- controls; a key binds a control to the app state (undo, shareable links) ----------
+let ST = null; const CTRL = {}; const HIST = []; let histTimer = null, restoring = false;
+function useState(obj) { ST = obj; try { const h = decodeURIComponent(location.hash.slice(1)); if (h.startsWith('{')) { const o = JSON.parse(h); for (const k in o) if (k in obj) obj[k] = o[k]; } } catch (e) {} return obj; }
+function snapshot() { const o = {}; for (const k in CTRL) o[k] = ST[k]; return o; }
+function changed() { if (restoring || !ST) return; clearTimeout(histTimer); histTimer = setTimeout(() => { const s = JSON.stringify(snapshot());
+  if (HIST[HIST.length - 1] !== s) HIST.push(s); if (HIST.length > 200) HIST.shift();
+  try { history.replaceState(null, '', '#' + encodeURIComponent(s)); } catch (e) {} }, 300); }
+function undo() { if (HIST.length < 2) return; HIST.pop(); const o = JSON.parse(HIST[HIST.length - 1]); restoring = true;
+  for (const k in o) if (CTRL[k]) CTRL[k].set(o[k]); restoring = false; try { history.replaceState(null, '', '#' + encodeURIComponent(HIST[HIST.length - 1])); } catch (e) {} }
+function group(title) { const g = el('div', 'grp'); if (title) g.appendChild(el('h4', '', tr(title))); panel.appendChild(g); return g; }
+function slider(parent, label, min, max, step, val, fmt, on, key) { const w = el('label', 'ctl'), top = el('div', 'ctl-top'), out = el('b');
+  if (key && ST && key in ST) val = ST[key];
+  top.append(el('span', '', tr(label)), out); const inp = el('input'); inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = val;
+  const upd = silent => { out.textContent = fmt(+inp.value); if (key && ST) ST[key] = +inp.value; if (!silent) { on(+inp.value); if (key) changed(); } };
+  inp.addEventListener('input', () => upd(false)); w.append(top, inp); parent.appendChild(w); upd(true);
+  const c = { set(v, silent) { inp.value = v; upd(silent); }, get: () => +inp.value, el: w }; if (key) CTRL[key] = c; return c; }
+function buttons(parent, list, on, sel, key) { const w = el('div', 'btns'); if (key && ST && key in ST) sel = ST[key];
+  const press = (k, b, silent) => { if (sel !== undefined) bs.forEach(x => x.classList.toggle('on', x === b)); if (key && ST) ST[key] = k; on(k, b); if (key && !silent) changed(); };
+  const bs = list.map(([k, lab]) => { const b = el('button', '', tr(lab)); b.type = 'button'; b.dataset.k = k;
+    b.onclick = () => press(k, b); if (sel === k) b.classList.add('on'); w.appendChild(b); return b; });
+  parent.appendChild(w);
+  if (key) CTRL[key] = { set(v) { const b = bs.find(x => x.dataset.k === String(v)); if (b) press(b.dataset.k, b, true); }, get: () => ST[key] };
+  return bs; }
+function check(parent, label, val, on, key) { const w = el('label', 'chk'), i = el('input'); i.type = 'checkbox'; if (key && ST && key in ST) val = ST[key]; i.checked = !!val;
+  i.onchange = () => { if (key && ST) ST[key] = i.checked; on(i.checked); if (key) changed(); }; w.append(i, el('span', '', tr(label))); parent.appendChild(w);
+  if (key) CTRL[key] = { set(v) { i.checked = !!v; ST[key] = !!v; on(!!v); }, get: () => i.checked }; return i; }
+function readout(parent) { const r = el('div', 'read'); parent.appendChild(r); return r; }
+
+// ---------- toolbar: theme, undo, share link, picture, video ----------
+const ICON_THEME = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg>';
+function composite(scale) { // every visible canvas in the stage, laid out as on screen, onto one canvas
+  const sr = stage.getBoundingClientRect(), dpr = scale || Math.min(2, window.devicePixelRatio || 1), pad = 16, head = 34;
+  const out = document.createElement('canvas'); out.width = Math.round((sr.width + 2 * pad) * dpr); out.height = Math.round((sr.height + 2 * pad + head) * dpr);
+  const g = out.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = C.bg; g.fillRect(0, 0, out.width, out.height);
+  g.fillStyle = C.ink; g.font = '600 17px system-ui,sans-serif'; g.fillText(T.title, pad, pad + 16);
+  stage.querySelectorAll('.box').forEach(bx => { const r = bx.getBoundingClientRect(); if (!r.width || bx.offsetParent === null) return;
+    const x = r.left - sr.left + pad, y = r.top - sr.top + pad + head; g.fillStyle = C.panel; g.strokeStyle = C.edge; g.lineWidth = 1; g.beginPath(); g.rect(x, y, r.width, r.height); g.fill(); g.stroke();
+    const cap = bx.querySelector('.cap'); if (cap) { g.fillStyle = C.muted; g.font = '12px system-ui,sans-serif'; g.fillText(cap.textContent, x + 10, y + 18); }
+    bx.querySelectorAll('canvas').forEach(cv => { const c = cv.getBoundingClientRect(); if (!c.width) return; try { g.drawImage(cv, c.left - sr.left + pad, c.top - sr.top + pad + head, c.width, c.height); } catch (e) {} }); });
+  g.fillStyle = C.muted; g.font = '11px system-ui,sans-serif'; g.fillText(D.meta, pad, out.height / dpr - 6); return out; }
+function download(href, name) { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+let REC = null;
+function toolbar() {
+  const bar = el('div', 'tools'); $('try').after(bar);
+  const mk = (html, title, fn) => { const b = el('button', 'tool'); b.type = 'button'; b.innerHTML = html; b.title = tr(title); b.onclick = fn; bar.appendChild(b); return b; };
+  mk(ICON_THEME + ' ' + tr('light / dark'), 'light / dark', () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; readColors(); if (X && X.recolor) X.recolor(); });
+  if (Object.keys(CTRL).length) { mk('↶ ' + tr('undo'), 'undo', undo);
+    const lk = mk('🔗 ' + tr('copy link'), 'copy a link to exactly this set-up', () => { const s = JSON.stringify(snapshot()); const url = location.href.split('#')[0] + '#' + encodeURIComponent(s);
+      try { history.replaceState(null, '', url); } catch (e) {} const done = () => { lk.innerHTML = '✓ ' + tr('link copied'); setTimeout(() => lk.innerHTML = '🔗 ' + tr('copy link'), 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done(); }); }
+  mk('⤓ ' + tr('picture'), 'save the views as a PNG picture', () => download(composite(2).toDataURL('image/png'), D.topic + '.png'));
+  if (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream) {
+    const rb = mk('● ' + tr('record video'), 'record the views as a WebM video', () => {
+      if (REC) { REC.stop(); return; }
+      const cv = composite(1), stream = cv.captureStream(30), chunks = []; let mr;
+      try { mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm' }); } catch (e) { return; }
+      mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      mr.onstop = () => { REC = null; rb.innerHTML = '● ' + tr('record video'); rb.classList.remove('on'); download(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })), D.topic + '.webm'); };
+      REC = { stop: () => mr.stop(), canvas: cv, until: performance.now() + 20000 }; mr.start(200); rb.innerHTML = '■ ' + tr('stop recording'); rb.classList.add('on'); });
+  }
+  if (ST) HIST.push(JSON.stringify(snapshot()));
+}
+function recordFrame() { if (!REC) return; const fresh = composite(1), g = REC.canvas.getContext('2d'); g.drawImage(fresh, 0, 0, REC.canvas.width, REC.canvas.height); if (performance.now() > REC.until) REC.stop(); }
+
+
+function App() {
+  const st = useState({ n: 2, tq: 0, cq: -1, ang: PI / 2, p: 0.3, view: 'wheels', rho: 'full', row: -1 });
+  let ops = (I.ops || []).map(o => Object.assign({}, o)), k = ops.length, anim = null, prevPsi = null, flashRows = new Set(), flashT = 0;
+  let fromHash = false; try { const h = decodeURIComponent(location.hash.slice(1)); if (h.startsWith('{')) { const o = JSON.parse(h); if (Array.isArray(o.ops)) { ops = o.ops; k = ops.length; fromHash = true; } } } catch (e) {}
+  if (I.n && !fromHash) st.n = I.n; const psi0 = I.psi0 || null; let playing = false, playT = 0;
+  CTRL.n = { set(v) { v = +v; if (v !== st.n) { st.n = v; if (typeof nB !== 'undefined') nB.forEach(b => b.classList.toggle('on', +b.dataset.k === v)); st.tq = 0; st.cq = -1; rebuildSel(); buildBloch(); buildDmSel(); } }, get: () => st.n };
+  CTRL.ops = { set(v) { ops = v.map(o => Object.assign({}, o)); k = ops.length; anim = null; settle(); }, get: () => ops };
+  Object.defineProperty(ST, 'ops', { get: () => ops, set: v => { ops = v; }, enumerable: true, configurable: true });
+
+  // ---------- complex linear algebra on 2ⁿ amplitudes ----------
+  const R2 = Math.SQRT1_2;
+  const cx = (re, im) => [re, im], cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]], cexp = a => [Math.cos(a), Math.sin(a)];
+  function gate2(g, a) { // 2×2 matrix as [m00, m01, m10, m11], each [re, im]
+    const c = Math.cos((a || 0) / 2), s = Math.sin((a || 0) / 2);
+    switch (g) {
+      case 'h': return [[R2, 0], [R2, 0], [R2, 0], [-R2, 0]];
+      case 'x': return [[0, 0], [1, 0], [1, 0], [0, 0]];
+      case 'y': return [[0, 0], [0, -1], [0, 1], [0, 0]];
+      case 'z': return [[1, 0], [0, 0], [0, 0], [-1, 0]];
+      case 's': return [[1, 0], [0, 0], [0, 0], [0, 1]];
+      case 'sdg': return [[1, 0], [0, 0], [0, 0], [0, -1]];
+      case 't': return [[1, 0], [0, 0], [0, 0], cexp(PI / 4)];
+      case 'tdg': return [[1, 0], [0, 0], [0, 0], cexp(-PI / 4)];
+      case 'sx': return [[0.5, 0.5], [0.5, -0.5], [0.5, -0.5], [0.5, 0.5]];
+      case 'rx': return [[c, 0], [0, -s], [0, -s], [c, 0]];
+      case 'ry': return [[c, 0], [-s, 0], [s, 0], [c, 0]];
+      case 'rz': return [cexp(-(a || 0) / 2), [0, 0], [0, 0], cexp((a || 0) / 2)];
+      case 'p': return [[1, 0], [0, 0], [0, 0], cexp(a || 0)];
+    } return [[1, 0], [0, 0], [0, 0], [1, 0]]; }
+  function csqrt(z) { const r = Math.hypot(z[0], z[1]), a = Math.atan2(z[1], z[0]) / 2; return [Math.sqrt(r) * Math.cos(a), Math.sqrt(r) * Math.sin(a)]; }
+  function mpow(M, t) { // U^t for a 2×2 unitary through its eigen-decomposition (principal branch)
+    const a = M[0], b = M[1], c = M[2], d = M[3], trc = [a[0] + d[0], a[1] + d[1]], det = [a[0] * d[0] - a[1] * d[1] - (b[0] * c[0] - b[1] * c[1]), a[0] * d[1] + a[1] * d[0] - (b[0] * c[1] + b[1] * c[0])];
+    const disc = csqrt([trc[0] * trc[0] - trc[1] * trc[1] - 4 * det[0], 2 * trc[0] * trc[1] - 4 * det[1]]);
+    const l1 = [(trc[0] + disc[0]) / 2, (trc[1] + disc[1]) / 2], l2 = [(trc[0] - disc[0]) / 2, (trc[1] - disc[1]) / 2];
+    const pw = l => cexp(t * Math.atan2(l[1], l[0]));
+    if (Math.hypot(l1[0] - l2[0], l1[1] - l2[1]) < 1e-9) { const e = pw(l1); return [e, [0, 0], [0, 0], e]; }
+    const vec = l => { let v; if (Math.hypot(b[0], b[1]) > 1e-12) v = [b, [l[0] - a[0], l[1] - a[1]]]; else if (Math.hypot(c[0], c[1]) > 1e-12) v = [[l[0] - d[0], l[1] - d[1]], c];
+      else v = Math.hypot(l[0] - a[0], l[1] - a[1]) < 1e-9 ? [[1, 0], [0, 0]] : [[0, 0], [1, 0]]; const nn = Math.hypot(v[0][0], v[0][1], v[1][0], v[1][1]); return [[v[0][0] / nn, v[0][1] / nn], [v[1][0] / nn, v[1][1] / nn]]; };
+    const v1 = vec(l1), v2 = vec(l2), e1 = pw(l1), e2 = pw(l2), out = [];
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const p1 = cmul(v1[i], [v1[j][0], -v1[j][1]]), p2 = cmul(v2[i], [v2[j][0], -v2[j][1]]), x = cmul(e1, p1), y = cmul(e2, p2); out.push([x[0] + y[0], x[1] + y[1]]); }
+    return out; }
+  const dimOf = () => 1 << st.n, bit = (i, q) => (i >> (st.n - 1 - q)) & 1, mask = q => 1 << (st.n - 1 - q);
+  function applyVec(re, im, M, q, c) { const D = re.length, m = mask(q); for (let i = 0; i < D; i++) { if (i & m) continue; if (c >= 0 && !bit(i, c)) continue; const j = i | m;
+      const ar = re[i], ai = im[i], br = re[j], bi = im[j];
+      re[i] = M[0][0] * ar - M[0][1] * ai + M[1][0] * br - M[1][1] * bi; im[i] = M[0][0] * ai + M[0][1] * ar + M[1][0] * bi + M[1][1] * br;
+      re[j] = M[2][0] * ar - M[2][1] * ai + M[3][0] * br - M[3][1] * bi; im[j] = M[2][0] * ai + M[2][1] * ar + M[3][0] * bi + M[3][1] * br; } }
+  function swapMat(t) { const e = cexp(PI * t); return [[(1 + e[0]) / 2, e[1] / 2], [(1 - e[0]) / 2, -e[1] / 2], [(1 - e[0]) / 2, -e[1] / 2], [(1 + e[0]) / 2, e[1] / 2]]; }
+  function applySwapVec(re, im, a, b, t) { const D = re.length, M = swapMat(t); for (let i = 0; i < D; i++) { if (!(bit(i, a) === 0 && bit(i, b) === 1)) continue; const j = i ^ mask(a) ^ mask(b);
+      const ar = re[i], ai = im[i], br = re[j], bi = im[j];
+      re[i] = M[0][0] * ar - M[0][1] * ai + M[1][0] * br - M[1][1] * bi; im[i] = M[0][0] * ai + M[0][1] * ar + M[1][0] * bi + M[1][1] * br;
+      re[j] = M[2][0] * ar - M[2][1] * ai + M[3][0] * br - M[3][1] * bi; im[j] = M[2][0] * ai + M[2][1] * ar + M[3][0] * bi + M[3][1] * br; } }
+  // density matrix ρ as two dim×dim Float64Arrays; U ρ U† by columns then rows
+  function applyRho(R, t, fn) { const D = dimOf(), cr = new Float64Array(D), ci = new Float64Array(D);
+    for (let col = 0; col < D; col++) { for (let i = 0; i < D; i++) { cr[i] = R.re[i * D + col]; ci[i] = R.im[i * D + col]; } fn(cr, ci, false); for (let i = 0; i < D; i++) { R.re[i * D + col] = cr[i]; R.im[i * D + col] = ci[i]; } }
+    for (let row = 0; row < D; row++) { for (let j = 0; j < D; j++) { cr[j] = R.re[row * D + j]; ci[j] = -R.im[row * D + j]; } fn(cr, ci, true); for (let j = 0; j < D; j++) { R.re[row * D + j] = cr[j]; R.im[row * D + j] = -ci[j]; } } }
+  const KRAUS = { dephase: p => [[[Math.sqrt(1 - p), 0], [0, 0], [0, 0], [Math.sqrt(1 - p), 0]], [[Math.sqrt(p), 0], [0, 0], [0, 0], [-Math.sqrt(p), 0]]],
+    depol: p => { const a = Math.sqrt(Math.max(0, 1 - 3 * p / 4)), b = Math.sqrt(p / 4); return [[[a, 0], [0, 0], [0, 0], [a, 0]], [[0, 0], [b, 0], [b, 0], [0, 0]], [[0, 0], [0, -b], [0, b], [0, 0]], [[b, 0], [0, 0], [0, 0], [-b, 0]]]; },
+    damp: p => [[[1, 0], [0, 0], [0, 0], [Math.sqrt(1 - p), 0]], [[0, 0], [Math.sqrt(p), 0], [0, 0], [0, 0]]] };
+  const isNoise = g => g in KRAUS;
+  function unitaryOf(op, t) { if (op.g === 'swap') return null; return mpow(gate2(op.g, op.a), t); }
+  // apply one operation (fraction t of it) to a state {re, im, R, pure}
+  function applyOp(S, op, t) {
+    const D = dimOf();
+    if (op.g === 'm') { const keep = i => bit(i, op.t) === op.o; let pr = 0; for (let i = 0; i < D; i++) if (keep(i)) pr += S.R.re[i * D + i];
+      if (pr < 1e-12) return; const s = 1 / Math.sqrt(pr);
+      const nr = new Float64Array(D), ni = new Float64Array(D); for (let i = 0; i < D; i++) if (keep(i)) { nr[i] = S.re[i] * s; ni[i] = S.im[i] * s; }
+      for (let i = 0; i < D; i++) { S.re[i] = S.re[i] * (1 - t) + nr[i] * t; S.im[i] = S.im[i] * (1 - t) + ni[i] * t; }
+      const Rr = S.R.re.slice(), Ri = S.R.im.slice(); for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) { const n = i * D + j, f = keep(i) && keep(j) ? 1 / pr : 0; S.R.re[n] = Rr[n] * (1 - t) + Rr[n] * f * t; S.R.im[n] = Ri[n] * (1 - t) + Ri[n] * f * t; }
+      return; }
+    if (isNoise(op.g)) { const Ks = KRAUS[op.g](op.p * t), out = { re: new Float64Array(D * D), im: new Float64Array(D * D) };
+      for (const K of Ks) { const C = { re: S.R.re.slice(), im: S.R.im.slice() }; applyRho(C, 0, (r, i) => applyVec(r, i, K, op.t, -1)); for (let n = 0; n < D * D; n++) { out.re[n] += C.re[n]; out.im[n] += C.im[n]; } }
+      S.R = out; S.pure = false; return; }
+    if (op.g === 'swap') { applySwapVec(S.re, S.im, op.c, op.t, t); applyRho(S.R, 0, (r, i) => applySwapVec(r, i, op.c, op.t, t)); return; }
+    const M = unitaryOf(op, t); applyVec(S.re, S.im, M, op.t, op.c === undefined ? -1 : op.c);
+    applyRho(S.R, 0, (r, i) => applyVec(r, i, M, op.t, op.c === undefined ? -1 : op.c)); }
+  function initial() { const D = dimOf(), re = new Float64Array(D), im = new Float64Array(D);
+    if (psi0 && psi0.length === D) psi0.forEach((z, i) => { re[i] = z[0]; im[i] = z[1]; }); else re[0] = 1;
+    const R = { re: new Float64Array(D * D), im: new Float64Array(D * D) }; for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) { R.re[i * D + j] = re[i] * re[j] + im[i] * im[j]; R.im[i * D + j] = im[i] * re[j] - re[i] * im[j]; }
+    return { re, im, R, pure: true }; }
+  const clone = S => ({ re: S.re.slice(), im: S.im.slice(), R: { re: S.R.re.slice(), im: S.R.im.slice() }, pure: S.pure });
+  function stateAt(kk) { const S = initial(); for (let i = 0; i < kk; i++) applyOp(S, ops[i], 1); return S; }
+  function fullMatrix(op) { // the 2ⁿ×2ⁿ operator of a unitary step: column j = op applied to |j⟩
+    const D = dimOf(), Ur = new Float64Array(D * D), Ui = new Float64Array(D * D);
+    for (let j = 0; j < D; j++) { const re = new Float64Array(D), im = new Float64Array(D); re[j] = 1;
+      if (op.g === 'swap') applySwapVec(re, im, op.c, op.t, 1); else applyVec(re, im, unitaryOf(op, 1), op.t, op.c === undefined ? -1 : op.c);
+      for (let i = 0; i < D; i++) { Ur[i * D + j] = re[i]; Ui[i * D + j] = im[i]; } } return { re: Ur, im: Ui }; }
+  function reduced(R, q) { const D = dimOf(), m = mask(q); let r00 = 0, r11 = 0, r01r = 0, r01i = 0;
+    for (let i = 0; i < D; i++) { if (i & m) continue; const j = i | m; r00 += R.re[i * D + i]; r11 += R.re[j * D + j]; r01r += R.re[i * D + j]; r01i += R.im[i * D + j]; }
+    return { r00, r11, r01r, r01i, bloch: [2 * r01r, -2 * r01i, r00 - r11] }; }
+  function purity(R) { const D = dimOf(); let s = 0; for (let n = 0; n < D * D; n++) s += R.re[n] * R.re[n] + R.im[n] * R.im[n]; return s; }
+  function eigH(R) { // eigenvalues of Hermitian ρ: Jacobi on the real 2D×2D form [[A, −B], [B, A]]
+    const D = dimOf(), M = 2 * D, a = []; for (let i = 0; i < M; i++) { a.push(new Float64Array(M)); }
+    for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) { const re = R.re[i * D + j], im = R.im[i * D + j]; a[i][j] = re; a[i + D][j + D] = re; a[i][j + D] = -im; a[i + D][j] = im; }
+    for (let sw = 0; sw < 12; sw++) { let off = 0; for (let p = 0; p < M; p++) for (let q = p + 1; q < M; q++) off += a[p][q] * a[p][q]; if (off < 1e-20) break;
+      for (let p = 0; p < M; p++) for (let q = p + 1; q < M; q++) { if (Math.abs(a[p][q]) < 1e-15) continue; const th = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]), c = Math.cos(th), s = Math.sin(th);
+        for (let r = 0; r < M; r++) { const x = a[r][p], y = a[r][q]; a[r][p] = c * x - s * y; a[r][q] = s * x + c * y; }
+        for (let r = 0; r < M; r++) { const x = a[p][r], y = a[q][r]; a[p][r] = c * x - s * y; a[q][r] = s * x + c * y; } } }
+    const ev = []; for (let i = 0; i < M; i++) ev.push(a[i][i]); ev.sort((x, y) => y - x); const out = []; for (let i = 0; i < M; i += 2) out.push(Math.max(0, (ev[i] + ev[i + 1]) / 2)); return out; }
+  const H2 = v => -v.reduce((s, x) => s + (x > 1e-12 ? x * Math.log2(x) : 0), 0);
+  const bits = i => i.toString(2).padStart(st.n, '0');
+
+  // ---------- layout ----------
+  const cvC = box(stage, tr('Circuit: tap a gate column to go to that step'), 'circ');
+  const rA = row(); const eqBox = el('div', 'box'); rA.appendChild(eqBox); eqBox.appendChild(el('div', 'cap', tr('This step: U · |ψ⟩ = |ψ′⟩ (tap an output amplitude)')));
+  const cvE = el('canvas', 'tall'); eqBox.appendChild(cvE); const eqText = el('div', 'eqtext'); eqBox.appendChild(eqText);
+  const cvW = box(rA, tr('Amplitudes: arrow length = |amplitude|, angle = phase. The selected one is built from its contributions'), 'tall');
+  const rB = row(); const blochBox = el('div', 'box'); rB.appendChild(blochBox); blochBox.appendChild(el('div', 'cap', tr('Each qubit alone (reduced state): a shorter arrow means entangled or mixed')));
+  const blochRow = el('div', 'brow'); blochBox.appendChild(blochRow); blochBox.appendChild(el('div', 'hint', T.hint3d)); blochBox.style.paddingBottom = '26px';
+  const cvQ = box(rB, tr('Q-sphere: basis states by number of 1s; dot size = probability, colour = phase'), 'tall', T.hint3d);
+  const rC = row(); const svBox = el('div', 'box'); rC.appendChild(svBox); svBox.appendChild(el('div', 'cap', tr('State vector |ψ⟩')));
+  const svT = el('div', 'svt'); svBox.appendChild(svT);
+  const dmBox = el('div', 'box'); rC.appendChild(dmBox); dmBox.appendChild(el('div', 'cap', tr('Density matrix ρ: brightness = |ρᵢⱼ|, colour = phase')));
+  const dmSel = el('div', 'btns'); dmBox.appendChild(dmSel); const cvD = el('canvas', 'tall'); dmBox.appendChild(cvD); const dmText = el('div', 'eqtext'); dmBox.appendChild(dmText);
+  const cam = { yaw: -0.55, pitch: 0.3, zoom: 1 }; let blochViews = [];
+  function buildBloch() { blochRow.innerHTML = ''; blochViews = []; for (let q = 0; q < st.n; q++) { const w = el('div', 'bcell'); const cv = el('canvas'); w.appendChild(cv); const lab = el('div', 'blab'); w.appendChild(lab); blochRow.appendChild(w); blochViews.push({ V: View3D(cv, { cam, scale: 0.92 }), lab }); } }
+  const VQ = View3D(cvQ, { yaw: -0.6, pitch: 0.25 });
+
+  // ---------- controls ----------
+  const g0 = group('Qubits');
+  var nB = buttons(g0, [[1, '1'], [2, '2'], [3, '3'], [4, '4']], kk => { const nn = +kk; if (nn !== st.n) { st.n = nn; ops = []; k = 0; anim = null; st.tq = Math.min(st.tq, nn - 1); st.cq = -1; rebuildSel(); buildBloch(); buildDmSel(); settle(); changed(); } }, st.n);
+  const gS = group('Apply to'); const selT = el('div'); gS.appendChild(selT); const selC = el('div'); gS.appendChild(selC);
+  function rebuildSel() { selT.innerHTML = ''; selC.innerHTML = '';
+    const lt = el('div', 'note', tr('target qubit')); selT.appendChild(lt); buttons(selT, [...Array(st.n).keys()].map(q => [q, 'q' + q]), q => { st.tq = +q; if (st.cq === st.tq) st.cq = -1; rebuildSel(); }, st.tq);
+    const lc = el('div', 'note', tr('control qubit (for controlled gates and SWAP)')); selC.appendChild(lc);
+    buttons(selC, [[-1, tr('none')], ...[...Array(st.n).keys()].filter(q => q !== st.tq).map(q => [q, 'q' + q])], q => { st.cq = +q; }, st.cq); }
+  rebuildSel();
+  const gG = group('Gates');
+  const add = op => { if (anim) finishAnim(); ops.splice(k, 0, op); ops = ops.slice(0, k + 1).concat(ops.slice(k + 1)); startAnim(k, +1); changed(); };
+  const one = g => () => { const op = { g, t: st.tq }; if (['rx', 'ry', 'rz', 'p'].includes(g)) op.a = st.ang; if (st.cq >= 0) op.c = st.cq; add(op); };
+  buttons(gG, [['h', 'H'], ['x', 'X'], ['y', 'Y'], ['z', 'Z'], ['s', 'S'], ['sdg', 'S†'], ['t', 'T'], ['tdg', 'T†'], ['sx', '√X']], g => one(g)());
+  const angS = slider(gG, 'rotation angle θ', -TAU, TAU, PI / 12, st.ang, v => ang(v), () => {}, 'ang');
+  buttons(gG, [['rx', 'Rx(θ)'], ['ry', 'Ry(θ)'], ['rz', 'Rz(θ)'], ['p', 'P(θ)']], g => one(g)());
+  buttons(gG, [['swap', 'SWAP (target ↔ control)'], ['m', 'measure target']], g => {
+    if (g === 'swap') { if (st.cq < 0) { note(tr('choose a control qubit to swap with')); return; } add({ g: 'swap', c: st.cq, t: st.tq }); return; }
+    const S = anim ? anim.to : stateAt(k), D = dimOf(); let p1 = 0; for (let i = 0; i < D; i++) if (bit(i, st.tq)) p1 += S.R.re[i * D + i]; add({ g: 'm', t: st.tq, o: Math.random() < p1 ? 1 : 0 }); });
+  const gN = group('Noise on the target qubit');
+  slider(gN, 'strength p', 0.05, 1, 0.05, st.p, v => num(v, 2), () => {}, 'p');
+  buttons(gN, [['dephase', 'dephasing'], ['depol', 'depolarising'], ['damp', 'energy loss (T₁)']], g => add({ g, t: st.tq, p: st.p }));
+  const gT = group('Steps');
+  buttons(gT, [['first', '⏮'], ['back', '◀'], ['fwd', '▶'], ['last', '⏭'], ['play', '▶▶ play all']], kk => {
+    if (anim) finishAnim();
+    if (kk === 'first') { k = 0; settle(); } if (kk === 'last') { k = ops.length; settle(); }
+    if (kk === 'back' && k > 0) startAnim(k - 1, -1); if (kk === 'fwd' && k < ops.length) startAnim(k, +1);
+    if (kk === 'play') { k = 0; settle(); playing = true; playT = 0.4; } });
+  buttons(gT, [['del', 'remove this step'], ['clear', 'clear all']], kk => { if (anim) finishAnim(); if (kk === 'clear') { ops = []; k = 0; } else if (k > 0) { ops.splice(k - 1, 1); k--; } settle(); changed(); });
+  const gP = group('Examples');
+  const PRE = { bell: [2, 'h0 cx01'], ghz: [3, 'h0 cx01 cx12'], uni: [3, 'h0 h1 h2'], hzh: [1, 'h0 z0 h0'], hh: [1, 'h0 h0'], kick: [2, 'x1 h0 h1 cx01 h0'],
+    grover: [2, 'h0 h1 cz01 h0 h1 x0 x1 cz01 x0 x1 h0 h1'], qft: [2, 'x1 h0 cp10 h1 swap01'], decohere: [1, 'h0 dephase0 dephase0 dephase0 h0'], measure: [2, 'h0 cx01 m0'] };
+  buttons(gP, [['bell', 'Bell pair'], ['ghz', 'GHZ'], ['uni', 'all superposed'], ['hh', 'H·H = I'], ['hzh', 'HZH = X'], ['kick', 'phase kickback'], ['grover', 'Grover (2 qubits)'], ['qft', 'QFT of |01⟩'], ['decohere', 'decoherence'], ['measure', 'measure half a Bell pair']], key => {
+    const [nn, spec] = PRE[key]; st.n = nn; nB.forEach(b => b.classList.toggle('on', +b.dataset.k === nn)); st.tq = 0; st.cq = -1; rebuildSel(); buildBloch(); buildDmSel();
+    ops = spec.split(' ').map(tok => { const m = tok.match(/^([a-z]+)(\d)(\d)?$/); const g = m[1], a = +m[2], b = m[3] !== undefined ? +m[3] : null;
+      if (g === 'cx' || g === 'cz') return { g: g[1], c: a, t: b }; if (g === 'cp') return { g: 'p', c: a, t: b, a: PI / 2 }; if (g === 'swap') return { g: 'swap', c: a, t: b };
+      if (g === 'dephase') return { g: 'dephase', t: a, p: 0.4 }; if (g === 'm') return { g: 'm', t: a, o: Math.random() < 0.5 ? 0 : 1 }; return { g, t: a }; });
+    k = 0; settle(); playing = true; playT = 0.5; changed(); });
+  const gV = group('View');
+  buttons(gV, [['wheels', 'phase wheels'], ['waves', 'amplitude waves']], () => {}, st.view, 'view');
+  const gX = group('Take it to Python');
+  const codeBtn = buttons(gX, [['code', 'copy as code']], () => { const s = code(); const done = () => { codeBtn[0].textContent = '✓ ' + tr('copied'); setTimeout(() => codeBtn[0].textContent = tr('copy as code'), 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(s).then(done, done); else done(); codePre.textContent = s; codePre.style.display = ''; });
+  const codePre = el('pre', 'code'); codePre.style.display = 'none'; gX.appendChild(codePre);
+  const msg = el('div', 'note'); gX.appendChild(msg); const note = s => { msg.textContent = s; setTimeout(() => msg.textContent = '', 2500); };
+  function buildDmSel() { dmSel.innerHTML = ''; buttons(dmSel, [['full', tr('whole register')], ...[...Array(st.n).keys()].map(q => ['q' + q, tr('qubit') + ' ' + q])], v => { st.rho = v; }, st.rho = 'full'); }
+  buildBloch(); buildDmSel();
+
+  function code() { const noisy = ops.some(o => isNoise(o.g));
+    const angTxt = a => { const s = ang(a); return /π/.test(s) ? s.replace('−', '-').replace(/^(-?)π/, '$1pi').replace(/^(-?\d+)π/, '$1*pi').replace(/π/, 'pi') : num(a, 6).replace('−', '-'); };
+    const lines = [], parts = [];
+    for (const o of ops) { const t = o.t, c = o.c;
+      if (o.g === 'm') { parts.push(`.measure(${t}, key="m${parts.length}")`); continue; }
+      if (isNoise(o.g)) { parts.push(`.${{ dephase: 'phase_flip', depol: 'depolarizing', damp: 'amplitude_damping' }[o.g]}(${t}, ${num(o.p, 3)})`); continue; }
+      if (o.g === 'swap') { parts.push(`.swap(${c}, ${t})`); continue; }
+      const a = o.a !== undefined ? angTxt(o.a) : null;
+      if (c === undefined) { if (o.g === 'sx') parts.push(`.rx(${t}, pi/2)`); else parts.push(`.${o.g}(${t}${a ? ', ' + a : ''})`); continue; }
+      const map = { x: 'cx', y: 'cy', z: 'cz', rx: 'crx', ry: 'cry', rz: 'crz', p: 'cp' };
+      if (map[o.g]) { parts.push(`.${map[o.g]}(${c}, ${t}${a ? ', ' + a : ''})`); continue; }
+      const cp = { s: 'pi/2', sdg: '-pi/2', t: 'pi/4', tdg: '-pi/4' }; if (cp[o.g]) { parts.push(`.cp(${c}, ${t}, ${cp[o.g]})`); continue; }
+      if (o.g === 'h') { parts.push(`.ry(${t}, -pi/4).cz(${c}, ${t}).ry(${t}, pi/4)`); continue; }
+      if (o.g === 'sx') { parts.push(`.crx(${c}, ${t}, pi/2).p(${c}, pi/4)`); continue; } }
+    lines.push('from math import pi', 'from sia import hdqs', '', `q = hdqs${noisy ? '.dm' : ''}(${st.n})` + (parts.length ? parts.map(p => '\\\n    ' + p).join('') : ''));
+    if (psi0) lines.push('# this page started from a state you passed in; set it with q.initialize(...) first');
+    if (ops.some(o => o.g === 'm')) lines.push('# measurements here pick an outcome at random, as in the page');
+    lines.push('q.draw("c,b,a,d")'); return lines.join('\n'); }
+
+  // ---------- animation ----------
+  let shown = stateAt(k), settled = clone(shown), cache = { E: null };
+  function settle() { anim = null; if (!playing) st.row = st.row; k = Math.max(0, Math.min(k, ops.length)); const S = stateAt(k);
+    const D = dimOf(); flashRows = new Set(); if (prevPsi && prevPsi.re.length === D) for (let i = 0; i < D; i++) if (Math.hypot(S.re[i] - prevPsi.re[i], S.im[i] - prevPsi.im[i]) > 1e-6) flashRows.add(i);
+    prevPsi = { re: S.re.slice(), im: S.im.slice() }; flashT = performance.now(); shown = S; settled = S; cache.E = null; }
+  function startAnim(at, dir) { st.row = -1; const from = stateAt(at), to = stateAt(at + 1); anim = { at, dir, from, to, op: ops[at], t: 0 }; prevPsi = { re: (dir > 0 ? from : to).re.slice(), im: (dir > 0 ? from : to).im.slice() }; }
+  function finishAnim() { if (!anim) return; k = anim.dir > 0 ? anim.at + 1 : anim.at; settle(); }
+  function animState() { const a = anim, S = clone(a.from), e = a.t < 0.5 ? 2 * a.t * a.t : 1 - 2 * (1 - a.t) ** 2, f = a.dir > 0 ? e : 1 - e; applyOp(S, a.op, f); return S; }
+
+  // ---------- drawing helpers ----------
+  const hueRGB = ph => phaseRGB(ph, isDark());
+  function cellColor(re, im, maxm) { const m = Math.min(1, Math.hypot(re, im) / (maxm || 1)); if (m < 1e-6) return C.panel; const [r, g, b] = hueRGB(Math.atan2(im, re));
+    const bg = rgb(C.panel), a = Math.pow(m, 0.6); return `rgb(${Math.round(bg[0] + (r * 255 - bg[0]) * a)},${Math.round(bg[1] + (g * 255 - bg[1]) * a)},${Math.round(bg[2] + (b * 255 - bg[2]) * a)})`; }
+  const opLabel = o => { if (!o) return ''; const nm = { h: 'H', x: 'X', y: 'Y', z: 'Z', s: 'S', sdg: 'S†', t: 'T', tdg: 'T†', sx: '√X', rx: 'Rx', ry: 'Ry', rz: 'Rz', p: 'P', swap: 'SWAP', m: 'M', dephase: 'deph', depol: 'depol', damp: 'T₁' }[o.g] || o.g;
+    return (o.c !== undefined && o.g !== 'swap' ? 'C' : '') + nm + (o.a !== undefined ? '(' + ang(o.a) + ')' : '') + (o.p !== undefined ? ' p=' + num(o.p, 2) : ''); };
+  function drawCircuit() { const s = fit(cvC), g = s.g, n = st.n, top = 22, gap = Math.min(46, (s.h - 34) / Math.max(1, n)), x0 = 44, colW = 52, cols = ops.length;
+    const scroll = Math.max(0, (k + 1) * colW + x0 + 20 - s.w); g.font = '13px system-ui'; g.textBaseline = 'middle';
+    for (let q = 0; q < n; q++) { const y = top + gap * q + gap / 2; g.strokeStyle = C.muted; g.lineWidth = 1; g.beginPath(); g.moveTo(x0 - 6, y); g.lineTo(s.w - 6, y); g.stroke();
+      g.fillStyle = q === st.tq ? C.c1 : C.ink; g.fillText('q' + q, 8, y); }
+    const cur = anim ? (anim.dir > 0 ? anim.at + anim.t : anim.at + 1 - anim.t) : k;
+    g.fillStyle = A(C.c1, 0.1); g.fillRect(x0 + cur * colW - scroll - 2, 4, 3, s.h - 8);
+    ops.forEach((o, i) => { const x = x0 + i * colW + colW / 2 - scroll; if (x < x0 - colW || x > s.w + colW) return; const fade = i >= Math.ceil(cur - 1e-6); g.globalAlpha = fade ? 0.35 : 1;
+      const yq = q => top + gap * q + gap / 2, col = isNoise(o.g) ? C.c4 : o.g === 'm' ? C.c3 : ['rx', 'ry', 'rz', 'p'].includes(o.g) ? C.c4 : C.c1;
+      if (o.c !== undefined) { g.strokeStyle = C.c2; g.lineWidth = 2; g.beginPath(); g.moveTo(x, yq(o.c)); g.lineTo(x, yq(o.t)); g.stroke();
+        if (o.g === 'swap') { [o.c, o.t].forEach(q => { g.beginPath(); g.moveTo(x - 6, yq(q) - 6); g.lineTo(x + 6, yq(q) + 6); g.moveTo(x + 6, yq(q) - 6); g.lineTo(x - 6, yq(q) + 6); g.stroke(); }); g.globalAlpha = 1; return; }
+        g.fillStyle = C.c2; g.beginPath(); g.arc(x, yq(o.c), 5, 0, TAU); g.fill(); }
+      if (o.g === 'x' && o.c !== undefined) { g.strokeStyle = C.c2; g.lineWidth = 2; g.beginPath(); g.arc(x, yq(o.t), 11, 0, TAU); g.moveTo(x - 11, yq(o.t)); g.lineTo(x + 11, yq(o.t)); g.moveTo(x, yq(o.t) - 11); g.lineTo(x, yq(o.t) + 11); g.stroke(); }
+      else { const lab = opLabel(Object.assign({}, o, { c: undefined, p: undefined })).replace(/\(.*\)/, ''); const w = Math.max(30, g.measureText(lab).width + 12); g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, yq(o.t) - 13, w, 26, 6) : g.rect(x - w / 2, yq(o.t) - 13, w, 26); g.fill();
+        g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(o.g === 'm' ? 'M→' + o.o : lab, x, yq(o.t) + 1); g.textAlign = 'left'; }
+      g.globalAlpha = 1; });
+    g.fillStyle = C.muted; g.font = '12px system-ui'; g.fillText(tr('step') + ' ' + k + ' / ' + cols + (ops[k - 1] ? '   ·   ' + opLabel(ops[k - 1]) + (ops[k - 1].c !== undefined && ops[k - 1].g !== 'swap' ? ` (q${ops[k - 1].c}→q${ops[k - 1].t})` : ` (q${ops[k - 1].t})`) : ''), x0, 10); g.textBaseline = 'alphabetic';
+    cvC.onclick = e => { const r = cvC.getBoundingClientRect(), x = e.clientX - r.left + scroll - x0; const i = Math.floor(x / colW); if (i >= 0 && i < ops.length) { if (anim) finishAnim(); k = i + 1; settle(); } };
+    cvC.style.height = Math.max(90, 34 + gap * n) + 'px'; }
+
+  // ---------- equation U·ψ = ψ′ ----------
+  function drawEquation(S) { const s = fit(cvE), g = s.g, D = dimOf(), op = anim ? anim.op : ops[k - 1];
+    const before = anim ? (anim.dir > 0 ? anim.from : anim.to) : (k > 0 ? stateAt(k - 1) : null);
+    if (!op || !before) { g.fillStyle = C.muted; g.font = '14px system-ui'; g.fillText(tr('Start: |0…0⟩. Choose a qubit and press a gate.'), 16, 30); eqText.textContent = ''; return; }
+    const after = anim ? (anim.dir > 0 ? anim.to : anim.from) : S;
+    if (op.g === 'm' || isNoise(op.g)) { g.fillStyle = C.ink; g.font = '15px system-ui';
+      const lines = op.g === 'm' ? [tr('Measurement of qubit') + ' ' + op.t + ' → ' + op.o, 'ψ′ = P' + op.o + ' ψ / ‖P' + op.o + ' ψ‖,   ρ′ = P ρ P / tr(P ρ)', tr('Amplitudes with qubit') + ' ' + op.t + ' = ' + (1 - op.o) + ' ' + tr('become 0; the rest are rescaled.')]
+        : [tr({ dephase: 'Dephasing', depol: 'Depolarising', damp: 'Energy loss (amplitude damping)' }[op.g]) + ' ' + tr('on qubit') + ' ' + op.t + ',  p = ' + num(op.p, 2),
+          { dephase: 'ρ′ = (1 − p) ρ + p Z ρ Z', depol: 'ρ′ = (1 − p) ρ + p I/2 ⊗ tr_q ρ', damp: 'ρ′ = K₀ ρ K₀† + K₁ ρ K₁†,  K₀ = diag(1, √(1−p)),  K₁ = √p |0⟩⟨1|' }[op.g],
+          tr('A channel is not a single matrix acting on |ψ⟩: watch the density matrix. Off-diagonal terms shrink; no state vector describes the result.')];
+      g.fillText(lines[0], 16, 30); g.font = '16px system-ui'; g.fillText(lines[1], 16, 58); cvE.style.height = '84px'; eqText.textContent = lines[2]; return; }
+    const U = cache.E && cache.E.op === op ? cache.E.U : (cache.E = { op, U: fullMatrix(op) }).U;
+    let r = st.row; if (r < 0 || r >= D) r = autoRow(U, before, after);
+    const pad = 12, lab = D <= 8 ? 40 : 34, avail = Math.min(s.h - 2 * pad - 18, (s.w - 2 * pad - lab - 90) / (D + 2.4)), cs = Math.max(8, Math.floor(avail)), y0 = pad + 16;
+    const xU = pad + lab, xV = xU + cs * D + 26, xW = xV + cs + 30; g.font = (cs >= 30 ? 12 : 10) + 'px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let i = 0; i < D; i++) { g.fillStyle = i === r ? C.c1 : C.muted; g.textAlign = 'right'; g.fillText('|' + bits(i) + '⟩', xU - 6, y0 + i * cs + cs / 2); g.textAlign = 'center';
+      for (let j = 0; j < D; j++) { const n = i * D + j, re = U.re[n], im = U.im[n]; g.fillStyle = cellColor(re, im, 1); g.fillRect(xU + j * cs + 0.5, y0 + i * cs + 0.5, cs - 1, cs - 1);
+        if (cs >= 34 && Math.hypot(re, im) > 1e-9) { g.fillStyle = C.ink; g.fillText(cstr(re, im).replace(/ /g, ''), xU + j * cs + cs / 2, y0 + i * cs + cs / 2); } } }
+    g.strokeStyle = C.c1; g.lineWidth = 2; g.strokeRect(xU, y0 + r * cs, cs * D, cs);
+    const mx = v => { let m = 0; for (let i = 0; i < D; i++) m = Math.max(m, Math.hypot(v.re[i], v.im[i])); return m || 1; };
+    const col = (x, v, hl, label) => { for (let i = 0; i < D; i++) { g.fillStyle = cellColor(v.re[i], v.im[i], 1); g.fillRect(x + 0.5, y0 + i * cs + 0.5, cs - 1, cs - 1); g.strokeStyle = C.edge; g.lineWidth = 1; g.strokeRect(x + 0.5, y0 + i * cs + 0.5, cs - 1, cs - 1);
+        if (cs >= 34 && Math.hypot(v.re[i], v.im[i]) > 5e-4) { g.fillStyle = C.ink; g.fillText(cstr(v.re[i], v.im[i]).replace(/ /g, ''), x + cs / 2, y0 + i * cs + cs / 2); }
+        if (hl && hl(i)) { g.strokeStyle = C.c2; g.lineWidth = 2; g.strokeRect(x + 1, y0 + i * cs + 1, cs - 2, cs - 2); } }
+      g.fillStyle = C.muted; g.fillText(label, x + cs / 2, y0 - 9); };
+    g.strokeStyle = C.edge; g.lineWidth = 1; g.strokeRect(xU + 0.5, y0 + 0.5, cs * D - 1, cs * D - 1); g.fillStyle = C.muted; g.fillText('U = ' + opLabel(op), xU + cs * D / 2, y0 - 9);
+    col(xV, before, j => Math.hypot(U.re[r * D + j], U.im[r * D + j]) > 1e-9 && Math.hypot(before.re[j], before.im[j]) > 1e-9, '|ψ⟩');
+    col(xW, after, i => i === r, '|ψ′⟩');
+    g.fillStyle = C.ink; g.font = '20px system-ui'; g.fillText('·', xV - 13, y0 + D * cs / 2); g.fillText('=', xW - 15, y0 + D * cs / 2);
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    cvE.onclick = e => { const b = cvE.getBoundingClientRect(), y = e.clientY - b.top - y0; const i = Math.floor(y / cs); if (i >= 0 && i < D) st.row = i; };
+    cvE.style.height = Math.max(200, y0 + D * cs + 14) + 'px';
+    // the selected row written out
+    const terms = []; let sr = 0, si = 0; for (let j = 0; j < D; j++) { const u = [U.re[r * D + j], U.im[r * D + j]], p = [before.re[j], before.im[j]]; if (Math.hypot(...u) < 1e-9 || Math.hypot(...p) < 1e-9) continue; const z = cmul(u, p); sr += z[0]; si += z[1];
+      terms.push(`(${cstr(u[0], u[1])})(${cstr(p[0], p[1])})`); }
+    eqText.textContent = `ψ′(${bits(r)}) = Σⱼ U(${bits(r)}, j) ψ(j) = ` + (terms.length ? terms.join(' + ') : '0') + ' = ' + cstr(sr, si) + (terms.length > 1 && Math.hypot(sr, si) < 1e-6 ? '   ← ' + tr('the contributions cancel') : ''); }
+
+  function autoRow(U, before, after) { // prefer a row whose contributions cancel (interference), else the largest amplitude
+    const D = dimOf(); let best = 0, bv = -1, cancel = -1;
+    for (let i = 0; i < D; i++) { let nz = 0; for (let j = 0; j < D; j++) if (Math.hypot(U.re[i * D + j], U.im[i * D + j]) > 1e-9 && Math.hypot(before.re[j], before.im[j]) > 1e-9) nz++;
+      const v = Math.hypot(after.re[i], after.im[i]); if (nz >= 2 && v < 1e-6 && cancel < 0) cancel = i; if (v > bv) { bv = v; best = i; } }
+    return cancel >= 0 ? cancel : best; }
+  // ---------- amplitude wheels / waves ----------
+  function drawWheels(S, time) { const D = dimOf(), cols = D <= 4 ? D : 4, rows = Math.ceil(D / cols), wantH = st.view === 'waves' ? Math.max(220, D * 34 + 20) : rows * Math.min(cvW.clientWidth / cols * 0.92, 230) + 8;
+    cvW.style.height = Math.round(wantH) + 'px'; const s = fit(cvW), g = s.g, cw = s.w / cols, ch = (s.h - 6) / rows, R = Math.min(cw, ch) * 0.36;
+    const op = anim ? anim.op : ops[k - 1], before = op && !isNoise(op.g) && op.g !== 'm' ? (anim ? (anim.dir > 0 ? anim.from : anim.to) : (k > 0 ? stateAt(k - 1) : null)) : null; const U = before && (cache.E && cache.E.op === op ? cache.E.U : null);
+    let r = st.row; if (r < 0 || r >= D) { if (U) r = autoRow(U, before, anim ? (anim.dir > 0 ? anim.to : anim.from) : S); else { let best = 0, bv = -1; for (let i = 0; i < D; i++) { const v = Math.hypot(S.re[i], S.im[i]); if (v > bv) { bv = v; best = i; } } r = best; } }
+    if (st.view === 'waves') { const lh = (s.h - 8) / D, x0 = 64; for (let i = 0; i < D; i++) { const y = 4 + lh * i + lh / 2, a = Math.hypot(S.re[i], S.im[i]), ph = Math.atan2(S.im[i], S.re[i]);
+        g.fillStyle = i === r ? C.c1 : C.muted; g.font = '12px system-ui'; g.fillText('|' + bits(i) + '⟩', 6, y + 4); g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0, y); g.lineTo(s.w - 8, y); g.stroke();
+        if (a < 1e-4) continue; const [cr, cg, cb] = hueRGB(ph); g.strokeStyle = `rgb(${cr * 210 | 0},${cg * 210 | 0},${cb * 210 | 0})`; g.lineWidth = 2; g.beginPath();
+        for (let px = 0; px <= s.w - 8 - x0; px += 2) { const v = a * Math.cos(px / 22 - time * 2.4 + ph); px ? g.lineTo(x0 + px, y - v * lh * 0.45) : g.moveTo(x0 + px, y - v * lh * 0.45); } g.stroke(); }
+      g.fillStyle = C.muted; g.font = '11px system-ui'; g.fillText(tr('height = |amplitude|, shift = phase (all turn at the same rate)'), x0, s.h - 2); return; }
+    for (let i = 0; i < D; i++) { const cx0 = cw * (i % cols) + cw / 2, cy0 = ch * Math.floor(i / cols) + ch / 2 - 6, a = [S.re[i], S.im[i]], m = Math.hypot(...a);
+      g.strokeStyle = i === r ? C.c1 : C.edge; g.lineWidth = i === r ? 2 : 1; g.beginPath(); g.arc(cx0, cy0, R, 0, TAU); g.stroke();
+      g.strokeStyle = C.grid; g.beginPath(); g.moveTo(cx0 - R, cy0); g.lineTo(cx0 + R, cy0); g.moveTo(cx0, cy0 - R); g.lineTo(cx0, cy0 + R); g.stroke();
+      if (i === r && U) { let x = cx0, y = cy0; const pal = [C.c2, C.c3, C.c4, C.c1]; let c = 0;
+        for (let j = 0; j < D; j++) { const u = [U.re[r * D + j], U.im[r * D + j]], p = [before.re[j], before.im[j]]; if (Math.hypot(...u) < 1e-9 || Math.hypot(...p) < 1e-9) continue; const z = cmul(u, p);
+          const nx = x + z[0] * R, ny = y - z[1] * R; g.strokeStyle = A(pal[c % 4], 0.9); g.lineWidth = 2.5; g.setLineDash([]); g.beginPath(); g.moveTo(x, y); g.lineTo(nx, ny); g.stroke();
+          g.fillStyle = pal[c % 4]; g.beginPath(); g.arc(nx, ny, 3, 0, TAU); g.fill(); x = nx; y = ny; c++; } }
+      if (m > 1e-4) { const [cr, cg, cb] = hueRGB(Math.atan2(a[1], a[0])); const colr = `rgb(${cr * 200 | 0},${cg * 200 | 0},${cb * 200 | 0})`; const ex = cx0 + a[0] * R, ey = cy0 - a[1] * R;
+        g.strokeStyle = colr; g.lineWidth = 3; g.beginPath(); g.moveTo(cx0, cy0); g.lineTo(ex, ey); g.stroke(); g.fillStyle = colr; g.beginPath(); g.arc(ex, ey, 4, 0, TAU); g.fill(); }
+      g.fillStyle = i === r ? C.c1 : C.ink; g.font = (D > 8 ? 11 : 12) + 'px system-ui'; g.textAlign = 'center'; g.fillText('|' + bits(i) + '⟩  ' + (m * m * 100).toFixed(m * m > 0.995 || m * m < 0.005 ? 0 : 1) + '%', cx0, cy0 + R + 14); g.textAlign = 'left'; }
+    cvW.onclick = e => { const b = cvW.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top; const i = Math.floor(y / ch) * cols + Math.floor(x / cw); if (i >= 0 && i < D) st.row = i; }; }
+
+  // ---------- Bloch spheres and Q-sphere ----------
+  function drawBloch(S) { for (let q = 0; q < st.n; q++) { const { V, lab } = blochViews[q] || {}; if (!V) continue; V.begin(); V.sphere(); const red = reduced(S.R, q), b = red.bloch, L = Math.hypot(...b);
+      if (L > 0.02) V.arrow([0, 0, 0], b, C.c1, 3); V.dot(b, 3.5, C.c1); lab.textContent = 'q' + q + '   |r| = ' + num(L, 2) + (L < 0.02 ? '  · ' + tr('maximally entangled or mixed') : ''); } }
+  function drawQ(S) { const V = VQ; V.begin(); const g = V.g, D = dimOf(), n = st.n;
+    V.circle(t => [Math.cos(t), Math.sin(t), 0], A(C.muted, 0.5), 1, true); V.circle(t => [Math.cos(t), 0, Math.sin(t)], A(C.muted, 0.35), 0.8, true, [3, 3]);
+    const groups = {}; for (let i = 0; i < D; i++) { const w = bits(i).split('').filter(c => c === '1').length; (groups[w] = groups[w] || []).push(i); }
+    const items = []; for (let i = 0; i < D; i++) { const w = bits(i).split('').filter(c => c === '1').length, th = n ? PI * w / n : 0, grp = groups[w], idx = grp.indexOf(i), phi = grp.length > 1 ? TAU * idx / grp.length + 0.3 : 0;
+      const p = [Math.sin(th) * Math.cos(phi), Math.sin(th) * Math.sin(phi), Math.cos(th)], pr = S.R.re[i * D + i], ph = Math.atan2(S.im[i], S.re[i]); items.push({ i, p, pr, ph, d: V.P(p)[2] }); }
+    if (n > 1) for (let w = 1; w < n; w++) { const z = Math.cos(PI * w / n), r = Math.sin(PI * w / n); V.circle(t => [r * Math.cos(t), r * Math.sin(t), z], A(C.muted, 0.25), 0.8, true, [2, 3]); }
+    items.sort((a, b) => b.d - a.d).forEach(it => { if (it.pr < 1e-4) { V.dot(it.p, 2, A(C.muted, 0.4)); return; } const [cr, cg, cb] = hueRGB(S.pure ? it.ph : 0); const col = S.pure ? `rgb(${cr * 200 | 0},${cg * 200 | 0},${cb * 200 | 0})` : C.muted;
+      V.seg([0, 0, 0], it.p, A(col, 0.7), 1.4); V.dot(it.p, 4 + 16 * Math.sqrt(it.pr), col); V.label(it.p.map(x => x * 1.22), '|' + bits(it.i) + '⟩', C.ink, '11px system-ui'); }); }
+
+  // ---------- tables ----------
+  let lastTable = '';
+  function drawTables(S, settledNow) { const D = dimOf(), pur = purity(S.R);
+    let html = '';
+    if (pur < 0.9999) { html = `<p class="note">${tr('The state is mixed (purity tr ρ² =')} ${num(pur, 3)}): ${tr('no single state vector describes it. Probabilities (the diagonal of ρ):')}</p><table class="t sv"><tr><th>${tr('basis')}</th><th>${tr('probability')}</th><th></th></tr>`;
+      for (let i = 0; i < D; i++) { const p = S.R.re[i * D + i]; html += `<tr><td>|${bits(i)}⟩</td><td>${num(p, 3)}</td><td><span class="bar" style="width:${(p * 100).toFixed(1)}%"></span></td></tr>`; } html += '</table>'; }
+    else { html = `<table class="t sv"><tr><th>${tr('basis')}</th><th>${tr('amplitude')}</th><th>${tr('probability')}</th><th>${tr('phase')}</th></tr>`;
+      for (let i = 0; i < D; i++) { const re = S.re[i], im = S.im[i], m = Math.hypot(re, im), p = m * m, cls = settledNow && flashRows.has(i) && performance.now() - flashT < 1400 ? ' class="chg"' : '';
+        html += `<tr${cls}><td>|${bits(i)}⟩</td><td>${m < 5e-4 ? '0' : cstr(re, im)}</td><td><span class="bar" style="width:${(p * 100).toFixed(1)}%"></span> ${num(p, 3)}</td><td>${m < 5e-4 ? '—' : ang(Math.atan2(im, re))}</td></tr>`; } html += '</table>'; }
+    if (html !== lastTable) { svT.innerHTML = html; lastTable = html; }
+    // density matrix
+    const s = fit(cvD), g = s.g; let M, Dm, labels;
+    if (st.rho === 'full') { M = S.R; Dm = D; labels = [...Array(D).keys()].map(bits); }
+    else { const q = +st.rho.slice(1), red = reduced(S.R, q); M = { re: Float64Array.from([red.r00, red.r01r, red.r01r, red.r11]), im: Float64Array.from([0, red.r01i, -red.r01i, 0]) }; Dm = 2; labels = ['0', '1']; }
+    const lab = Dm <= 8 ? 44 : 38, cs = Math.max(10, Math.floor(Math.min((s.w - lab - 20) / Dm, Dm <= 4 ? 64 : 400 / Dm))), x0 = lab, y0 = 22;
+    g.font = (cs >= 40 ? 12 : 10) + 'px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let i = 0; i < Dm; i++) { g.fillStyle = C.muted; g.textAlign = 'right'; g.fillText('|' + labels[i] + '⟩', x0 - 5, y0 + i * cs + cs / 2); g.textAlign = 'center'; if (Dm <= 8) { g.save(); g.translate(x0 + i * cs + cs / 2, y0 - 8); g.fillText('⟨' + labels[i] + '|', 0, 0); g.restore(); }
+      for (let j = 0; j < Dm; j++) { const n = i * Dm + j, re = M.re[n], im = M.im[n]; g.fillStyle = cellColor(re, im, 0.5); g.fillRect(x0 + j * cs + 0.5, y0 + i * cs + 0.5, cs - 1, cs - 1);
+        if (i === j) { g.strokeStyle = A(C.ink, 0.25); g.strokeRect(x0 + j * cs + 0.5, y0 + i * cs + 0.5, cs - 1, cs - 1); }
+        if (cs >= 40 && Math.hypot(re, im) > 5e-4) { g.fillStyle = C.ink; g.fillText(cstr(re, im).replace(/ /g, ''), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2); } } }
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic'; cvD.style.height = (y0 + Dm * cs + 10) + 'px';
+    cvD.onclick = e => { const b = cvD.getBoundingClientRect(), i = Math.floor((e.clientY - b.top - y0) / cs), j = Math.floor((e.clientX - b.left - x0) / cs); if (i >= 0 && j >= 0 && i < Dm && j < Dm) dmPick = [i, j]; };
+    let txt = (dmPick && dmPick[0] < Dm && dmPick[1] < Dm ? `ρ(${labels[dmPick[0]]}, ${labels[dmPick[1]]}) = ${cstr(M.re[dmPick[0] * Dm + dmPick[1]], M.im[dmPick[0] * Dm + dmPick[1]])}   ·   ` : '');
+    if (!anim || ++entTick % 6 === 0) { const ev = st.rho === 'full' ? eigH(S.R) : null; cacheEnt = { pur: st.rho === 'full' ? pur : (() => { let s2 = 0; for (let n = 0; n < 4; n++) s2 += M.re[n] ** 2 + M.im[n] ** 2; return s2; })(), S: ev ? H2(ev) : null,
+      ent: [...Array(st.n).keys()].map(q => { const L = Math.hypot(...reduced(S.R, q).bloch); return H2([(1 + L) / 2, (1 - L) / 2]); }) }; }
+    txt += tr('purity') + ' tr ρ² = ' + num(cacheEnt.pur, 3) + (cacheEnt.S !== null ? '   ·   ' + tr('entropy') + ' S(ρ) = ' + num(cacheEnt.S, 3) + ' ' + tr('bits') : '') + '   ·   ' + tr('entropy of each qubit') + ': ' + cacheEnt.ent.map((e, q) => 'q' + q + ' ' + num(e, 2)).join(', ');
+    dmText.textContent = txt; }
+  let dmPick = null, entTick = 0, cacheEnt = { pur: 1, S: 0, ent: [] };
+
+  // ---------- frame ----------
+  let time = 0;
+  this.frame = function (dt) { time += dt;
+    if (anim) { anim.t += dt / 1.1; if (anim.t >= 1) { finishAnim(); } }
+    if (!anim && playing) { playT -= dt; if (playT <= 0) { if (k < ops.length) { startAnim(k, +1); playT = 1.25; } else playing = false; } }
+    const S = anim ? animState() : shown;
+    drawCircuit(); drawEquation(S); drawWheels(S, time); drawBloch(S); drawQ(S); drawTables(S, !anim); };
+  this.debug = (n, list) => { if (n) { CTRL.n.set(n); ops = list.map(o => Object.assign({}, o)); k = ops.length; settle(); }
+    const S = stateAt(ops.length); return { re: [...S.re], im: [...S.im], Rre: [...S.R.re], Rim: [...S.R.im], code: code() }; };
+  settle();
+}
+let X = null;
+X = new App();
+toolbar();
+
+let last = performance.now();
+function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; try { X.frame(dt); recordFrame(); } catch (e) { console.error(e); throw e; } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.__sia_explore = { state: () => X, frame: dt => X.frame(dt || 0.016) };
+})();
+</script></body></html>

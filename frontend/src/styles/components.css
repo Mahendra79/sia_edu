@@ -229,8 +229,10 @@ button:disabled,
   line-height: 1;
 }
 
+/* Blue in both themes. It used to mix with --bg-secondary, which is white in
+   light mode, giving white text on light grey ("greyed out"). */
 .toast-info {
-  background: color-mix(in srgb, var(--bg-secondary) 88%, #0d1117);
+  background: color-mix(in srgb, var(--accent) 80%, #0b1b3f);
 }
 
 .toast-success {
