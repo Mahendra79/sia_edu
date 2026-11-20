@@ -1,13 +1,15 @@
-export const DEFAULT_COURSE_IMAGE_URL =
-  "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/971a437a-f346-4419-ae5a-3f0febd3a494.jpeg";
+// Course thumbnails are served as compressed 960px WebP files from /public/images/courses.
+// The originals (1.7–2.5 MB PNGs each) made the home page download ~14 MB of images.
+// To add or replace one: export at 960px wide as WebP (quality ~78) and map the course id here.
+export const DEFAULT_COURSE_IMAGE_URL = "/images/courses/default.webp";
 
 export const COURSE_IMAGE_URLS_BY_ID = {
-  52: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_49_43%20PM.png", // Advanced Quantum Computing using HDQS
-  56: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_46_41%20PM.png", // Quantum Gates and Circuit Design
-  58: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_40_14%20PM.png", // AI & ML
-  60: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_09_19%20PM.png", // Quantum Algorithms and Complex Computations
-  59: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_36_55%20PM.png", // Data Science
-  57: "https://zaiucwqquisiqvrihizo.supabase.co/storage/v1/object/public/sia_thumbnails/ChatGPT%20Image%20Jun%202,%202026,%2002_41_29%20PM.png", // Agentic AI
+  52: "/images/courses/52.webp", // Advanced Quantum Computing using HDQS
+  56: "/images/courses/56.webp", // Quantum Gates and Circuit Design
+  58: "/images/courses/58.webp", // AI & ML
+  60: "/images/courses/60.webp", // Quantum Algorithms and Complex Computations
+  59: "/images/courses/59.webp", // Data Science
+  57: "/images/courses/57.webp", // Agentic AI
 };
 
 export function getCourseImageUrl(course) {

@@ -295,6 +295,12 @@ export default function Chatbot() {
     setInput("");
   };
 
+  // Hidden during quiz attempts: the floating button covers quiz content, and an AI
+  // assistant should not be one click away during a timed assessment.
+  if (/^\/user\/lms\/[^/]+\/quiz\//.test(location.pathname)) {
+    return null;
+  }
+
   return (
     <div className="chatbot-wrapper">
       <div className={`chatbot-modal ${open ? "open" : ""}`}>

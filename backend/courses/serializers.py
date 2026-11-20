@@ -735,24 +735,100 @@ class LearnerQuizSummarySerializer(serializers.ModelSerializer):
         return obj.attempts.filter(user=self.context["request"].user, is_passed=True, status=QuizAttempt.STATUS_SUBMITTED).exists()
 
 
+def _is_answer_revealed(answer):
+    """The correct option and explanation are only revealed once an answer is locked
+    (committed or timed out) or the whole attempt has been submitted."""
+    return bool(answer.locked_at) or answer.attempt.status == QuizAttempt.STATUS_SUBMITTED
+
+
+def _correct_option(question):
+    # Works with prefetched options (no extra query) as well as without.
+    return next((option for option in question.options.all() if option.is_correct), None)
+
+
 class QuizAttemptAnswerSerializer(serializers.ModelSerializer):
     question_id = serializers.IntegerField(source="question.id", read_only=True)
     selected_option_id = serializers.IntegerField(source="selected_option.id", read_only=True)
     correct_option_id = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
+    is_correct = serializers.SerializerMethodField()
+    explanation = serializers.SerializerMethodField()
+    reference_lesson_id = serializers.SerializerMethodField()
+    reference_module_number = serializers.SerializerMethodField()
+    reference_lesson_title = serializers.SerializerMethodField()
+    reference_timestamp_seconds = serializers.SerializerMethodField()
 
     class Meta:
         model = QuizAttemptAnswer
-        fields = ("id", "question_id", "selected_option_id", "correct_option_id", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds")
+        fields = (
+            "id",
+            "question_id",
+            "selected_option_id",
+            "correct_option_id",
+            "is_locked",
+            "is_answered",
+            "is_correct",
+            "marks_awarded",
+            "time_taken_seconds",
+            "explanation",
+            "reference_lesson_id",
+            "reference_module_number",
+            "reference_lesson_title",
+            "reference_timestamp_seconds",
+        )
+
+    def get_is_locked(self, obj):
+        return _is_answer_revealed(obj)
 
     def get_correct_option_id(self, obj):
-        correct_option = obj.question.options.filter(is_correct=True).first()
+        if not _is_answer_revealed(obj):
+            return None
+        correct_option = _correct_option(obj.question)
         return correct_option.id if correct_option else None
+
+    def get_is_correct(self, obj):
+        return obj.is_correct if _is_answer_revealed(obj) else None
+
+    def get_explanation(self, obj):
+        return obj.question.explanation if _is_answer_revealed(obj) else ""
+
+    def _reference_lesson(self, obj):
+        return obj.question.reference_lesson if _is_answer_revealed(obj) else None
+
+    def get_reference_lesson_id(self, obj):
+        lesson = self._reference_lesson(obj)
+        return lesson.id if lesson else None
+
+    def get_reference_module_number(self, obj):
+        lesson = self._reference_lesson(obj)
+        return lesson.module_number if lesson else None
+
+    def get_reference_lesson_title(self, obj):
+        lesson = self._reference_lesson(obj)
+        return lesson.title if lesson else None
+
+    def get_reference_timestamp_seconds(self, obj):
+        return obj.question.reference_timestamp_seconds if self._reference_lesson(obj) else None
+
+
+class QuizQuestionAttemptSerializer(serializers.ModelSerializer):
+    """Question as shown during an attempt: no explanation or lesson reference, since
+    those usually give the answer away. They arrive with the locked answer instead."""
+
+    options = QuizOptionLearnerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = QuizQuestion
+        fields = ("id", "question_text", "marks", "order", "options")
 
 
 class QuizAttemptSerializer(serializers.ModelSerializer):
     quiz_title = serializers.CharField(source="quiz.title", read_only=True)
     time_per_question_seconds = serializers.IntegerField(source="quiz.time_per_question_seconds", read_only=True)
     pass_percentage = serializers.IntegerField(source="quiz.pass_percentage", read_only=True)
+    expires_at = serializers.DateTimeField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+    server_time = serializers.SerializerMethodField()
     questions = serializers.SerializerMethodField()
     answers = QuizAttemptAnswerSerializer(many=True, read_only=True)
 
@@ -766,6 +842,9 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
             "pass_percentage",
             "attempt_number",
             "started_at",
+            "expires_at",
+            "is_expired",
+            "server_time",
             "submitted_at",
             "total_questions",
             "answered_count",
@@ -782,13 +861,19 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
             "answers",
         )
 
+    def get_server_time(self, obj):
+        return timezone.now()
+
     def get_questions(self, obj):
-        questions = obj.quiz.questions.filter(is_active=True).prefetch_related("options").order_by("order", "id")[: obj.total_questions]
-        return QuizQuestionLearnerSerializer(questions, many=True).data
+        # Serve exactly the questions this attempt was created with.
+        question_ids = [answer.question_id for answer in obj.answers.all()]
+        questions = QuizQuestion.objects.filter(id__in=question_ids).prefetch_related("options").order_by("order", "id")
+        return QuizQuestionAttemptSerializer(questions, many=True).data
 
 
 class QuizAttemptResultSerializer(serializers.ModelSerializer):
     quiz_title = serializers.CharField(source="quiz.title", read_only=True)
+    pass_percentage = serializers.IntegerField(source="quiz.pass_percentage", read_only=True)
 
     class Meta:
         model = QuizAttempt
@@ -796,6 +881,7 @@ class QuizAttemptResultSerializer(serializers.ModelSerializer):
             "id",
             "quiz",
             "quiz_title",
+            "pass_percentage",
             "attempt_number",
             "started_at",
             "submitted_at",
@@ -811,6 +897,43 @@ class QuizAttemptResultSerializer(serializers.ModelSerializer):
             "time_taken_seconds",
             "status",
         )
+
+
+class QuizAttemptReviewSerializer(QuizAttemptResultSerializer):
+    """Submitted attempt plus a per-question breakdown for the results screen."""
+
+    review = serializers.SerializerMethodField()
+
+    class Meta(QuizAttemptResultSerializer.Meta):
+        fields = QuizAttemptResultSerializer.Meta.fields + ("review",)
+
+    def get_review(self, obj):
+        answers = (
+            obj.answers.select_related("question", "selected_option", "question__reference_lesson")
+            .prefetch_related("question__options")
+            .order_by("question__order", "question__id")
+        )
+        review = []
+        for answer in answers:
+            question = answer.question
+            correct_option = _correct_option(question)
+            lesson = question.reference_lesson
+            review.append(
+                {
+                    "question_id": question.id,
+                    "question_text": question.question_text,
+                    "selected_option_text": answer.selected_option.option_text if answer.selected_option else None,
+                    "correct_option_text": correct_option.option_text if correct_option else None,
+                    "is_answered": answer.is_answered,
+                    "is_correct": answer.is_correct,
+                    "explanation": question.explanation,
+                    "reference_lesson_id": lesson.id if lesson else None,
+                    "reference_module_number": lesson.module_number if lesson else None,
+                    "reference_lesson_title": lesson.title if lesson else None,
+                    "reference_timestamp_seconds": question.reference_timestamp_seconds if lesson else None,
+                }
+            )
+        return review
 
 
 class QuizAnswerSaveSerializer(serializers.Serializer):

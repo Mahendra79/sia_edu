@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 
@@ -342,8 +345,23 @@ class QuizAttempt(models.Model):
             models.Index(fields=["user", "quiz", "is_passed"]),
         ]
 
+    # Extra seconds allowed on top of the per-question budget to absorb network latency.
+    DEADLINE_GRACE_SECONDS = 15
+
     def __str__(self) -> str:
         return f"{self.user_id} quiz {self.quiz_id} attempt {self.attempt_number}"
+
+    @property
+    def expires_at(self):
+        if not self.started_at:
+            return None
+        budget = self.total_questions * self.quiz.time_per_question_seconds + self.DEADLINE_GRACE_SECONDS
+        return self.started_at + timedelta(seconds=budget)
+
+    @property
+    def is_expired(self) -> bool:
+        expires_at = self.expires_at
+        return bool(expires_at and timezone.now() > expires_at)
 
 
 class QuizAttemptAnswer(models.Model):
@@ -354,6 +372,9 @@ class QuizAttemptAnswer(models.Model):
     is_correct = models.BooleanField(default=False)
     marks_awarded = models.PositiveSmallIntegerField(default=0)
     time_taken_seconds = models.PositiveSmallIntegerField(default=0)
+    # Set the first time the learner commits an answer (or times out). Once set, the
+    # answer is locked: the correct option is revealed and it can no longer change.
+    locked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("attempt", "question")

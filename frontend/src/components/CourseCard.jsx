@@ -90,11 +90,6 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHover
               {durationLabel}
             </span>
           ) : null}
-          {hasDiscount && (
-            <span className="pill pill-discount">
-              {discountPercent.toFixed(0)}% OFF
-            </span>
-          )}
           {isPurchased && <span className="pill pill-owned">Purchased</span>}
         </div>
         <h3>
@@ -110,7 +105,12 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHover
         <div className="course-meta">
           <span className="course-price-stack">
             <strong className="course-price-current">{formatCurrency(discountedPrice, "INR")}</strong>
-            {hasDiscount && <small className="course-price-original">{formatCurrency(listPrice, "INR")}</small>}
+            {hasDiscount && (
+              <span className="course-price-was">
+                <small className="course-price-original">{formatCurrency(listPrice, "INR")}</small>
+                <span className="pill pill-discount">{discountPercent.toFixed(0)}% OFF</span>
+              </span>
+            )}
           </span>
           <button
             type="button"
@@ -133,7 +133,16 @@ function CourseImage({ imageUrl, placeholderUrl, title }) {
   return (
     <div className="course-image-wrap">
       {imageUrl && !imageFailed ? (
-        <img src={imageUrl} alt={title} className="course-image" onError={() => setImageFailed(true)} />
+        <img
+          src={imageUrl}
+          alt={title}
+          className="course-image"
+          width="960"
+          height="640"
+          loading="lazy"
+          decoding="async"
+          onError={() => setImageFailed(true)}
+        />
       ) : placeholderUrl && !placeholderFailed ? (
         <img
           src={placeholderUrl}

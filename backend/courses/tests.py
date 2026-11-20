@@ -349,3 +349,138 @@ class LmsSequentialUnlockTests(APITestCase):
         self.assertEqual(flags[self.lessons[3].id], (False, False))
         self.assertEqual(flags[self.lessons[4].id], (True, True))
 
+
+
+class LearnerQuizAttemptTests(APITestCase):
+    def setUp(self):
+        from courses.models import Quiz, QuizOption, QuizQuestion
+
+        category = Category.objects.create(name="Quantum", description="Quantum")
+        self.course = Course.objects.create(
+            category=category,
+            title="Quiz Course",
+            short_description="Quiz",
+            description="Quiz description",
+            price="99.00",
+            is_active=True,
+        )
+        self.quiz = Quiz.objects.create(
+            course=self.course,
+            title="Gates Quiz",
+            time_per_question_seconds=30,
+            pass_percentage=50,
+            status=Quiz.STATUS_PUBLISHED,
+            is_active=True,
+        )
+        self.correct_options = {}
+        self.wrong_options = {}
+        for index in range(1, 3):
+            question = QuizQuestion.objects.create(
+                quiz=self.quiz,
+                question_text=f"Question {index}",
+                order=index,
+                explanation=f"Because answer {index}.",
+            )
+            for option_index in range(4):
+                option = QuizOption.objects.create(
+                    question=question,
+                    option_text=f"Q{index} option {option_index}",
+                    order=option_index,
+                    is_correct=option_index == 1,
+                )
+                if option_index == 1:
+                    self.correct_options[question.id] = option
+                elif option_index == 0:
+                    self.wrong_options[question.id] = option
+        self.learner = User.objects.create_user(
+            username="quiz_learner",
+            email="quiz_learner@example.com",
+            phone="7888888888",
+            name="Quiz Learner",
+            password="StrongPass123!",
+        )
+        Enrollment.objects.create(user=self.learner, course=self.course, payment_status="success", status="enrolled")
+        self.client.force_authenticate(self.learner)
+
+    def _start(self):
+        response = self.client.post(reverse("learner-quiz-start", args=[self.quiz.id]))
+        self.assertIn(response.status_code, (status.HTTP_200_OK, status.HTTP_201_CREATED))
+        return response.data
+
+    def _answer(self, attempt_id, question_id, option_id):
+        return self.client.post(
+            reverse("learner-quiz-answer", args=[attempt_id]),
+            {"question_id": question_id, "selected_option_id": option_id, "time_taken_seconds": 5},
+            format="json",
+        )
+
+    def test_start_does_not_leak_correct_answers_or_explanations(self):
+        attempt = self._start()
+        for answer in attempt["answers"]:
+            self.assertIsNone(answer["correct_option_id"])
+            self.assertIsNone(answer["is_correct"])
+            self.assertEqual(answer["explanation"], "")
+        for question in attempt["questions"]:
+            self.assertNotIn("explanation", question)
+            for option in question["options"]:
+                self.assertNotIn("is_correct", option)
+
+    def test_answer_reveals_feedback_and_then_locks(self):
+        attempt = self._start()
+        question_id = attempt["questions"][0]["id"]
+        wrong = self.wrong_options[question_id]
+        correct = self.correct_options[question_id]
+
+        first = self._answer(attempt["id"], question_id, wrong.id)
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["correct_option_id"], correct.id)
+        self.assertFalse(first.data["is_correct"])
+        self.assertEqual(first.data["explanation"], "Because answer 1.")
+
+        second = self._answer(attempt["id"], question_id, correct.id)
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(second.data["answer"]["selected_option_id"], wrong.id)
+
+        resumed = self._start()
+        self.assertEqual(resumed["id"], attempt["id"])
+        locked = next(answer for answer in resumed["answers"] if answer["question_id"] == question_id)
+        self.assertTrue(locked["is_locked"])
+        self.assertEqual(locked["correct_option_id"], correct.id)
+
+    def test_answers_rejected_after_deadline(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from courses.models import QuizAttempt
+
+        attempt = self._start()
+        QuizAttempt.objects.filter(id=attempt["id"]).update(started_at=timezone.now() - timedelta(minutes=10))
+        question_id = attempt["questions"][0]["id"]
+        response = self._answer(attempt["id"], question_id, self.correct_options[question_id].id)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "attempt_expired")
+
+        resumed = self._start()
+        self.assertTrue(resumed["is_expired"])
+
+        submitted = self.client.post(reverse("learner-quiz-submit", args=[attempt["id"]]))
+        self.assertEqual(submitted.status_code, status.HTTP_200_OK)
+        # Time taken is capped at the attempt's budget (2 questions x 30s + grace).
+        self.assertLessEqual(submitted.data["time_taken_seconds"], 2 * 30 + QuizAttempt.DEADLINE_GRACE_SECONDS)
+
+    def test_submit_returns_per_question_review(self):
+        attempt = self._start()
+        first_id, second_id = (question["id"] for question in attempt["questions"])
+        self._answer(attempt["id"], first_id, self.correct_options[first_id].id)
+        self._answer(attempt["id"], second_id, None)
+
+        response = self.client.post(reverse("learner-quiz-submit", args=[attempt["id"]]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_passed"])
+        self.assertEqual(response.data["correct_count"], 1)
+        self.assertEqual(response.data["unanswered_count"], 1)
+        review = {item["question_id"]: item for item in response.data["review"]}
+        self.assertTrue(review[first_id]["is_correct"])
+        self.assertFalse(review[second_id]["is_answered"])
+        self.assertEqual(review[second_id]["correct_option_text"], self.correct_options[second_id].option_text)

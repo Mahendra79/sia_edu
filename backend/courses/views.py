@@ -39,7 +39,7 @@ from courses.serializers import (
     QuizAdminSerializer,
     QuizAnswerSaveSerializer,
     QuizAttemptAnswerSerializer,
-    QuizAttemptResultSerializer,
+    QuizAttemptReviewSerializer,
     QuizAttemptSerializer,
     QuizQuestionAdminSerializer,
     ReviewSerializer,
@@ -1337,6 +1337,46 @@ class LearnerQuizListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+def _quiz_attempt_queryset():
+    return QuizAttempt.objects.select_related("quiz", "quiz__course").prefetch_related(
+        "answers__question__options",
+        "answers__question__reference_lesson",
+        "answers__selected_option",
+    )
+
+
+def _finalize_quiz_attempt(attempt: QuizAttempt) -> QuizAttempt:
+    """Score and submit an in-progress attempt. Safe to call on an already submitted one."""
+    if attempt.status == QuizAttempt.STATUS_SUBMITTED:
+        return attempt
+    answers = list(attempt.answers.all())
+    answered_count = sum(1 for answer in answers if answer.is_answered)
+    correct_count = sum(1 for answer in answers if answer.is_correct)
+    score = sum(answer.marks_awarded for answer in answers)
+    total_marks = attempt.total_marks or 0
+    percentage = (Decimal(score) * Decimal("100") / Decimal(total_marks)).quantize(Decimal("0.01")) if total_marks else Decimal("0.00")
+    now = timezone.now()
+    elapsed = max(0, int((now - attempt.started_at).total_seconds())) if attempt.started_at else 0
+    # An attempt finalized long after its deadline (learner walked away) should not
+    # report hours of "time taken"; cap it at the time that was actually available.
+    expires_at = attempt.expires_at
+    if expires_at and attempt.started_at:
+        elapsed = min(elapsed, max(0, int((expires_at - attempt.started_at).total_seconds())))
+
+    attempt.answered_count = answered_count
+    attempt.unanswered_count = max(0, attempt.total_questions - answered_count)
+    attempt.correct_count = correct_count
+    attempt.wrong_count = max(0, answered_count - correct_count)
+    attempt.score = score
+    attempt.percentage = percentage
+    attempt.is_passed = percentage >= Decimal(attempt.quiz.pass_percentage)
+    attempt.time_taken_seconds = elapsed
+    attempt.submitted_at = now
+    attempt.status = QuizAttempt.STATUS_SUBMITTED
+    attempt.save()
+    return attempt
+
+
 class LearnerQuizStartView(APIView):
     permission_classes = [IsActiveAuthenticated]
 
@@ -1353,20 +1393,22 @@ class LearnerQuizStartView(APIView):
             return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
 
         existing_attempt = (
-            QuizAttempt.objects.select_related("quiz")
-            .prefetch_related("answers", "quiz__questions__options")
+            _quiz_attempt_queryset()
             .filter(user=request.user, quiz=quiz, status=QuizAttempt.STATUS_IN_PROGRESS)
             .order_by("-started_at")
             .first()
         )
         if existing_attempt:
+            # Resume the attempt. If its time ran out the client shows the submit screen;
+            # the answer endpoint rejects any further answers.
             return Response(QuizAttemptSerializer(existing_attempt).data, status=status.HTTP_200_OK)
 
         questions = list(quiz.questions.filter(is_active=True).prefetch_related("options").order_by("order", "id")[: quiz.max_questions])
         if not questions:
             return Response({"detail": "No active questions are available for this quiz."}, status=status.HTTP_400_BAD_REQUEST)
         for question in questions:
-            if question.options.count() != 4 or question.options.filter(is_correct=True).count() != 1:
+            options = list(question.options.all())
+            if len(options) != 4 or sum(1 for option in options if option.is_correct) != 1:
                 return Response({"detail": "This quiz is not ready. Please contact admin."}, status=status.HTTP_400_BAD_REQUEST)
 
         attempt_number = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status=QuizAttempt.STATUS_SUBMITTED).count() + 1
@@ -1381,7 +1423,7 @@ class LearnerQuizStartView(APIView):
                 total_marks=total_marks,
             )
             QuizAttemptAnswer.objects.bulk_create([QuizAttemptAnswer(attempt=attempt, question=question) for question in questions])
-        attempt = QuizAttempt.objects.select_related("quiz").prefetch_related("answers", "quiz__questions__options").get(id=attempt.id)
+        attempt = _quiz_attempt_queryset().get(id=attempt.id)
         return Response(QuizAttemptSerializer(attempt).data, status=status.HTTP_201_CREATED)
 
 
@@ -1389,15 +1431,12 @@ class LearnerQuizAttemptDetailView(APIView):
     permission_classes = [IsActiveAuthenticated]
 
     def get(self, request, attempt_id: int):
-        attempt = QuizAttempt.objects.select_related("quiz", "quiz__course").prefetch_related("answers", "quiz__questions__options").filter(
-            id=attempt_id,
-            user=request.user,
-        ).first()
+        attempt = _quiz_attempt_queryset().filter(id=attempt_id, user=request.user).first()
         if not attempt:
             return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
         if not _has_success_enrollment(request.user, attempt.quiz.course_id):
             return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
-        serializer = QuizAttemptResultSerializer if attempt.status == QuizAttempt.STATUS_SUBMITTED else QuizAttemptSerializer
+        serializer = QuizAttemptReviewSerializer if attempt.status == QuizAttempt.STATUS_SUBMITTED else QuizAttemptSerializer
         return Response(serializer(attempt).data, status=status.HTTP_200_OK)
 
 
@@ -1410,28 +1449,51 @@ class LearnerQuizAnswerView(APIView):
             return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
         if attempt.status != QuizAttempt.STATUS_IN_PROGRESS:
             return Response({"detail": "This quiz attempt is already submitted."}, status=status.HTTP_400_BAD_REQUEST)
+        if attempt.is_expired:
+            return Response(
+                {"detail": "Time is up for this attempt. Please submit the quiz.", "code": "attempt_expired"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = QuizAnswerSaveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question_id = serializer.validated_data["question_id"]
         selected_option_id = serializer.validated_data.get("selected_option_id")
-        time_taken_seconds = serializer.validated_data.get("time_taken_seconds", 0)
+        time_taken_seconds = min(
+            serializer.validated_data.get("time_taken_seconds", 0),
+            attempt.quiz.time_per_question_seconds,
+        )
 
-        answer = QuizAttemptAnswer.objects.select_related("question").filter(attempt=attempt, question_id=question_id).first()
-        if not answer:
-            return Response({"detail": "Question does not belong to this attempt."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            answer = (
+                QuizAttemptAnswer.objects.select_for_update()
+                .select_related("question", "question__reference_lesson", "attempt")
+                .filter(attempt=attempt, question_id=question_id)
+                .first()
+            )
+            if not answer:
+                return Response({"detail": "Question does not belong to this attempt."}, status=status.HTTP_400_BAD_REQUEST)
 
-        selected_option = None
-        if selected_option_id:
-            selected_option = QuizOption.objects.filter(id=selected_option_id, question_id=question_id).first()
-            if not selected_option:
-                return Response({"detail": "Selected option does not belong to this question."}, status=status.HTTP_400_BAD_REQUEST)
+            if answer.locked_at:
+                # Answers are final once committed: the correct option has already been
+                # revealed, so changing it would let a learner fix a wrong answer.
+                return Response(
+                    {"detail": "This question has already been answered.", "code": "answer_locked", "answer": QuizAttemptAnswerSerializer(answer).data},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
-        answer.selected_option = selected_option
-        answer.is_answered = bool(selected_option)
-        answer.is_correct = bool(selected_option and selected_option.is_correct)
-        answer.marks_awarded = answer.question.marks if answer.is_correct else 0
-        answer.time_taken_seconds = time_taken_seconds
-        answer.save(update_fields=["selected_option", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds"])
+            selected_option = None
+            if selected_option_id:
+                selected_option = QuizOption.objects.filter(id=selected_option_id, question_id=question_id).first()
+                if not selected_option:
+                    return Response({"detail": "Selected option does not belong to this question."}, status=status.HTTP_400_BAD_REQUEST)
+
+            answer.selected_option = selected_option
+            answer.is_answered = bool(selected_option)
+            answer.is_correct = bool(selected_option and selected_option.is_correct)
+            answer.marks_awarded = answer.question.marks if answer.is_correct else 0
+            answer.time_taken_seconds = time_taken_seconds
+            answer.locked_at = timezone.now()
+            answer.save(update_fields=["selected_option", "is_answered", "is_correct", "marks_awarded", "time_taken_seconds", "locked_at"])
         return Response(QuizAttemptAnswerSerializer(answer).data, status=status.HTTP_200_OK)
 
 
@@ -1439,31 +1501,14 @@ class LearnerQuizSubmitView(APIView):
     permission_classes = [IsActiveAuthenticated]
 
     def post(self, request, attempt_id: int):
-        attempt = QuizAttempt.objects.select_related("quiz").prefetch_related("answers").filter(id=attempt_id, user=request.user).first()
-        if not attempt:
-            return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
-        if attempt.status == QuizAttempt.STATUS_SUBMITTED:
-            return Response(QuizAttemptResultSerializer(attempt).data, status=status.HTTP_200_OK)
-
-        answers = list(attempt.answers.all())
-        answered_count = sum(1 for answer in answers if answer.is_answered)
-        correct_count = sum(1 for answer in answers if answer.is_correct)
-        score = sum(answer.marks_awarded for answer in answers)
-        total_marks = attempt.total_marks or 0
-        percentage = (Decimal(score) * Decimal("100") / Decimal(total_marks)).quantize(Decimal("0.01")) if total_marks else Decimal("0.00")
-        now = timezone.now()
-        time_taken_seconds = max(0, int((now - attempt.started_at).total_seconds())) if attempt.started_at else 0
-
-        attempt.answered_count = answered_count
-        attempt.unanswered_count = max(0, attempt.total_questions - answered_count)
-        attempt.correct_count = correct_count
-        attempt.wrong_count = max(0, answered_count - correct_count)
-        attempt.score = score
-        attempt.percentage = percentage
-        attempt.is_passed = percentage >= Decimal(attempt.quiz.pass_percentage)
-        attempt.time_taken_seconds = time_taken_seconds
-        attempt.submitted_at = now
-        attempt.status = QuizAttempt.STATUS_SUBMITTED
-        attempt.save()
-        return Response(QuizAttemptResultSerializer(attempt).data, status=status.HTTP_200_OK)
-
+        with transaction.atomic():
+            attempt = (
+                QuizAttempt.objects.select_for_update()
+                .select_related("quiz")
+                .filter(id=attempt_id, user=request.user)
+                .first()
+            )
+            if not attempt:
+                return Response({"detail": "Quiz attempt not found."}, status=status.HTTP_404_NOT_FOUND)
+            _finalize_quiz_attempt(attempt)
+        return Response(QuizAttemptReviewSerializer(attempt).data, status=status.HTTP_200_OK)

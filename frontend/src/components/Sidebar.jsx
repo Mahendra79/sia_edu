@@ -68,7 +68,8 @@ export default function Sidebar({ extra }) {
   // the compact desktop rail and leaves room for the lesson content.
   const effectiveCollapsed = isDesktop && (isLearnRoute ? !isLearnSidebarExpanded : isCollapsed);
 
-  const ThemeIcon = THEME_ICON_MAP[theme] || HiOutlineAcademicCap;
+  // Show the theme the button switches to, matching its label.
+  const ThemeIcon = THEME_ICON_MAP[theme === "dark" ? "light" : "dark"] || HiOutlineAcademicCap;
 
   const showTooltip = (event, label) => {
     if (!effectiveCollapsed || !label) return;
@@ -129,7 +130,12 @@ export default function Sidebar({ extra }) {
           <p className="sidebar-mobile-greeting">
             Hello, {displayName || "there"} <span aria-hidden="true">👋</span>
           </p>
-        ) : null}
+        ) : (
+          <Link to="/" className="sidebar-mobile-brand" aria-label="SIA Software Innovations home">
+            <img src={companyLogo} alt="" width="28" height="28" />
+            <span>SIA</span>
+          </Link>
+        )}
       </div> : null}
       {!isLearnRoute && isOpen ? <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeSidebar} /> : null}
 
@@ -300,10 +306,13 @@ export default function Sidebar({ extra }) {
             type="button"
             className="btn btn-muted btn-icon app-sidebar-theme-btn"
             onClick={toggleTheme}
-            aria-label={`Theme: ${theme}`}
-            title={`Theme: ${theme}`}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             <ThemeIcon />
+            {!isAuthenticated && !effectiveCollapsed ? (
+              <span className="app-sidebar-theme-label">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+            ) : null}
           </button>
           {isAuthenticated ? (
             <>

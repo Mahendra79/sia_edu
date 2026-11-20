@@ -2,8 +2,10 @@ import { FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 import companyLogo from "../assets/image.webp";
+import { useAuth } from "../context/AuthContext";
 
 export default function Footer() {
+  const { isAuthenticated } = useAuth();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -37,12 +39,16 @@ export default function Footer() {
             <Link to="/terms" aria-label="Terms">
               Terms of Use
             </Link>
-            <Link to="/login" aria-label="Login">
-              Login
-            </Link>
-            <Link to="/signup" aria-label="Signup">
-              Signup
-            </Link>
+            {isAuthenticated ? null : (
+              <>
+                <Link to="/login" aria-label="Login">
+                  Login
+                </Link>
+                <Link to="/signup" aria-label="Signup">
+                  Signup
+                </Link>
+              </>
+            )}
           </div>
         </section>
 

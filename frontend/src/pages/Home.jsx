@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   HiOutlineAcademicCap,
@@ -32,7 +32,14 @@ const homeCache = {
   quickCourses: null,
   continueCourse: null,
   freeCourses: null,
+  // Categories that actually have courses, captured from the unfiltered catalog so the
+  // topic pills stay put while a filter is active.
+  tracks: null,
 };
+
+const FALLBACK_TRACKS = ["Data Science", "Machine Learning", "Deep Learning", "Prompt Engineering", "Quantum Computing"].map(
+  (name) => ({ id: null, name }),
+);
 
 export default function Home() {
   useDocumentMeta({
@@ -55,6 +62,9 @@ export default function Home() {
   const [count, setCount] = useState(() => cachedCatalog?.count || 0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(() => !cachedCatalog);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [tracks, setTracks] = useState(() => homeCache.tracks);
   const [quickCourses, setQuickCourses] = useState(() => homeCache.quickCourses || []);
   const [quickLoading, setQuickLoading] = useState(() => homeCache.quickCourses === null);
   const [continueCourse, setContinueCourse] = useState(() => homeCache.continueCourse);
@@ -86,6 +96,7 @@ export default function Home() {
     } else {
       setLoading(true);
     }
+    setLoadError(false);
 
     const fetchCourses = async () => {
       try {
@@ -102,12 +113,27 @@ export default function Home() {
         setCourses(results);
         setCount(total);
         homeCache.catalog.set(cacheKey, { courses: results, count: total });
+        if (!debouncedSearch && !activeCategoryId && page === 1) {
+          const seen = new Map();
+          results.forEach((course) => {
+            if (course.category?.id && !seen.has(course.category.id)) {
+              seen.set(course.category.id, { id: course.category.id, name: course.category.name });
+            }
+          });
+          if (seen.size) {
+            const nextTracks = Array.from(seen.values()).slice(0, 6);
+            homeCache.tracks = nextTracks;
+            setTracks(nextTracks);
+          }
+        }
       } catch (requestError) {
         if (requestError?.code === "ERR_CANCELED") {
           return;
         }
         if (!cached) {
-          addToast({ type: "error", message: "Failed to load courses." });
+          setCourses([]);
+          setCount(0);
+          setLoadError(true);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -118,7 +144,7 @@ export default function Home() {
 
     fetchCourses();
     return () => controller.abort();
-  }, [debouncedSearch, page, addToast, activeCategoryId]);
+  }, [debouncedSearch, page, activeCategoryId, reloadKey]);
 
   useEffect(() => {
     if (!isAuthenticated || isAdmin) {
@@ -232,15 +258,7 @@ export default function Home() {
     };
   }, [quickCourses]);
 
-  const learningTracks = useMemo(() => {
-    const extracted = Array.from(
-      new Set(courses.map((course) => course.category?.name).filter(Boolean)),
-    );
-    if (extracted.length) {
-      return extracted.slice(0, 5);
-    }
-    return ["Data Science", "Machine Learning", "Deep Learning", "Prompt Engineering", "Quantum Computing"];
-  }, [courses]);
+  const learningTracks = tracks?.length ? tracks : FALLBACK_TRACKS;
 
   const isFiltering = Boolean(debouncedSearch || activeCategoryId);
   const displayName = String(user?.name || user?.username || "").trim().split(/\s+/)[0];
@@ -270,13 +288,20 @@ export default function Home() {
   };
 
   const handleTrackClick = (track) => {
-    setSearch(track);
-    if (!activeCategoryId) {
+    if (!track.id) {
+      // No category id known (catalog not loaded yet): fall back to a text search.
+      setSearch(track.name);
       return;
     }
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("category");
-    nextParams.delete("categoryName");
+    if (String(track.id) === activeCategoryId) {
+      nextParams.delete("category");
+      nextParams.delete("categoryName");
+    } else {
+      nextParams.set("category", String(track.id));
+      nextParams.set("categoryName", track.name);
+      setSearch("");
+    }
     setSearchParams(nextParams);
   };
 
@@ -362,7 +387,8 @@ export default function Home() {
                 SIA Software Innovations Private Limited — Access Beyond Limits
               </p>
             )}
-            <h1>Learn AI, Quantum &amp; In-Demand Skills</h1>
+            {/* Non-breaking hyphen keeps "In-Demand" together on one line. */}
+            <h1>Learn AI, Quantum &amp; In&#8209;Demand Skills</h1>
             <p className="home-hero-subtitle">
               High-quality courses designed to help you master the technologies shaping the future.
             </p>
@@ -393,93 +419,6 @@ export default function Home() {
             <span className="home-hero-art-dot dot-3" />
           </div>
         </section>
-
-        <section className="home-toolbar">
-          <div className="home-track-row">
-            {learningTracks.map((track) => (
-              <button
-                key={track}
-                type="button"
-                className="home-track-pill"
-                onClick={() => handleTrackClick(track)}
-              >
-                {track}
-              </button>
-            ))}
-          </div>
-          <SearchBar value={search} onChange={setSearch} />
-        </section>
-
-        <section className="catalog-header" ref={catalogRef}>
-          <div>
-            <h2>{isFiltering ? "Search Results" : "Popular Courses"}</h2>
-            <p>
-              {isFiltering
-                ? "Refine your search or clear filters to browse everything we offer."
-                : "Choose from curated tracks designed for knowledge depth and continuous technical skill improvement."}
-            </p>
-            <div className="inline-controls">
-              {activeCategoryId ? (
-                <button type="button" className="catalog-filter-chip" onClick={clearCategoryFilter}>
-                  Category: {activeCategoryName || "Selected Category"} (clear)
-                </button>
-              ) : null}
-              {debouncedSearch ? (
-                <button type="button" className="catalog-filter-chip" onClick={() => setSearch("")}>
-                  Search: &quot;{debouncedSearch}&quot; (clear)
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <span className="catalog-badge">{count} total courses</span>
-        </section>
-
-        {loading ? (
-          <SkeletonCardGrid count={8} />
-        ) : (
-          <>
-            <section className="course-grid">
-              {courses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  searchQuery={debouncedSearch}
-                  onBuy={handleBuy}
-                  onOpen={handleOpenCourse}
-                  onHoverPrefetch={(hoveredCourse) => prefetchCourseDetails(hoveredCourse.id)}
-                />
-              ))}
-            </section>
-            {courses.length === 0 && <p className="empty-state">No courses found. Try a broader keyword.</p>}
-            <Pagination count={count} currentPage={page} onPageChange={setPage} />
-          </>
-        )}
-
-        {freeCoursesLoading ? (
-          <>
-            <section className="catalog-header free-courses-header">
-              <div>
-                <h2>Free Courses</h2>
-              </div>
-            </section>
-            <SkeletonCardGrid count={4} />
-          </>
-        ) : (
-          freeCourses.length > 0 && (
-            <>
-              <section className="catalog-header free-courses-header">
-                <div>
-                  <h2>Free Courses</h2>
-                </div>
-              </section>
-              <section className="course-grid">
-                {freeCourses.map((freeCourse) => (
-                  <FreeCourseCard key={freeCourse.id} freeCourse={freeCourse} />
-                ))}
-              </section>
-            </>
-          )
-        )}
 
         {continueLoading ? (
           <section className="continue-learning">
@@ -539,6 +478,115 @@ export default function Home() {
             </article>
           </section>
         ) : null}
+
+        <section className="home-toolbar">
+          <div className="home-track-row">
+            {learningTracks.map((track) => {
+              const isActive = Boolean(track.id) && String(track.id) === activeCategoryId;
+              return (
+                <button
+                  key={track.id ?? track.name}
+                  type="button"
+                  className={`home-track-pill ${isActive ? "is-active" : ""}`.trim()}
+                  aria-pressed={isActive}
+                  onClick={() => handleTrackClick(track)}
+                >
+                  {track.name}
+                </button>
+              );
+            })}
+          </div>
+          <SearchBar value={search} onChange={setSearch} />
+        </section>
+
+        <section className="catalog-header" ref={catalogRef}>
+          <div>
+            <div className="catalog-title-row">
+              <h2>{isFiltering ? "Search Results" : "Popular Courses"}</h2>
+              {!loading && !loadError ? (
+                <span className="catalog-badge">
+                  {count} {count === 1 ? "course" : "courses"}
+                </span>
+              ) : null}
+            </div>
+            <p>
+              {isFiltering
+                ? "Refine your search or clear filters to browse everything we offer."
+                : "Choose from curated tracks designed for knowledge depth and continuous technical skill improvement."}
+            </p>
+            <div className="inline-controls">
+              {activeCategoryId ? (
+                <button type="button" className="catalog-filter-chip" onClick={clearCategoryFilter}>
+                  Category: {activeCategoryName || "Selected Category"} (clear)
+                </button>
+              ) : null}
+              {debouncedSearch ? (
+                <button type="button" className="catalog-filter-chip" onClick={() => setSearch("")}>
+                  Search: &quot;{debouncedSearch}&quot; (clear)
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        {loading ? (
+          <SkeletonCardGrid count={8} />
+        ) : (
+          <>
+            <section className="course-grid">
+              {courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  searchQuery={debouncedSearch}
+                  onBuy={handleBuy}
+                  onOpen={handleOpenCourse}
+                  onHoverPrefetch={(hoveredCourse) => prefetchCourseDetails(hoveredCourse.id)}
+                />
+              ))}
+            </section>
+            {loadError ? (
+              <div className="catalog-error" role="alert">
+                <p>We couldn&apos;t load courses right now. Check your connection and try again.</p>
+                <button type="button" className="btn btn-primary" onClick={() => setReloadKey((key) => key + 1)}>
+                  Try again
+                </button>
+              </div>
+            ) : courses.length === 0 ? (
+              <p className="empty-state">
+                {isFiltering ? "No courses match your filters. Try a broader keyword or clear the filters." : "No courses are available yet."}
+              </p>
+            ) : null}
+            <Pagination count={count} currentPage={page} onPageChange={setPage} />
+          </>
+        )}
+
+        {freeCoursesLoading ? (
+          <>
+            <section className="catalog-header free-courses-header">
+              <div>
+                <h2>Free Courses</h2>
+              </div>
+            </section>
+            <SkeletonCardGrid count={4} />
+          </>
+        ) : (
+          freeCourses.length > 0 && (
+            <>
+              <section className="catalog-header free-courses-header">
+                <div>
+                  <h2>Free Courses</h2>
+                </div>
+              </section>
+              <section className="course-grid">
+                {freeCourses.map((freeCourse) => (
+                  <FreeCourseCard key={freeCourse.id} freeCourse={freeCourse} />
+                ))}
+              </section>
+            </>
+          )
+        )}
+
       </PageTransition>
     </MainLayout>
   );

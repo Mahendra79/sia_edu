@@ -68,6 +68,11 @@ button:disabled,
   border-color: var(--accent-strong);
 }
 
+[data-theme="dark"] .btn-outline-accent {
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface-glass));
+  border-color: color-mix(in srgb, var(--accent-strong) 70%, transparent);
+}
+
 .btn-danger {
   color: #fff;
   background: linear-gradient(135deg, color-mix(in srgb, var(--danger) 86%, #9f1239), var(--danger));
