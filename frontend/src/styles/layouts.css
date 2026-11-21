@@ -966,8 +966,8 @@
 }
 
 .course-price-was .pill {
-  padding: 0.05rem 0.4rem;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.78rem;
 }
 
 .course-price-stack {
@@ -2481,5 +2481,108 @@
 .app-sidebar::-webkit-scrollbar-thumb:hover,
 .app-sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* =====================================================================
+   Home page polish
+   ===================================================================== */
+
+/* Placeholders: padded and centred so text never touches the card edges. */
+.course-image-placeholder {
+  align-content: center;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.course-image-placeholder svg {
+  font-size: 1.6rem;
+}
+
+/* Course images load lazily: show a soft shimmer instead of a flat block. */
+.course-image-wrap.is-loading {
+  background-image:
+    linear-gradient(100deg, transparent 30%, color-mix(in srgb, #ffffff 45%, transparent) 50%, transparent 70%),
+    linear-gradient(145deg, var(--course-image-gradient-start), var(--course-image-gradient-end));
+  background-size: 220% 100%, 100% 100%;
+  animation: course-image-shimmer 1.3s linear infinite;
+}
+
+[data-theme="dark"] .course-image-wrap.is-loading {
+  background-image:
+    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%),
+    linear-gradient(145deg, var(--course-image-gradient-start), var(--course-image-gradient-end));
+}
+
+.course-image-wrap .course-image {
+  transition: opacity 0.25s ease;
+}
+
+.course-image-wrap.is-loading .course-image {
+  opacity: 0;
+}
+
+@keyframes course-image-shimmer {
+  from { background-position: 120% 0, 0 0; }
+  to { background-position: -120% 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-image-wrap.is-loading {
+    animation: none;
+  }
+}
+
+/* Discount badge: readable size, and text dark enough against its green tint
+   (mixes toward the text colour, so it darkens in light mode, lightens in dark). */
+.pill-discount {
+  font-size: 0.8rem;
+  padding: 0.16rem 0.5rem;
+  color: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+}
+
+/* Purchased courses have no price, so keep the button on the right. */
+.course-card:not(.free-course-card) .course-meta > .btn:only-child {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  /* Comfortable tap targets on phones. */
+  .home-track-pill {
+    min-height: 40px;
+    padding: 0.4rem 0.9rem;
+  }
+
+  .continue-learning-head .inline-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 0.25rem;
+  }
+
+  /* Continue Learning card: one consistent left alignment. */
+  .continue-learning-card {
+    text-align: left;
+  }
+
+  .chatbot-fab {
+    width: 50px;
+    height: 50px;
+  }
+
+  .chatbot-fab.is-tucked {
+    opacity: 0;
+    transform: translateY(24px) scale(0.9);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 560px) {
+  /* One card per row: no need to reserve two lines for short titles. */
+  .course-content h3,
+  .course-content p {
+    min-height: 0;
+  }
 }
 

@@ -164,7 +164,7 @@ export default function Sidebar({ extra }) {
             {!effectiveCollapsed && (
               <span className="app-sidebar-brand-text">
                 <strong>SIA</strong>
-                <span>Software Innovations</span>
+                <span title="SIA Software Innovations Private Limited">Software Innovations</span>
               </span>
             )}
           </Link>
@@ -331,7 +331,7 @@ export default function Sidebar({ extra }) {
                 ) : (
                   <HiOutlineUserCircle />
                 )}
-                {!effectiveCollapsed && <span>{user?.username}</span>}
+                {!effectiveCollapsed && <span title={user?.username}>{user?.username}</span>}
               </Link>
               <button type="button" className="btn btn-danger btn-icon app-sidebar-logout" onClick={handleLogout} aria-label="Logout" title="Logout">
                 <HiArrowRightOnRectangle />

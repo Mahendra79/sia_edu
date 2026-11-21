@@ -1,0 +1,1 @@
+Circuit diagram, Bloch vectors, amplitudes with their phases, and entanglement map (mutual information and concurrence) of a 2-qubit register after 3 operations (H on q0, CNOT q0→q1, RY(0.4) on q1). Exact state-vector simulation; colour and the clock hand both encode the complex phase. Generated with HDQS (Sia Software Innovations).

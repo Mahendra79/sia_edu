@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Superposition on the Bloch sphere</title>
+<style>
+:root{--bg:#fbfcfe;--panel:#ffffff;--ink:#172033;--muted:#5f6b7d;--edge:#d7e0ea;--grid:#e6ecf3;--soft:#eef3f9;
+ --c1:#2a78d6;--c2:#e8663d;--c3:#13a37a;--c4:#8b5cf6;--accent:#2a78d6}
+[data-theme=dark]{--bg:#0f1520;--panel:#161e2b;--ink:#e6ebf2;--muted:#9aa6b8;--edge:#2a3546;--grid:#1e2838;--soft:#1c2636;
+ --c1:#5b9ff0;--c2:#f08a5d;--c3:#3cc996;--c4:#a78bfa;--accent:#6aa8f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans","Noto Sans Devanagari","Noto Sans Telugu",sans-serif}
+main{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px}.intro{margin:0 0 6px;color:var(--ink)}.try{margin:0 0 14px;color:var(--muted);font-size:14px}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:860px){.wrap{grid-template-columns:1fr}}
+.stage{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.box{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:8px;position:relative;min-width:0}
+.box .cap{font-size:12.5px;color:var(--muted);margin:0 0 4px 2px}
+.box canvas{display:block;width:100%;height:340px;touch-action:none;cursor:grab}
+.box canvas.tall{height:420px}.box canvas.short{height:190px}.box canvas.mat{height:236px}.box canvas.wide{height:220px}
+.box .hint{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--muted);pointer-events:none;background:var(--panel);padding:0 4px;border-radius:4px;opacity:.9}
+.panel{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.grp{border-top:1px solid var(--edge);padding-top:10px}.grp:first-child{border-top:0;padding-top:0}
+.grp h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.ctl{display:block;margin:4px 0}.ctl-top{display:flex;justify-content:space-between;font-size:13.5px}
+.ctl-top b{font-variant-numeric:tabular-nums;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:13.5px;padding:6px 10px;border-radius:7px;border:1px solid var(--edge);background:var(--soft);color:var(--ink);cursor:pointer;min-height:34px}
+button:hover{border-color:var(--accent)}button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+label.chk{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:4px 0;cursor:pointer}
+.read{font-size:13.5px;font-variant-numeric:tabular-nums;line-height:1.6}
+.read .k{color:var(--muted)}.read .big{font-size:15px;font-weight:600}
+.note{font-size:13px;color:var(--muted)}
+.foot{color:var(--muted);font-size:12px;margin-top:16px}
+.box.dark{background:#0b0f17;border-color:#1f2937}.box.dark .cap{color:#8b97ab}.box.dark .hint{background:#0b0f17;color:#8b97ab}
+.dsrow{display:grid;grid-template-columns:minmax(0,3.2fr) minmax(0,1fr);gap:12px}@media (max-width:600px){.dsrow{grid-template-columns:minmax(0,1fr);gap:10px}}
+.dsrow canvas{display:block;width:100%;touch-action:none}
+.box canvas.circ{height:120px}
+.eqtext{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;padding:6px 4px 2px;line-height:1.5;word-break:break-word}
+.brow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.bcell{flex:1 1 140px;max-width:240px}.bcell canvas{width:100%;height:230px;display:block;touch-action:none;cursor:grab}
+.blab{font-size:12px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.svt{max-height:520px;overflow:auto}table.sv th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:2px 6px}table.sv td{padding:3px 6px;white-space:nowrap}
+table.sv .bar{display:inline-block;height:9px;background:var(--c1);border-radius:2px;vertical-align:middle;max-width:70px}table.sv td:nth-child(3){min-width:120px}
+@keyframes flash{from{background:rgba(232,102,61,.35)}to{background:transparent}}tr.chg td{animation:flash 1.4s ease-out}
+pre.code{font-size:11.5px;background:var(--soft);padding:8px;border-radius:6px;white-space:pre-wrap;word-break:break-all;margin:6px 0 0}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 12px}
+button.tool{font-size:12.5px;min-height:30px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;background:var(--panel)}
+table.t{border-collapse:collapse;font-size:13px;width:100%}table.t td{padding:2px 4px;border-bottom:1px solid var(--grid)}
+</style></head><body><main>
+<h1 id="title"></h1><p class="intro" id="intro"></p><p class="try" id="try"></p>
+<div class="wrap"><div class="stage" id="stage"></div><aside class="panel" id="panel"></aside></div>
+<div class="foot" id="foot"></div>
+</main>
+<script type="application/json" id="sia-explore">{"topic": "bloch", "text": {"title": "Superposition on the Bloch sphere", "intro": "Every qubit state cos(θ/2)|0⟩ + e^(iφ) sin(θ/2)|1⟩ is a point on a sphere. θ sets the measurement probabilities; φ is the relative phase, invisible to a Z measurement but not to X or Y.", "try": "Try: press H and watch the rotation about the diagonal axis. Change φ and measure in Z, then in X. Measure once to see the collapse, or 200 times to see the probabilities.", "hint3d": "drag to rotate · pinch or scroll to zoom · double-tap to reset", "hint2d": "drag the dots"}, "init": {}, "lang": "en", "meta": "HDQS · Sia Software Innovations · hdqs.explore(\"bloch\")", "back": ["../index.html", "← Course"]}</script>
+<script>
+(function () {
+'use strict';
+const D = JSON.parse(document.getElementById('sia-explore').textContent);
+const T = D.text, I = D.init || {};
+const $ = id => document.getElementById(id);
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const PI = Math.PI, TAU = 2 * PI;
+if (D.back) { const a = el('a', '', D.back[1]); a.href = D.back[0]; a.style.cssText = 'color:var(--accent);text-decoration:none;display:inline-block;margin-bottom:6px'; $('title').before(a); }
+$('title').textContent = T.title; $('intro').textContent = T.intro; $('try').textContent = T.try; $('foot').textContent = D.meta;
+const stage = $('stage'), panel = $('panel');
+let C = {};
+function readColors() { const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
+  C = { bg: g('--bg'), panel: g('--panel'), ink: g('--ink'), muted: g('--muted'), edge: g('--edge'), grid: g('--grid'),
+        c1: g('--c1'), c2: g('--c2'), c3: g('--c3'), c4: g('--c4') }; }
+readColors();
+function rgb(col) { let h = col.replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function A(col, a) { const [r, g, b] = rgb(col); return `rgba(${r},${g},${b},${a})`; }
+
+// ---------- phase colour: the same OKLCH wheel as q.draw (0 blue, π/2 teal, π amber, −π/2 rose) ----------
+function phaseRGB(phi, dark) { const L = dark ? 0.72 : 0.62, Cc = 0.125, h = ((262 - phi * 180 / Math.PI) % 360 + 360) % 360 * Math.PI / 180;
+  const a = Cc * Math.cos(h), b = Cc * Math.sin(h), l_ = L + 0.3963377774 * a + 0.2158037573 * b, m_ = L - 0.1055613458 * a - 0.0638541728 * b, s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3, lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  return lin.map(x => { x = Math.max(0, Math.min(1, x)); return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055; }); }
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+// ---------- numbers shown the way a student writes them ----------
+const NICE = [[1, '1'], [0.5, '1/2'], [Math.SQRT1_2, '1/√2'], [Math.sqrt(3) / 2, '√3/2'], [0.25, '1/4'], [0.75, '3/4'],
+  [Math.SQRT2, '√2'], [Math.sqrt(3), '√3'], [1 / 3, '1/3'], [2 / 3, '2/3'], [1 / Math.sqrt(3), '1/√3']];
+function num(x, dp) { if (!isFinite(x)) return '—'; const a = Math.abs(x); if (a < 5e-4) return '0'; const s = x < 0 ? '−' : '';
+  for (const [v, t] of NICE) if (Math.abs(a - v) < 5e-4) return s + t;
+  if (Math.abs(a - Math.round(a)) < 5e-4) return s + Math.round(a);
+  return s + a.toFixed(dp === undefined ? 3 : dp).replace(/0+$/, '').replace(/\.$/, ''); }
+function ang(x) { if (Math.abs(x) < 1e-4) return '0'; const s = x < 0 ? '−' : ''; const y = Math.abs(x);
+  for (const d of [1, 2, 3, 4, 6, 8, 12, 24]) { const k = y * d / PI; if (Math.abs(k - Math.round(k)) < 2e-3) { const n = Math.round(k); return s + (n === 1 ? '' : n) + 'π' + (d === 1 ? '' : '/' + d); } }
+  return s + y.toFixed(3); }
+function cstr(re, im) { const a = Math.abs(re) < 5e-4 ? 0 : re, b = Math.abs(im) < 5e-4 ? 0 : im;
+  const ib = Math.abs(Math.abs(b) - 1) < 5e-4 ? 'i' : num(Math.abs(b)) + 'i';
+  if (b === 0) return num(a); if (a === 0) return (b < 0 ? '−' : '') + ib; return num(a) + (b < 0 ? ' − ' : ' + ') + ib; }
+const wrap = x => { let y = x % TAU; if (y > PI) y -= TAU; if (y <= -PI) y += TAU; return y; };
+
+// ---------- canvases ----------
+function fit(cv) { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(20, r.width), h = Math.max(20, r.height), W = Math.round(w * dpr), H = Math.round(h * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return { g, w, h }; }
+function box(parent, caption, cls, hint) { const b = el('div', 'box'); if (caption) b.appendChild(el('div', 'cap', tr(caption)));
+  const cv = el('canvas', cls || ''); b.appendChild(cv); if (hint) b.appendChild(el('div', 'hint', hint)); parent.appendChild(b); return cv; }
+function row(parent) { const r = el('div', 'row'); (parent || stage).appendChild(r); return r; }
+
+// a 2D plane with world coordinates and draggable handles
+function Plane(cv, range) {
+  const p = { range, handles: [], drag: null };
+  p.begin = function () { const s = fit(cv); p.g = s.g; p.w = s.w; p.h = s.h; p.s = Math.min(s.w, s.h) / (2 * p.range); p.cx = s.w / 2; p.cy = s.h / 2; return p.g; };
+  p.X = (x, y) => [p.cx + x * p.s, p.cy - y * p.s];
+  p.inv = (sx, sy) => [(sx - p.cx) / p.s, (p.cy - sy) / p.s];
+  p.line = function (x0, y0, x1, y1, col, w, dash) { const g = p.g, a = p.X(x0, y0), b = p.X(x1, y1); g.beginPath(); g.setLineDash(dash || []); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); };
+  p.poly = function (pts, col, w, fill, dash) { const g = p.g; g.beginPath(); pts.forEach((q, i) => { const a = p.X(q[0], q[1]); i ? g.lineTo(a[0], a[1]) : g.moveTo(a[0], a[1]); });
+    if (fill) { g.closePath(); g.fillStyle = fill; g.fill(); } if (col) { g.setLineDash(dash || []); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); } };
+  p.arrow = function (x0, y0, x1, y1, col, w) { const g = p.g, a = p.X(x0, y0), b = p.X(x1, y1); const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1) return;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L, hl = Math.min(12, L * 0.4), hw = hl * 0.45;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0] - ux * hl * 0.8, b[1] - uy * hl * 0.8); g.strokeStyle = col; g.lineWidth = w || 2.2; g.stroke();
+    g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[0] - ux * hl - uy * hw, b[1] - uy * hl + ux * hw); g.lineTo(b[0] - ux * hl + uy * hw, b[1] - uy * hl - ux * hw); g.closePath(); g.fillStyle = col; g.fill(); };
+  p.dot = function (x, y, r, col, ring) { const g = p.g, a = p.X(x, y); g.beginPath(); g.arc(a[0], a[1], r, 0, TAU); g.fillStyle = col; g.fill(); if (ring) { g.lineWidth = 2; g.strokeStyle = C.panel; g.stroke(); } };
+  p.text = function (x, y, s, col, dx, dy, font) { const g = p.g, a = p.X(x, y); g.font = font || '13px system-ui,sans-serif'; g.fillStyle = col || C.ink; g.fillText(s, a[0] + (dx || 0), a[1] + (dy || 0)); };
+  p.arc = function (r, a0, a1, col, w) { const g = p.g; g.beginPath(); g.arc(p.cx, p.cy, r * p.s, -a0, -a1, a1 > a0); g.strokeStyle = col; g.lineWidth = w || 1.5; g.stroke(); };
+  p.axes = function (step, labels) { const g = p.g, R = p.range * Math.max(p.w, p.h) / Math.min(p.w, p.h);
+    for (let k = -Math.ceil(R / step); k <= Math.ceil(R / step); k++) { const v = k * step; p.line(v, -R, v, R, C.grid, 1); p.line(-R, v, R, v, C.grid, 1); }
+    p.line(-R, 0, R, 0, C.muted, 1.2); p.line(0, -R, 0, R, C.muted, 1.2);
+    if (labels) { g.font = '11px system-ui,sans-serif'; g.fillStyle = C.muted;
+      for (let k = -Math.floor(p.range / step); k <= Math.floor(p.range / step); k++) { if (!k) continue; const v = k * step, a = p.X(v, 0), b = p.X(0, v);
+        g.fillText(num(v, 2), a[0] - 6, a[1] + 14); g.fillText(num(v, 2) + (labels === 'i' ? 'i' : ''), b[0] + 5, b[1] + 4); } } };
+  cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; let best = null, bd = 22;
+    p.handles.forEach(h => { const q = h.get(), a = p.X(q[0], q[1]), d = Math.hypot(a[0] - sx, a[1] - sy); if (d < bd) { bd = d; best = h; } });
+    if (best) { p.drag = best; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; e.preventDefault(); } });
+  cv.addEventListener('pointermove', e => { if (!p.drag) return; const r = cv.getBoundingClientRect(); const q = p.inv(e.clientX - r.left, e.clientY - r.top); p.drag.set(q[0], q[1]); });
+  const up = () => { p.drag = null; cv.style.cursor = 'grab'; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  return p;
+}
+
+// a rotatable 3D view (z up). Several views can share one camera.
+function View3D(cv, opts) {
+  opts = opts || {};
+  const cam = opts.cam || { yaw: opts.yaw !== undefined ? opts.yaw : -0.6, pitch: opts.pitch !== undefined ? opts.pitch : 0.32, zoom: 1 };
+  if (!cam.home) cam.home = [cam.yaw, cam.pitch];
+  const v = { cam, scale: opts.scale || 1, persp: opts.persp === undefined ? 0.12 : opts.persp };
+  const pts = new Map();
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const p = pts.get(e.pointerId);
+    if (pts.size === 1) { cam.yaw += (e.clientX - p[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - p[1]) * 0.01, -1.55, 1.55); }
+    else if (pts.size === 2) { const o = [...pts.entries()].find(([k]) => k !== e.pointerId)[1];
+      const d0 = Math.hypot(p[0] - o[0], p[1] - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); if (d0 > 0) cam.zoom = clamp(cam.zoom * d1 / d0, 0.4, 3); }
+    pts.set(e.pointerId, [e.clientX, e.clientY]); });
+  const up = e => { pts.delete(e.pointerId); if (!pts.size) cv.style.cursor = 'grab'; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); cam.zoom = clamp(cam.zoom * Math.exp(-e.deltaY * 0.001), 0.4, 3); }, { passive: false });
+  cv.addEventListener('dblclick', () => { cam.yaw = cam.home[0]; cam.pitch = cam.home[1]; cam.zoom = 1; });
+  v.begin = function () { const s = fit(cv); v.g = s.g; v.w = s.w; v.h = s.h; v.R = Math.min(s.w, s.h) * 0.36 * cam.zoom * v.scale;
+    v.m = [Math.cos(cam.yaw), Math.sin(cam.yaw), Math.cos(cam.pitch), Math.sin(cam.pitch)]; return v.g; };
+  v.P = function (q) { const [cy, sy, cp, sp] = v.m, x = q[0], y = q[1], z = q[2];
+    const x1 = cy * x - sy * y, y1 = sy * x + cy * y, d = cp * y1 - sp * z, h = sp * y1 + cp * z, f = 1 / (1 + d * v.persp);
+    return [v.w / 2 + x1 * v.R * f, v.h / 2 - h * v.R * f, d]; };
+  v.seg = function (a, b, col, w, dash) { const g = v.g, p = v.P(a), q = v.P(b); g.beginPath(); g.setLineDash(dash || []); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.strokeStyle = col; g.lineWidth = w || 1; g.stroke(); g.setLineDash([]); };
+  v.curve = function (list, col, w, fadeBack, dash) { const g = v.g; const P = list.map(v.P); g.lineWidth = w || 1.4; g.setLineDash(dash || []);
+    for (let i = 1; i < P.length; i++) { const back = fadeBack && (P[i][2] + P[i - 1][2]) > 0; g.strokeStyle = back ? A(col, 0.25) : col;
+      g.beginPath(); g.moveTo(P[i - 1][0], P[i - 1][1]); g.lineTo(P[i][0], P[i][1]); g.stroke(); } g.setLineDash([]); };
+  v.arrow = function (a, b, col, w) { const g = v.g, p = v.P(a), q = v.P(b), L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.strokeStyle = col; g.lineWidth = w || 2.6; g.stroke(); if (L < 4) return;
+    const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L, hl = Math.min(13, L * 0.35), hw = hl * 0.5;
+    g.beginPath(); g.moveTo(q[0] + ux * 2, q[1] + uy * 2); g.lineTo(q[0] - ux * hl - uy * hw, q[1] - uy * hl + ux * hw); g.lineTo(q[0] - ux * hl + uy * hw, q[1] - uy * hl - ux * hw); g.closePath(); g.fillStyle = col; g.fill(); };
+  v.dot = function (a, r, col) { const g = v.g, p = v.P(a); g.beginPath(); g.arc(p[0], p[1], r, 0, TAU); g.fillStyle = col; g.fill(); };
+  v.label = function (a, s, col, font) { const g = v.g, p = v.P(a); g.font = font || '13px system-ui,sans-serif'; g.fillStyle = col || C.muted; g.textAlign = 'center'; g.fillText(s, p[0], p[1] + 4); g.textAlign = 'left'; };
+  v.circle = function (f, col, w, fade, dash) { const L = []; for (let i = 0; i <= 96; i++) L.push(f(i / 96 * TAU)); v.curve(L, col, w, fade, dash); };
+  v.sphere = function (labels) { const g = v.g, c = v.P([0, 0, 0]); g.beginPath(); g.arc(c[0], c[1], v.R / (1 + 0 * v.persp), 0, TAU); g.fillStyle = A(C.c1, 0.05); g.fill(); g.strokeStyle = A(C.muted, 0.5); g.lineWidth = 1; g.stroke();
+    v.circle(t => [Math.cos(t), Math.sin(t), 0], A(C.muted, 0.8), 1, true);
+    v.circle(t => [Math.cos(t), 0, Math.sin(t)], A(C.muted, 0.5), 0.8, true, [3, 3]);
+    v.circle(t => [0, Math.cos(t), Math.sin(t)], A(C.muted, 0.5), 0.8, true, [3, 3]);
+    v.seg([-1.15, 0, 0], [1.15, 0, 0], A(C.muted, 0.7), 1); v.seg([0, -1.15, 0], [0, 1.15, 0], A(C.muted, 0.7), 1); v.seg([0, 0, -1.15], [0, 0, 1.15], A(C.muted, 0.7), 1);
+    if (labels !== false) { v.label([0, 0, 1.3], '|0⟩', C.ink); v.label([0, 0, -1.3], '|1⟩', C.ink); v.label([1.32, 0, 0], '|+⟩'); v.label([-1.32, 0, 0], '|−⟩'); v.label([0, 1.32, 0], '|+i⟩'); v.label([0, -1.32, 0], '|−i⟩'); } };
+  return v;
+}
+
+// ---------- translation of labels (Python fills D.tr for lang='hi' or 'te') ----------
+const TR = D.tr || {};
+const tr = s => (s in TR ? TR[s] : s);
+
+// ---------- a complex matrix (rows of [re, im]) as phase-coloured cells with exact entries ----------
+function matGrid(g, x, y, cs, M, o) { o = o || {}; const r = M.length, c = M[0].length, dark = isDark(), bg = rgb(C.panel);
+  for (let i = 0; i < r; i++) for (let j = 0; j < c; j++) { const z = M[i][j], m = Math.hypot(z[0], z[1]), a = Math.pow(Math.min(1, m / (o.scale || 1)), 0.6);
+    let col = C.panel; if (m > 1e-9) { const p = phaseRGB(Math.atan2(z[1], z[0]), dark); col = `rgb(${Math.round(bg[0] + (p[0] * 255 - bg[0]) * a)},${Math.round(bg[1] + (p[1] * 255 - bg[1]) * a)},${Math.round(bg[2] + (p[2] * 255 - bg[2]) * a)})`; }
+    g.fillStyle = col; g.fillRect(x + j * cs + 0.5, y + i * cs + 0.5, cs - 1, cs - 1); g.strokeStyle = C.grid; g.lineWidth = 1; g.strokeRect(x + j * cs + 0.5, y + i * cs + 0.5, cs - 1, cs - 1);
+    if (m > 5e-4 && cs >= 30) { const s = cstr(z[0], z[1]).replace(/ /g, ''), cx = x + j * cs + cs / 2, cy = y + i * cs + cs / 2, fs = cs >= 44 ? 12 : 10;
+      g.fillStyle = C.ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+      if (s.length <= Math.floor(cs / 6.5)) { g.font = fs + 'px system-ui'; g.fillText(s, cx, cy + 1); }
+      else { const a = ang(Math.atan2(z[1], z[0])), top = num(m, 2), bot = '∠' + (/π/.test(a) && a.length <= 6 ? a : (Math.atan2(z[1], z[0]) * 180 / PI).toFixed(0) + '°');
+        g.font = (fs - 1) + 'px system-ui'; if (Math.max(top.length, bot.length) <= Math.floor(cs / 5.6)) { g.fillText(top, cx, cy - fs * 0.5 + 1); g.fillText(bot, cx, cy + fs * 0.6 + 1); } }
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; } }
+  g.strokeStyle = C.muted; g.lineWidth = 1.2; g.strokeRect(x, y, c * cs, r * cs);
+  if (o.label) { g.fillStyle = C.muted; g.font = '12px system-ui'; g.textAlign = 'center'; g.fillText(o.label, x + c * cs / 2, y - 7); g.textAlign = 'left'; }
+  if (o.rows) { g.fillStyle = C.muted; g.font = '11px system-ui'; g.textAlign = 'right'; o.rows.forEach((t, i) => g.fillText(t, x - 5, y + i * cs + cs / 2 + 4)); g.textAlign = 'left'; } }
+// a note at the foot of a canvas, wrapped to its width
+function footnote(g, text, x, W, H) { g.fillStyle = C.muted; g.font = '11px system-ui'; const words = text.split(' '), lines = []; let ln = '';
+  for (const w of words) { const t = ln ? ln + ' ' + w : w; if (g.measureText(t).width > W - x - 8 && ln) { lines.push(ln); ln = w; } else ln = t; } if (ln) lines.push(ln);
+  lines.forEach((l, i) => g.fillText(l, x, H - 6 - (lines.length - 1 - i) * 14)); }
+const cmul2 = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+function matVec(M, v) { return M.map(row => row.reduce((s, z, j) => { const p = cmul2(z, v[j]); return [s[0] + p[0], s[1] + p[1]]; }, [0, 0])); }
+function outer(v) { return v.map(a => v.map(b => cmul2(a, [b[0], -b[1]]))); }
+
+// ---------- controls; a key binds a control to the app state (undo, shareable links) ----------
+let ST = null; const CTRL = {}; const HIST = []; let histTimer = null, restoring = false;
+function useState(obj) { ST = obj; try { const h = decodeURIComponent(location.hash.slice(1)); if (h.startsWith('{')) { const o = JSON.parse(h); for (const k in o) if (k in obj) obj[k] = o[k]; } } catch (e) {} return obj; }
+function snapshot() { const o = {}; for (const k in CTRL) o[k] = ST[k]; return o; }
+function changed() { if (restoring || !ST) return; clearTimeout(histTimer); histTimer = setTimeout(() => { const s = JSON.stringify(snapshot());
+  if (HIST[HIST.length - 1] !== s) HIST.push(s); if (HIST.length > 200) HIST.shift();
+  try { history.replaceState(null, '', '#' + encodeURIComponent(s)); } catch (e) {} }, 300); }
+function undo() { if (HIST.length < 2) return; HIST.pop(); const o = JSON.parse(HIST[HIST.length - 1]); restoring = true;
+  for (const k in o) if (CTRL[k]) CTRL[k].set(o[k]); restoring = false; try { history.replaceState(null, '', '#' + encodeURIComponent(HIST[HIST.length - 1])); } catch (e) {} }
+function group(title) { const g = el('div', 'grp'); if (title) g.appendChild(el('h4', '', tr(title))); panel.appendChild(g); return g; }
+function slider(parent, label, min, max, step, val, fmt, on, key) { const w = el('label', 'ctl'), top = el('div', 'ctl-top'), out = el('b');
+  if (key && ST && key in ST) val = ST[key];
+  top.append(el('span', '', tr(label)), out); const inp = el('input'); inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = val;
+  const upd = silent => { out.textContent = fmt(+inp.value); if (key && ST) ST[key] = +inp.value; if (!silent) { on(+inp.value); if (key) changed(); } };
+  inp.addEventListener('input', () => upd(false)); w.append(top, inp); parent.appendChild(w); upd(true);
+  const c = { set(v, silent) { inp.value = v; upd(silent); }, get: () => +inp.value, el: w }; if (key) CTRL[key] = c; return c; }
+function buttons(parent, list, on, sel, key) { const w = el('div', 'btns'); if (key && ST && key in ST) sel = ST[key];
+  const press = (k, b, silent) => { if (sel !== undefined) bs.forEach(x => x.classList.toggle('on', x === b)); if (key && ST) ST[key] = k; on(k, b); if (key && !silent) changed(); };
+  const bs = list.map(([k, lab]) => { const b = el('button', '', tr(lab)); b.type = 'button'; b.dataset.k = k;
+    b.onclick = () => press(k, b); if (sel === k) b.classList.add('on'); w.appendChild(b); return b; });
+  parent.appendChild(w);
+  if (key) CTRL[key] = { set(v) { const b = bs.find(x => x.dataset.k === String(v)); if (b) press(b.dataset.k, b, true); }, get: () => ST[key] };
+  return bs; }
+function check(parent, label, val, on, key) { const w = el('label', 'chk'), i = el('input'); i.type = 'checkbox'; if (key && ST && key in ST) val = ST[key]; i.checked = !!val;
+  i.onchange = () => { if (key && ST) ST[key] = i.checked; on(i.checked); if (key) changed(); }; w.append(i, el('span', '', tr(label))); parent.appendChild(w);
+  if (key) CTRL[key] = { set(v) { i.checked = !!v; ST[key] = !!v; on(!!v); }, get: () => i.checked }; return i; }
+function readout(parent) { const r = el('div', 'read'); parent.appendChild(r); return r; }
+
+// ---------- toolbar: theme, undo, share link, picture, video ----------
+const ICON_THEME = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg>';
+function composite(scale) { // every visible canvas in the stage, laid out as on screen, onto one canvas
+  const sr = stage.getBoundingClientRect(), dpr = scale || Math.min(2, window.devicePixelRatio || 1), pad = 16, head = 34;
+  const out = document.createElement('canvas'); out.width = Math.round((sr.width + 2 * pad) * dpr); out.height = Math.round((sr.height + 2 * pad + head) * dpr);
+  const g = out.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = C.bg; g.fillRect(0, 0, out.width, out.height);
+  g.fillStyle = C.ink; g.font = '600 17px system-ui,sans-serif'; g.fillText(T.title, pad, pad + 16);
+  stage.querySelectorAll('.box').forEach(bx => { const r = bx.getBoundingClientRect(); if (!r.width || bx.offsetParent === null) return;
+    const x = r.left - sr.left + pad, y = r.top - sr.top + pad + head; g.fillStyle = C.panel; g.strokeStyle = C.edge; g.lineWidth = 1; g.beginPath(); g.rect(x, y, r.width, r.height); g.fill(); g.stroke();
+    const cap = bx.querySelector('.cap'); if (cap) { g.fillStyle = C.muted; g.font = '12px system-ui,sans-serif'; g.fillText(cap.textContent, x + 10, y + 18); }
+    bx.querySelectorAll('canvas').forEach(cv => { const c = cv.getBoundingClientRect(); if (!c.width) return; try { g.drawImage(cv, c.left - sr.left + pad, c.top - sr.top + pad + head, c.width, c.height); } catch (e) {} }); });
+  g.fillStyle = C.muted; g.font = '11px system-ui,sans-serif'; g.fillText(D.meta, pad, out.height / dpr - 6); return out; }
+function download(href, name) { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+let REC = null;
+function toolbar() {
+  const bar = el('div', 'tools'); $('try').after(bar);
+  const mk = (html, title, fn) => { const b = el('button', 'tool'); b.type = 'button'; b.innerHTML = html; b.title = tr(title); b.onclick = fn; bar.appendChild(b); return b; };
+  mk(ICON_THEME + ' ' + tr('light / dark'), 'light / dark', () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; readColors(); if (X && X.recolor) X.recolor(); });
+  if (Object.keys(CTRL).length) { mk('↶ ' + tr('undo'), 'undo', undo);
+    const lk = mk('🔗 ' + tr('copy link'), 'copy a link to exactly this set-up', () => { const s = JSON.stringify(snapshot()); const url = location.href.split('#')[0] + '#' + encodeURIComponent(s);
+      try { history.replaceState(null, '', url); } catch (e) {} const done = () => { lk.innerHTML = '✓ ' + tr('link copied'); setTimeout(() => lk.innerHTML = '🔗 ' + tr('copy link'), 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done(); }); }
+  mk('⤓ ' + tr('picture'), 'save the views as a PNG picture', () => download(composite(2).toDataURL('image/png'), D.topic + '.png'));
+  if (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream) {
+    const rb = mk('● ' + tr('record video'), 'record the views as a WebM video', () => {
+      if (REC) { REC.stop(); return; }
+      const cv = composite(1), stream = cv.captureStream(30), chunks = []; let mr;
+      try { mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm' }); } catch (e) { return; }
+      mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      mr.onstop = () => { REC = null; rb.innerHTML = '● ' + tr('record video'); rb.classList.remove('on'); download(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })), D.topic + '.webm'); };
+      REC = { stop: () => mr.stop(), canvas: cv, until: performance.now() + 20000 }; mr.start(200); rb.innerHTML = '■ ' + tr('stop recording'); rb.classList.add('on'); });
+  }
+  if (ST) HIST.push(JSON.stringify(snapshot()));
+}
+function recordFrame() { if (!REC) return; const fresh = composite(1), g = REC.canvas.getContext('2d'); g.drawImage(fresh, 0, 0, REC.canvas.width, REC.canvas.height); if (performance.now() > REC.until) REC.stop(); }
+
+
+function App() {
+  const st = useState({ th: I.theta !== undefined ? I.theta : PI / 3, ph: I.phi !== undefined ? I.phi : PI / 4, basis: 'Z', anim: null, counts: null, outcome: null, saved: null, last: null });
+  const r1 = row(); const cv = box(r1, 'Bloch sphere', 'tall', T.hint3d); const cvB = box(r1, 'Measurement', 'tall');
+  const cvU = box(stage, tr('The last gate as a matrix, U · |ψ⟩ = |ψ′⟩, and the density matrix ρ = |ψ⟩⟨ψ|'), 'short');
+  const GM = { X: [[[0, 0], [1, 0]], [[1, 0], [0, 0]]], Y: [[[0, 0], [0, -1]], [[0, 1], [0, 0]]], Z: [[[1, 0], [0, 0]], [[0, 0], [-1, 0]]], H: [[[Math.SQRT1_2, 0], [Math.SQRT1_2, 0]], [[Math.SQRT1_2, 0], [-Math.SQRT1_2, 0]]],
+    S: [[[1, 0], [0, 0]], [[0, 0], [0, 1]]], 'S†': [[[1, 0], [0, 0]], [[0, 0], [0, -1]]], T: [[[1, 0], [0, 0]], [[0, 0], [Math.SQRT1_2, Math.SQRT1_2]]],
+    'Rx(π/4)': [[[Math.cos(PI / 8), 0], [0, -Math.sin(PI / 8)]], [[0, -Math.sin(PI / 8)], [Math.cos(PI / 8), 0]]], 'Ry(π/4)': [[[Math.cos(PI / 8), 0], [-Math.sin(PI / 8), 0]], [[Math.sin(PI / 8), 0], [Math.cos(PI / 8), 0]]] };
+  const psiNow = () => [[Math.cos(st.th / 2), 0], [Math.sin(st.th / 2) * Math.cos(st.ph), Math.sin(st.th / 2) * Math.sin(st.ph)]];
+  const V = View3D(cv, { yaw: -0.55, pitch: 0.3 });
+  const vec = () => [Math.sin(st.th) * Math.cos(st.ph), Math.sin(st.th) * Math.sin(st.ph), Math.cos(st.th)];
+  const g = group('State  |ψ⟩ = cos(θ/2)|0⟩ + e^(iφ) sin(θ/2)|1⟩');
+  const sT = slider(g, 'θ', 0, PI, PI / 24, st.th, v => ang(v), v => { st.th = v; st.counts = null; st.outcome = null; }, 'th');
+  const sP = slider(g, 'φ', 0, TAU, PI / 24, st.ph, v => ang(v), v => { st.ph = v; st.counts = null; st.outcome = null; }, 'ph');
+  buttons(g, [['0', '|0⟩'], ['1', '|1⟩'], ['+', '|+⟩'], ['-', '|−⟩'], ['+i', '|+i⟩'], ['-i', '|−i⟩']], k => {
+    const m = { '0': [0, 0], '1': [PI, 0], '+': [PI / 2, 0], '-': [PI / 2, PI], '+i': [PI / 2, PI / 2], '-i': [PI / 2, 3 * PI / 2] }[k]; sT.set(m[0]); sP.set(m[1]); });
+  const gg = group('Gates (watch the rotation)');
+  const R2 = Math.SQRT1_2, GATES = { X: [[1, 0, 0], PI], Y: [[0, 1, 0], PI], Z: [[0, 0, 1], PI], H: [[R2, 0, R2], PI], S: [[0, 0, 1], PI / 2], 'S†': [[0, 0, 1], -PI / 2], T: [[0, 0, 1], PI / 4], 'Rx(π/4)': [[1, 0, 0], PI / 4], 'Ry(π/4)': [[0, 1, 0], PI / 4] };
+  buttons(gg, Object.keys(GATES).map(k => [k, k]), k => { if (st.anim) return; const before = psiNow(); st.last = { name: k, U: GM[k], before, after: matVec(GM[k], before) }; st.anim = { axis: GATES[k][0], angle: GATES[k][1], t: 0, from: vec(), name: k }; st.counts = null; st.outcome = null; });
+  const gm = group('Measure');
+  buttons(gm, [['Z', 'Z basis'], ['X', 'X basis'], ['Y', 'Y basis']], k => { st.basis = k; st.counts = null; st.outcome = null; }, st.basis, 'basis');
+  buttons(gm, [['1', 'measure once'], ['200', 'measure 200×'], ['undo', 'undo collapse']], k => {
+    const n = { Z: [0, 0, 1], X: [1, 0, 0], Y: [0, 1, 0] }[st.basis], r = vec(), pp = (1 + r[0] * n[0] + r[1] * n[1] + r[2] * n[2]) / 2;
+    if (k === '200') { let c = 0; for (let i = 0; i < 200; i++) if (Math.random() < pp) c++; st.counts = [c, 200 - c]; }
+    if (k === '1') { const up = Math.random() < pp; st.saved = [st.th, st.ph]; st.outcome = up ? 0 : 1; st.anim = { collapse: true, t: 0, from: r, to: up ? n : n.map(x => -x) }; }
+    if (k === 'undo' && st.saved) { sT.set(st.saved[0]); sP.set(st.saved[1]); st.saved = null; } });
+  const R = readout(group('Numbers'));
+  const rot = (v, k, a) => { const c = Math.cos(a), s = Math.sin(a), d = k[0] * v[0] + k[1] * v[1] + k[2] * v[2], x = [k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0]];
+    return [0, 1, 2].map(i => v[i] * c + x[i] * s + k[i] * d * (1 - c)); };
+  const setFrom = r => { const th = Math.acos(clamp(r[2], -1, 1)); let ph = Math.atan2(r[1], r[0]); if (ph < 0) ph += TAU; if (Math.sin(th) < 1e-6) ph = st.ph;
+    sT.set(Math.round(th / (PI / 24)) * (PI / 24), true); st.th = th; sP.set(Math.round(ph / (PI / 24)) * (PI / 24) % TAU, true); st.ph = ph; };
+  this.frame = function (dt) {
+    let r = vec(), path = null;
+    if (st.anim) { const a = st.anim; a.t = Math.min(1, a.t + dt / (a.collapse ? 0.45 : 0.9)); const e = a.t < 0.5 ? 2 * a.t * a.t : 1 - 2 * (1 - a.t) ** 2;
+      if (a.collapse) { const m = a.from.map((x, i) => x + (a.to[i] - x) * e), n = Math.hypot(...m) || 1; r = m.map(x => x / n); }
+      else { r = rot(a.from, a.axis, a.angle * e); path = []; for (let i = 0; i <= 40; i++) path.push(rot(a.from, a.axis, a.angle * e * i / 40)); }
+      if (a.t >= 1) { st.anim = null; setFrom(a.collapse ? a.to : rot(a.from, a.axis, a.angle)); r = vec(); } }
+    V.begin(); V.sphere();
+    const n = { Z: [0, 0, 1], X: [1, 0, 0], Y: [0, 1, 0] }[st.basis]; V.seg(n.map(x => -x * 1.15), n.map(x => x * 1.15), A(C.c2, 0.85), 3);
+    if (st.anim && st.anim.axis) { const k = st.anim.axis; V.seg(k.map(x => -x * 1.3), k.map(x => x * 1.3), C.c4, 2, [6, 4]); V.label(k.map(x => x * 1.42), st.anim.name + ' axis', C.c4); }
+    if (path) V.curve(path, C.c4, 2.2);
+    V.seg(r, [0, 0, r[2]], A(C.c1, 0.6), 1.2, [3, 3]); V.seg([0, 0, 0], [r[0], r[1], 0], A(C.c1, 0.5), 1.2, [3, 3]); V.seg([r[0], r[1], 0], r, A(C.c1, 0.5), 1.2, [3, 3]);
+    const sth = Math.hypot(r[0], r[1]); if (sth > 0.05) { const pa = []; const ph = Math.atan2(r[1], r[0]); for (let i = 0; i <= 30; i++) { const a = ph * i / 30; pa.push([0.3 * Math.cos(a), 0.3 * Math.sin(a), 0]); } V.curve(pa, C.c3, 2); V.label([0.42 * Math.cos(ph / 2), 0.42 * Math.sin(ph / 2), 0], 'φ', C.c3); }
+    V.arrow([0, 0, 0], r, C.c1, 3.2); V.dot(r, 4, C.c1);
+    // probabilities
+    const pp = (1 + r[0] * n[0] + r[1] * n[1] + r[2] * n[2]) / 2, labs = { Z: ['|0⟩', '|1⟩'], X: ['|+⟩', '|−⟩'], Y: ['|+i⟩', '|−i⟩'] }[st.basis];
+    const s = fit(cvB), g2 = s.g, base = s.h - 36, top = 58, bw = Math.min(90, s.w / 4);
+    [pp, 1 - pp].forEach((p, i) => { const x = s.w / 2 + (i ? 0.25 : -0.85) * bw * 2; g2.fillStyle = A(i ? C.c2 : C.c1, 0.85); g2.fillRect(x, base - p * (base - top), bw, p * (base - top));
+      g2.fillStyle = C.ink; g2.font = '14px system-ui'; g2.textAlign = 'center'; g2.fillText(labs[i], x + bw / 2, base + 18); g2.fillText(num(p, 3), x + bw / 2, base - p * (base - top) - 8);
+      if (st.counts) { const f = st.counts[i] / 200, y = base - f * (base - top); g2.strokeStyle = C.ink; g2.lineWidth = 2; g2.setLineDash([5, 3]); g2.beginPath(); g2.moveTo(x - 6, y); g2.lineTo(x + bw + 6, y); g2.stroke(); g2.setLineDash([]); g2.fillText(st.counts[i] + '/200', x + bw / 2, y + 16); }
+      if (st.outcome === i && !st.anim) { g2.fillStyle = C.c3; g2.fillText(tr('measured'), x + bw / 2, top - 8); } g2.textAlign = 'left'; });
+    g2.fillStyle = C.muted; g2.font = '12px system-ui'; g2.fillText(st.counts ? 'bars: predicted · dashed: 200 measurements' : 'P(outcome) = (1 + r·n)/2', 8, 16);
+    // numbers
+    const th = Math.acos(clamp(r[2], -1, 1)), ph = Math.atan2(r[1], r[0]), al = Math.cos(th / 2), be = Math.sin(th / 2);
+    R.innerHTML = '';
+    const ket = el('div', 'big', '|ψ⟩ = ' + (al < 5e-4 ? '' : num(al) + '|0⟩') + (be < 5e-4 ? '' : (al < 5e-4 ? '' : ' + ') + (Math.abs(ph) < 1e-3 || be < 5e-4 ? '' : 'e^(i·' + ang(((ph % TAU) + TAU) % TAU) + ')·') + num(be) + '|1⟩'));
+    R.appendChild(ket);
+    const add = (k, x) => { const d = el('div'); d.append(el('span', 'k', tr(k) + '  '), document.createTextNode(x)); R.appendChild(d); };
+    add('Bloch vector', `(${num(r[0], 3)}, ${num(r[1], 3)}, ${num(r[2], 3)})`); add('P(0) = cos²(θ/2) =', num(al * al, 3)); add('⟨X⟩, ⟨Y⟩, ⟨Z⟩ =', `${num(r[0], 3)}, ${num(r[1], 3)}, ${num(r[2], 3)}`);
+    R.appendChild(el('p', 'note', tr('A global phase e^(iγ)|ψ⟩ is the same point: only the relative phase φ is physical.')));
+    { const U = fit(cvU), u = U.g, cs = Math.max(24, Math.min(52, (U.h - 40) / 2, (U.w - 196) / 6)), y0 = 28; let x = 44; const psi = [[al * 1, 0], [be * Math.cos(ph), be * Math.sin(ph)]];
+      if (st.last) { matGrid(u, x, y0, cs, st.last.U, { label: 'U = ' + st.last.name, rows: ['|0⟩', '|1⟩'] }); x += 2 * cs + 22; u.fillStyle = C.ink; u.font = '20px system-ui'; u.fillText('·', x - 14, y0 + cs + 6);
+        matGrid(u, x, y0, cs, st.last.before.map(z => [z]), { label: '|ψ⟩' }); x += cs + 30; u.fillText('=', x - 20, y0 + cs + 6); matGrid(u, x, y0, cs, st.last.after.map(z => [z]), { label: '|ψ′⟩' }); x += cs + 40; }
+      else { u.fillStyle = C.muted; u.font = '13px system-ui'; u.fillText(tr('Press a gate to see it as a matrix acting on the state.'), 16, y0 + 18); x = Math.max(x, Math.min(360, U.w - 2 * cs - 40)); }
+      matGrid(u, x + 30, y0, cs, outer(psi), { label: 'ρ = |ψ⟩⟨ψ|', rows: ['|0⟩', '|1⟩'] });
+      footnote(u, tr('colour = phase, strength = magnitude'), 10, U.w, U.h); }
+  };
+}
+let X = null;
+X = new App();
+toolbar();
+
+let last = performance.now();
+function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; try { X.frame(dt); recordFrame(); } catch (e) { console.error(e); throw e; } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.__sia_explore = { state: () => X, frame: dt => X.frame(dt || 0.016) };
+})();
+</script></body></html>

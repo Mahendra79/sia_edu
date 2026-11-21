@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dirac notation · Level 3</title>
+<style>
+:root{--bg:#fbfcfe;--panel:#fff;--ink:#172033;--muted:#5f6b7d;--accent:#2a78d6;--edge:#d7e0ea;--good:#13865c;--bad:#c2410c;--soft:#eef3f9}
+:root[data-theme=dark]{--bg:#0d1424;--panel:#17243a;--ink:#f5f7fb;--muted:#9aa8bd;--accent:#3987e5;--edge:#344966;--good:#34c48b;--bad:#f08a5d;--soft:#1d2c45}
+*{box-sizing:border-box}html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans","Noto Sans Telugu","Noto Sans Devanagari",Nirmala UI,sans-serif}
+main{max-width:860px;margin:0 auto;padding:18px 16px 40px}
+h1{font-size:21px;margin:0 0 4px}.meta{color:var(--muted);font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
+button,input{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:6px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+#score{margin-left:auto;font-weight:600}
+.howto{color:var(--muted);font-size:13.5px;margin:0 0 6px}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:14px 16px;margin:12px 0}
+.q{font-weight:600}.num{color:var(--accent);margin-right:6px}
+.given{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:10px 0;font-family:"STIX Two Math","Cambria Math",serif;font-size:17px}
+.mx{display:inline-flex;align-items:center;gap:6px}
+.br{display:inline-grid;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:4px;padding:2px 8px;gap:2px 14px}
+.br span{text-align:center;min-width:2.2em}
+.ans{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.ans input{width:11em}.ans .grid{display:inline-grid;gap:4px}.ans .grid input{width:7.5em}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.opt{display:inline-flex;align-items:center;gap:10px;min-height:42px;padding:6px 14px;font-family:"STIX Two Math","Cambria Math",serif;font-size:16.5px}
+.opt .lt{font:600 12.5px system-ui,sans-serif;color:var(--muted)}
+.opt.word{font:inherit;min-width:5.5em;justify-content:center}
+.bank{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}.bank span{font-family:"STIX Two Math","Cambria Math",serif;font-size:16px;background:var(--soft);border:1px solid var(--edge);border-radius:999px;padding:3px 12px}
+.opt.sel{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.opt.right{border-color:var(--good);box-shadow:inset 0 0 0 2px var(--good)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 0 0 0 2px var(--bad)}
+.claim{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;background:var(--soft);border-radius:8px}
+.claim .val{font-family:"STIX Two Math","Cambria Math",serif;font-size:17px}
+.mrow{display:grid;grid-template-columns:2.2em 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--edge)}
+.mrow .pick{grid-column:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mrow select{font:16px "STIX Two Math","Cambria Math",serif;color:var(--ink);background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:6px 10px;min-width:9em}
+.mrow .mk{font-size:14px}
+.fb{font-size:14px;margin-top:6px;min-height:1.2em}.ok{color:var(--good)}.no{color:var(--bad)}
+details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:14px}
+.steps{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;background:var(--soft);border-radius:8px;padding:8px 10px;margin-top:6px;white-space:pre-wrap}
+.hint{color:var(--muted);font-size:13px}
+.key{display:none}
+a.back{display:inline-block;margin-bottom:8px;color:var(--accent);text-decoration:none;font-size:14px}
+@media print{a.back,.bar,.ans button,.fb,details,.howto{display:none!important}.card{break-inside:avoid;border-color:#bbb}
+ .ans input{border:0;border-bottom:1px solid #999;border-radius:0}.key{display:block;break-before:page}body{background:#fff;color:#000}}
+</style></head><body><main>
+<h1 id="title"></h1><div class="meta" id="meta"></div>
+<div class="bar"><button id="all"></button><button id="reset"></button><button id="print"></button><button id="theme" title="Light / dark"><svg width="13" height="13" viewBox="0 0 16 16" style="vertical-align:-2px" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg></button><span id="score"></span></div>
+<p class="howto" id="howto"></p>
+<div id="list"></div>
+<section class="key" id="key"></section>
+</main>
+<script type="application/json" id="sia-practice">{"title": "Dirac notation · Level 3", "ui": {"practice": "Practice", "level": "Level", "check": "Check", "solution": "Solution", "show_all": "Show all solutions", "hide_all": "Hide solutions", "reset": "Start again", "print": "Print", "score": "Score", "correct": "Correct", "wrong": "Not yet — try again or open the solution", "unreadable": "Could not read this answer", "answer": "Answer", "answers": "Answer key", "student": "Student", "name": "Name", "date": "Date", "any_multiple": "any non-zero multiple is accepted", "any_order": "in any order", "how_to_type": "Type answers like 1+2i, (1+i)/√2 or sqrt(2), 3π/4 or 3pi/4, e^(iπ/4). Decimals such as 0.707 are accepted.", "topic_complex": "Complex numbers", "topic_vectors": "Vectors and inner products", "topic_matrices": "Matrices", "topic_eigen": "Eigenvalues and eigenvectors", "topic_tensor": "Tensor products", "topic_mixed": "Quantum maths: mixed practice", "topic_dirac": "Dirac notation", "topic_physics": "Quantum mechanics", "course_title": "Quantum, from maths to computing", "course_intro": "Work down the steps. Every practice page has its own problems with worked solutions, and your best score is kept in this browser.", "stage_school": "Step 0 · Foundations: bits, probability and waves", "stage_maths": "Step 1 · Quantum maths", "stage_dirac": "Step 2 · Dirac notation", "stage_physics": "Step 3 · Quantum mechanics", "stage_computing": "Step 4 · Quantum computing", "playground_link": "Playground: build and run circuits in the browser", "lessons_head": "Algorithm lessons: predict, then reveal", "glossary": "Glossary", "back_course": "← Course", "solved": "solved", "opened": "opened", "explore_head": "Explore: touch, drag and rotate", "make_own": "Make your own pages in Python:", "topic_binary": "Bits, qubits and binary", "topic_probability": "Probability and measurement", "topic_gates": "Quantum gates", "topic_circuits": "Quantum circuits", "topic_waves": "Waves, interference and photons", "topic_several": "Mixed practice", "how_to_tap": "Tap an answer to check it; try again if it is wrong. Every question has a worked solution.", "claim": "Is this the answer?", "true": "True", "false": "False", "match_head": "Match each question with its answer", "choose": "Choose…", "yes": "yes", "no": "no", "howto": "Tap an answer to check it; try again if it is wrong. Every question has a worked solution."}, "problems": [{"n": 1, "sub": "d_inner", "prompt": "Find the inner product ⟨−i|+i⟩.", "given": [], "answer": {"kind": "scalar", "value": [0.0, 0.0]}, "answer_text": "0", "steps": ["|−i⟩ = (1/√2, −i/√2),  |+i⟩ = (1/√2, i/√2)", "⟨−i| is the conjugate row (1/√2, i/√2)", "⟨−i|+i⟩ = Σ āₖ bₖ = 0"], "mode": "mcq", "options": [{"text": "0"}, {"text": "3"}, {"text": "2"}, {"text": "1"}], "correct": 0}, {"n": 2, "sub": "d_prob", "prompt": "The state is |−,0⟩. Find the probability |⟨−,+i|−,0⟩|² of finding |−,+i⟩.", "given": [], "answer": {"kind": "scalar", "value": [0.5000000000000001, 0.0]}, "answer_text": "1/2", "steps": ["⟨−,+i|−,0⟩ = 1/√2", "P = |⟨−,+i|−,0⟩|² = 1/2"], "mode": "mcq", "options": [{"text": "1/2"}, {"text": "1"}, {"text": "1/√2"}, {"text": "1/4"}], "correct": 0}, {"n": 3, "sub": "d_outer", "prompt": "Write the outer product |−⟩⟨0| as a matrix.", "given": [], "answer": {"kind": "matrix", "value": [[[0.7071067811865476, 0.0], [0.0, 0.0]], [[-0.7071067811865476, 0.0], [0.0, 0.0]]]}, "answer_text": "[1/√2, 0; −1/√2, 0]", "steps": ["|−⟩ = (1/√2, −1/√2) (column),  ⟨0| = (1, 0) (row)", "entry (j, k) = aⱼ·b̄ₖ  →  [1/√2, 0; −1/√2, 0]"], "mode": "mcq", "options": [{"cells": [["−1/√2", "0"], ["1/√2", "0"]], "cols": 2, "text": "[−1/√2, 0; 1/√2, 0]"}, {"cells": [["1/√2", "0"], ["−1/√2", "0"]], "cols": 2, "text": "[1/√2, 0; −1/√2, 0]"}, {"cells": [["√2", "0"], ["−√2", "0"]], "cols": 2, "text": "[√2, 0; −√2, 0]"}, {"cells": [["1/√2", "−1/√2"], ["0", "0"]], "cols": 2, "text": "[1/√2, −1/√2; 0, 0]"}], "correct": 1}, {"n": 4, "sub": "d_basis", "prompt": "Write |ψ⟩ = c₊|+⟩ + c₋|−⟩: give (c₊, c₋).", "given": [{"label": "|ψ⟩", "type": "vector", "cells": ["−2", "−3"]}], "answer": {"kind": "vector", "value": [[-3.5355339059327378, 0.0], [0.7071067811865476, 0.0]]}, "answer_text": "(−5/√2, 1/√2)", "steps": ["c₊ = ⟨+|ψ⟩ = (ψ₀ + ψ₁)/√2,  c₋ = ⟨−|ψ⟩ = (ψ₀ − ψ₁)/√2", "c₊ = −5/√2,  c₋ = 1/√2"], "mode": "mcq", "options": [{"text": "(−5/√2, −1/√2)"}, {"text": "(5/√2, 1/√2)"}, {"text": "(1/√2, −5/√2)"}, {"text": "(−5/√2, 1/√2)"}], "correct": 3}, {"n": 5, "sub": "d_density", "prompt": "Find the density matrix ρ = |ψ⟩⟨ψ|.", "given": [{"label": "|ψ⟩", "type": "vector", "cells": ["i/√3", "(1+i)/√3"]}], "answer": {"kind": "matrix", "value": [[[0.3333333333333333, 0.0], [0.3333333333333333, 0.3333333333333333]], [[0.3333333333333333, -0.3333333333333333], [0.6666666666666666, 0.0]]]}, "answer_text": "[1/3, (1+i)/3; (1−i)/3, 2/3]", "steps": ["ρ = |ψ⟩⟨ψ|: entry (j, k) = ψⱼ·ψ̄ₖ", "ρ = [1/3, (1+i)/3; (1−i)/3, 2/3]  (tr ρ = 1)"], "mode": "mcq", "options": [{"cells": [["1/3", "(1−i)/3"], ["(1+i)/3", "2/3"]], "cols": 2, "text": "[1/3, (1−i)/3; (1+i)/3, 2/3]"}, {"cells": [["(1−i)/3", "2/3"], ["1/3", "(1+i)/3"]], "cols": 2, "text": "[(1−i)/3, 2/3; 1/3, (1+i)/3]"}, {"cells": [["1/3", "(−1−i)/3"], ["(1−i)/3", "2/3"]], "cols": 2, "text": "[1/3, (−1−i)/3; (1−i)/3, 2/3]"}, {"cells": [["1/3", "(1+i)/3"], ["(1−i)/3", "2/3"]], "cols": 2, "text": "[1/3, (1+i)/3; (1−i)/3, 2/3]"}], "correct": 3}, {"n": 6, "sub": "d_ptrace", "prompt": "For the two-qubit state |ψ⟩, find the reduced density matrix of qubit 0, ρ₀ = tr₁ |ψ⟩⟨ψ|.", "given": [{"label": "|ψ⟩", "type": "vector", "cells": ["−2/√13", "−1/√13", "2/√13", "−2/√13"]}], "answer": {"kind": "matrix", "value": [[[0.38461538461538464, 0.0], [-0.15384615384615385, 0.0]], [[-0.15384615384615385, 0.0], [0.6153846153846154, 0.0]]]}, "answer_text": "[5/13, −2/13; −2/13, 8/13]", "steps": ["write |ψ⟩ = Σ ψ_ab |a b⟩; then (ρ₀)_{aa′} = Σ_b ψ_ab ψ̄_a′b", "ρ₀ = [5/13, −2/13; −2/13, 8/13]", "tr ρ₀² = 97/169 \u003c 1 → qubit 0 is entangled with qubit 1"], "mode": "mcq", "options": [{"cells": [["−2/13", "8/13"], ["5/13", "−2/13"]], "cols": 2, "text": "[−2/13, 8/13; 5/13, −2/13]"}, {"cells": [["−5/13", "2/13"], ["2/13", "−8/13"]], "cols": 2, "text": "[−5/13, 2/13; 2/13, −8/13]"}, {"cells": [["5/13", "−2/13"], ["−2/13", "8/13"]], "cols": 2, "text": "[5/13, −2/13; −2/13, 8/13]"}, {"cells": [["5/13", "2/13"], ["−2/13", "8/13"]], "cols": 2, "text": "[5/13, 2/13; −2/13, 8/13]"}], "correct": 2}], "match": null, "theme": "light", "meta": "HDQS · Sia Software Innovations · seed 2004", "back": "../index.html", "back_label": "← Course", "progress": "1/dirac-3"}</script>
+<script>
+(function () {
+"use strict";
+const D = JSON.parse(document.getElementById('sia-practice').textContent), U = D.ui;
+const $ = id => document.getElementById(id);
+document.documentElement.dataset.theme = D.theme === 'dark' ? 'dark' : 'light';
+$('title').textContent = D.title; $('meta').textContent = D.meta; $('howto').textContent = U.howto;
+$('all').textContent = U.show_all; $('reset').textContent = U.reset; $('print').textContent = U.print;
+// ---- complex arithmetic and the answer parser (same grammar as Python)
+const C = (re, im) => ({ re, im: im || 0 });
+const add = (a, b) => C(a.re + b.re, a.im + b.im), sub = (a, b) => C(a.re - b.re, a.im - b.im);
+const mul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+const div = (a, b) => { const d = b.re * b.re + b.im * b.im; if (d === 0) throw new Error('division by zero'); return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+const cexp = a => { const m = Math.exp(a.re); return C(m * Math.cos(a.im), m * Math.sin(a.im)); };
+const csqrt = a => { const r = Math.hypot(a.re, a.im), t = Math.atan2(a.im, a.re) / 2, s = Math.sqrt(r); return C(s * Math.cos(t), s * Math.sin(t)); };
+const cpow = (a, b) => { if (a.re === 0 && a.im === 0) return C(0, 0); const r = Math.hypot(a.re, a.im), t = Math.atan2(a.im, a.re), lr = Math.log(r); return cexp(C(b.re * lr - b.im * t, b.im * lr + b.re * t)); };
+function parse(text) {
+  let s = String(text).trim().replace(/−/g, '-').replace(/[×·]/g, '*').replace(/\*\*/g, '^').replace(/π/g, 'pi').replace(/√/g, 'sqrt').replace(/\s+/g, '');
+  if (!s) throw new Error('empty');
+  const T = []; let i = 0;
+  while (i < s.length) {
+    const c = s[i], m = /^(\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+)/.exec(s.slice(i));
+    if (m && c !== 'e' && c !== 'E') { T.push(['n', C(parseFloat(m[1]))]); i += m[1].length; continue; }
+    if (s.startsWith('sqrt', i)) { T.push(['f', 'sqrt']); i += 4; continue; }
+    if (s.startsWith('pi', i)) { T.push(['n', C(Math.PI)]); i += 2; continue; }
+    if (s.startsWith('exp', i)) { T.push(['f', 'exp']); i += 3; continue; }
+    if (c === 'i' || c === 'j') { T.push(['n', C(0, 1)]); i++; continue; }
+    if (c === 'e') { T.push(['n', C(Math.E), 'e']); i++; continue; }
+    if ('+-*/^()'.includes(c)) { T.push(['o', c]); i++; continue; }
+    throw new Error('unexpected "' + c + '"');
+  }
+  let p = 0;
+  const peek = () => T[p] || ['end'], take = () => T[p++] || ['end'], is = (t, v) => t[0] === 'o' && t[1] === v;
+  function expr() { let v = term(); for (;;) { const t = peek(); if (is(t, '+')) { take(); v = add(v, term()); } else if (is(t, '-')) { take(); v = sub(v, term()); } else return v; } }
+  function term() { let v = unary(); for (;;) { const t = peek(); if (is(t, '*')) { take(); v = mul(v, unary()); } else if (is(t, '/')) { take(); v = div(v, unary()); } else if (t[0] === 'n' || t[0] === 'f' || is(t, '(')) v = mul(v, power()); else return v; } }
+  function unary() { const t = peek(); if (is(t, '-')) { take(); const v = unary(); return C(-v.re, -v.im); } if (is(t, '+')) { take(); return unary(); } return power(); }
+  function power() { const t0 = peek(), b = atom(); if (is(peek(), '^')) { take(); const e = unary(); return t0[2] === 'e' ? cexp(e) : cpow(b, e); } return b; }
+  function atom() { const t = take(); if (t[0] === 'n') return t[1]; if (t[0] === 'f') { const a = is(peek(), '(') ? atom() : power(); return t[1] === 'sqrt' ? csqrt(a) : cexp(a); } if (is(t, '(')) { const v = expr(); if (!is(take(), ')')) throw new Error('missing )'); return v; } throw new Error('incomplete'); }
+  const v = expr(); if (p !== T.length) throw new Error('could not read it all'); return v;
+}
+const close = (a, b) => Math.hypot(a.re - b[0], a.im - b[1]) <= Math.max(2e-3, 1e-4 * Math.hypot(b[0], b[1]));
+function check(spec, vals) {
+  const k = spec.kind;
+  if (k === 'scalar') return close(parse(spec.unit ? String(vals[0]).replace(/\s*(mm|nm|eV|ev|cm|m)\s*$/, '') : vals[0]), spec.value);
+  if (k === 'angle') { const g = parse(vals[0]); if (Math.abs(g.im) > 1e-6) return false; const d = ((g.re - spec.value[0] + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return Math.abs(d) < 2e-3; }
+  if (k === 'pair') return spec.parts.every((pt, i) => check({ kind: pt.kind, value: pt.value }, [vals[i]]));
+  if (k === 'set') { const want = spec.value.slice(), got = vals.map(parse); if (got.length !== want.length) return false; for (const g of got) { const j = want.findIndex(w => close(g, w)); if (j < 0) return false; want.splice(j, 1); } return true; }
+  if (k === 'vector' || k === 'matrix') { const want = k === 'matrix' ? spec.value.flat() : spec.value; return vals.length === want.length && vals.every((v, i) => close(parse(v), want[i])); }
+  if (k === 'direction') { const g = vals.map(parse), w = spec.value; let ip = C(0, 0), ng = 0, nw = 0; g.forEach((x, i) => { ip = add(ip, mul(C(w[i][0], -w[i][1]), x)); ng += x.re * x.re + x.im * x.im; nw += w[i][0] ** 2 + w[i][1] ** 2; }); if (ng < 1e-12) return false; return Math.abs(Math.hypot(ip.re, ip.im) - Math.sqrt(ng * nw)) < 2e-3 * Math.sqrt(ng * nw); }
+  if (k === 'choice') return Number(vals[0]) === spec.value;
+  if (k === 'text') return String(vals[0]).replace(/[\s|⟩>]/g, '').toLowerCase() === String(spec.value).toLowerCase();
+  return false;
+}
+// ---- page
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+function bracket(cells, cols) { const b = el('span', 'br'); b.style.gridTemplateColumns = `repeat(${cols},auto)`; cells.forEach(c => b.appendChild(el('span', '', c))); return b; }
+function givenBlock(g) {
+  const w = el('span', 'mx'); w.appendChild(el('span', '', g.label + ' ='));
+  if (g.type === 'scalar') w.appendChild(el('span', '', g.text));
+  else if (g.type === 'vector') w.appendChild(bracket(g.cells, 1));
+  else w.appendChild(bracket(g.cells.flat(), g.cells[0].length));
+  return w;
+}
+const state = [];
+function render() {
+  const list = $('list'); list.innerHTML = ''; state.length = 0;
+  D.problems.forEach((P, idx) => {
+    const card = el('div', 'card'), q = el('div', 'q');
+    q.appendChild(el('span', 'num', P.n + '.')); q.appendChild(document.createTextNode(P.prompt)); card.appendChild(q);
+    if (P.given.length) { const g = el('div', 'given'); P.given.forEach(x => g.appendChild(givenBlock(x))); card.appendChild(g); }
+    if (P.mode === 'match') return;
+    const ans = el('div', 'ans'), inputs = [], s = P.answer, st = { done: false, choice: null };
+    const fb = el('div', 'fb');
+    const verdict = ok => { fb.className = 'fb ' + (ok ? 'ok' : 'no'); fb.textContent = ok ? '✓ ' + U.correct : U.wrong; st.done = st.done || ok; score(); };
+    const optView = o => { const w = el('span'); if (o.cells) w.appendChild(bracket(o.cells.flat(), o.cols)); else w.textContent = o.text; return w; };
+    let go = null;
+    if (P.mode === 'mcq') {
+      const box = el('div', 'opts'), btns = [];
+      P.options.forEach((o, j) => {
+        const b = el('button', 'opt'); b.type = 'button';
+        b.appendChild(el('span', 'lt', 'ABCDEFGH'[j])); b.appendChild(optView(o));
+        b.onclick = () => { st.choice = j; btns.forEach((x, m) => { x.classList.toggle('sel', m === j); x.classList.remove('right', 'wrong'); }); const ok = j === P.correct; b.classList.add(ok ? 'right' : 'wrong'); verdict(ok); };
+        btns.push(b); box.appendChild(b);
+      });
+      card.appendChild(box);
+    } else if (P.mode === 'tf') {
+      const c = el('div', 'claim'); c.appendChild(el('span', 'hint', U.claim)); const v = optView(P.claim); v.className = 'val'; c.appendChild(v);
+      card.appendChild(c);
+      const box = el('div', 'opts'), btns = [];
+      [[U['true'], true], [U['false'], false]].forEach(([lab, val], j) => {
+        const b = el('button', 'opt word', lab); b.type = 'button';
+        b.onclick = () => { btns.forEach(x => x.classList.remove('sel', 'right', 'wrong')); b.classList.add('sel'); const ok = val === P.claim_true; b.classList.add(ok ? 'right' : 'wrong'); verdict(ok); };
+        btns.push(b); box.appendChild(b);
+      });
+      card.appendChild(box);
+    } else if (P.mode === 'yesno') {
+      const box = el('div', 'opts'), btns = [];
+      s.options.forEach((o, j) => {
+        const b = el('button', 'opt word', o.charAt(0).toUpperCase() + o.slice(1)); b.type = 'button';
+        b.onclick = () => { btns.forEach(x => x.classList.remove('sel', 'right', 'wrong')); b.classList.add('sel'); const ok = check(s, [j]); b.classList.add(ok ? 'right' : 'wrong'); verdict(ok); };
+        btns.push(b); box.appendChild(b);
+      });
+      card.appendChild(box);
+    } else {
+      const mk = (ph, w) => { const i = el('input'); i.placeholder = ph || ''; if (w) i.style.width = w; i.setAttribute('autocomplete', 'off'); i.setAttribute('spellcheck', 'false'); inputs.push(i); return i; };
+      if (s.kind === 'scalar' || s.kind === 'angle' || s.kind === 'text') { ans.appendChild(mk(U.answer)); if (s.unit) ans.appendChild(el('span', 'hint', s.unit)); }
+      else if (s.kind === 'pair') s.parts.forEach(pt => { ans.appendChild(el('span', '', pt.label + ' =')); ans.appendChild(mk('', '8em')); });
+      else if (s.kind === 'set') { s.value.forEach(() => ans.appendChild(mk('λ', '7em'))); ans.appendChild(el('span', 'hint', '(' + U.any_order + ')')); }
+      else if (s.kind === 'vector' || s.kind === 'direction') { const gr = el('span', 'grid'); s.value.forEach(() => gr.appendChild(mk())); ans.appendChild(gr); if (s.kind === 'direction') ans.appendChild(el('span', 'hint', '(' + U.any_multiple + ')')); }
+      else if (s.kind === 'matrix') { const gr = el('span', 'grid'); gr.style.gridTemplateColumns = `repeat(${s.value[0].length},auto)`; s.value.flat().forEach(() => gr.appendChild(mk())); ans.appendChild(gr); }
+      go = el('button', 'primary', U.check); go.type = 'button'; ans.appendChild(go);
+      go.onclick = () => {
+        let ok;
+        try { ok = check(s, inputs.map(i => i.value)); }
+        catch (err) { fb.className = 'fb no'; fb.textContent = U.unreadable + ': ' + err.message; return; }
+        verdict(ok);
+      };
+      inputs.forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); }));
+    }
+    if (ans.childNodes.length) card.appendChild(ans);
+    card.appendChild(fb);
+    const det = el('details'); det.appendChild(el('summary', '', U.solution)); const pre = el('div', 'steps');
+    pre.textContent = P.steps.join('\n') + '\n→ ' + U.answer + ': ' + P.answer_text; det.appendChild(pre); card.appendChild(det);
+    state.push(st); list.appendChild(card);
+  });
+  if (D.match) {
+    const card = el('div', 'card'); card.appendChild(el('div', 'q', U.match_head));
+    const bank = el('div', 'bank'); D.match.options.forEach(t => bank.appendChild(el('span', '', t))); card.appendChild(bank);
+    const mrows = D.problems.filter(P => P.mode === 'match'), sts = [];
+    mrows.forEach((P, r) => {
+      const row = el('div', 'mrow'); row.appendChild(el('span', 'num', P.n + '.'));
+      const body = el('div'); body.appendChild(document.createTextNode(P.prompt));
+      if (P.given.length) { const g = el('div', 'given'); P.given.forEach(x => g.appendChild(givenBlock(x))); body.appendChild(g); }
+      row.appendChild(body);
+      const pick = el('div', 'pick'), sel = el('select');
+      const o0 = el('option', '', U.choose); o0.value = ''; sel.appendChild(o0);
+      D.match.options.forEach((t, j) => { const o = el('option', '', t); o.value = 'o' + j; sel.appendChild(o); });
+      const mk = el('span', 'mk'); pick.appendChild(sel); pick.appendChild(mk); row.appendChild(pick);
+      const det = el('details'); det.style.gridColumn = '2'; det.appendChild(el('summary', '', U.solution)); const pre = el('div', 'steps');
+      pre.textContent = P.steps.join('\n') + '\n→ ' + U.answer + ': ' + P.answer_text; det.appendChild(pre); row.appendChild(det);
+      const st = { done: false, sel, mk, want: D.match.correct[r] }; sts.push(st); state.push(st);
+      card.appendChild(row);
+    });
+    const go = el('button', 'primary', U.check); go.type = 'button';
+    go.onclick = () => { sts.forEach(st => { if (st.sel.value === '') { st.mk.textContent = ''; return; } const ok = st.sel.value === 'o' + st.want; st.mk.className = 'mk ' + (ok ? 'ok' : 'no'); st.mk.textContent = ok ? '✓' : '✗ ' + U.wrong; st.done = st.done || ok; }); score(); };
+    const a = el('div', 'ans'); a.appendChild(go); card.appendChild(a);
+    list.appendChild(card);
+  }
+  const key = $('key'); key.innerHTML = ''; key.appendChild(el('h2', '', U.answers));
+  D.problems.forEach(P => key.appendChild(el('div', '', P.n + '. ' + P.answer_text)));
+  score();
+}
+function score() {
+  const done = state.filter(s => s.done).length;
+  $('score').textContent = U.score + ': ' + done + ' / ' + state.length;
+  if (D.progress) {   // part of a course: remember the best score for the course index
+    try {
+      const k = 'sia-progress:' + D.progress, old = JSON.parse(localStorage.getItem(k) || '{}');
+      if (!(old.done >= done)) localStorage.setItem(k, JSON.stringify({ done: done, total: state.length }));
+    } catch (e) { /* storage blocked: the page still works */ }
+  }
+}
+if (D.back) { const a = el('a', 'back', D.back_label || '←'); a.href = D.back; $('title').before(a); }
+let open = false;
+$('all').onclick = () => { open = !open; document.querySelectorAll('details').forEach(d => d.open = open); $('all').textContent = open ? U.hide_all : U.show_all; };
+$('reset').onclick = render; $('print').onclick = () => window.print();
+$('theme').onclick = () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; };
+render();
+})();
+</script></body></html>

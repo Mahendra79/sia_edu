@@ -341,13 +341,23 @@ const navigationSections = [
   },
   {
     id: 'teaching-and-interactive-learning',
-    title: 'Teaching and Interactive Learning',
+    title: 'Teaching and Browser Tools',
     topics: siaDocNavigationTopics[5]
   },
   {
     id: 'quantum-machine-learning-and-integration',
-    title: 'Quantum Machine Learning and Integration',
+    title: 'Quantum ML and Integrations',
     topics: siaDocNavigationTopics[6]
+  },
+  {
+    id: 'notebook-foundations',
+    title: 'Notebook Foundations',
+    topics: siaDocNavigationTopics[7]
+  },
+  {
+    id: 'interactive-html-examples',
+    title: 'Interactive HTML Gallery',
+    topics: siaDocNavigationTopics[8]
   }
 ];
 const $ = (selector) => document.querySelector(selector);
@@ -2434,54 +2444,6 @@ function ordered3DExampleMarkup({ number, title, concept, code, output, explanat
 
 function sia3DModelsLessonMarkup() {
   const examplesByNumber = new Map(siaNotebookExamples.filter((example) => example.number >= 213 && example.number <= 219).map((example) => [example.number, example]));
-  const explorerExamples = [
-    {
-      number: 37,
-      title: 'Phasor Visualization',
-      concept: 'The 3D helix links circular rotation to sine and cosine projections: turn it to see the circle end-on, sine from the side, and cosine from above.',
-      code: 'from sia import hdqs\nhdqs.explore("phasor")',
-      output: "'phasor.html'",
-      explanation: 'The phasor explorer writes the default phasor page. Its rotating helix makes the relationship between circular motion and the wave projections visible.',
-      links: [{ href: 'assets/interactive-quantum/phasor.html', filename: 'phasor.html', label: 'Open phasor.html interactive visualization ↗' }],
-      linkImmediatelyBelowCode: true
-    },
-    {
-      number: 40,
-      title: 'Qubit Visualization',
-      concept: 'Prepare a single qubit with an Ry rotation, then open its explorer to inspect the resulting state and Bloch-sphere views.',
-      code: 'from sia import hdqs\nprint(hdqs(1).ry(0, 1.0).explore("my_qubit.html"))\nprint(hdqs(2).h(0).cx(0, 1).explore("my_bell.html"))',
-      output: 'my_qubit.html\nmy_bell.html',
-      explanation: 'The first call exports the rotated one-qubit state as an interactive explorer.',
-      links: [{ href: 'assets/interactive-quantum/my_qubit.html', filename: 'my_qubit.html', label: 'Open my_qubit.html interactive visualization ↗' }],
-      linkImmediatelyBelowCode: true
-    },
-    {
-      number: 40,
-      title: 'Bell State Visualization',
-      concept: 'Prepare a Bell register with a Hadamard gate and a controlled-X, then explore the resulting two-qubit state.',
-      code: 'from sia import hdqs\nprint(hdqs(1).ry(0, 1.0).explore("my_qubit.html"))\nprint(hdqs(2).h(0).cx(0, 1).explore("my_bell.html"))',
-      output: 'my_qubit.html\nmy_bell.html',
-      explanation: 'The second call exports the Bell register’s interactive explorer so its superposition and entanglement can be inspected.',
-      links: [{ href: 'assets/interactive-quantum/my_bell.html', filename: 'my_bell.html', label: 'Open my_bell.html interactive visualization ↗' }],
-      linkImmediatelyBelowCode: true
-    },
-    {
-      number: 41,
-      title: 'Square Wave Visualization',
-      concept: 'Phasors rotating at odd multiples of the base frequency add head to tail to form a square wave; the ripple at the jump is the Gibbs phenomenon.',
-      code: 'from sia import hdqs\nhdqs.explore("phasor", "square_wave.html", state="square")',
-      output: "'square_wave.html'",
-      explanation: 'The phasor explorer is initialized in its square-wave state and saved as square_wave.html.',
-      links: [{ href: 'assets/interactive-quantum/square_wave.html', filename: 'square_wave.html', label: 'Open square_wave.html interactive visualization ↗' }],
-      linkImmediatelyBelowCode: true
-    }
-  ];
-  const explorerSection = `<section class="qubit-section structured-3d-section" aria-labelledby="interactive-3d-visualizations-title">
-    <h2 id="interactive-3d-visualizations-title">Interactive 3D Visualizations</h2>
-    <p>These original Sia Script explorer pages are self-contained HTML outputs. Open each one to rotate or interact with its visualization.</p>
-    ${explorerExamples.map((example) => ordered3DExampleMarkup({ ...example, linkImmediatelyBelowCode: true })).join('')}
-  </section>`;
-
   const modelDetails = {
       213: {
       title: 'Blender / Web Scene',
@@ -2543,7 +2505,7 @@ function sia3DModelsLessonMarkup() {
     <p>Each export below uses the notebook’s original Sia Script code and configuration. Rotate or zoom any preview with a mouse or touch; use the links to save the original files.</p>
     ${modelExamples}
   </section>`;
-  return `<section class="qubit-lesson sia-reference-lesson structured-3d-lesson">${explorerSection}${exportSection}</section>`;
+  return `<section class="qubit-lesson sia-reference-lesson structured-3d-lesson">${exportSection}</section>`;
 }
 
 const siaGateExampleDiagrams = {
@@ -2573,6 +2535,25 @@ const siaGateExampleDiagrams = {
 
 function siaDocLessonMarkup(topic) {
   if (topic.title === '3D Models') return sia3DModelsLessonMarkup();
+  if (topic.linkIndex) {
+    const examples = topic.examples.map((example) => {
+      const files = (example.htmlFiles || []).map((file) => `<a class="model-action-link" href="${escapeLessonText(file)}" target="_blank" rel="noopener noreferrer">Open ${escapeLessonText(file.split('/').pop())} ↗</a>`).join(' ');
+      const codeExplanation = example.codeExplanation || example.description || `This code creates the interactive example “${example.title}” and saves its browser page.`;
+      const outputExplanation = example.outputExplanation || (example.output
+        ? 'This is the output recorded for the notebook example. It shows the result or export status produced by the code above.'
+        : 'This cell creates an HTML file rather than printing text. Open the linked file to see and use its interactive result.');
+      return `<section class="qubit-section notebook-example" id="notebook-example-${example.number}">
+        <h3>${formatReferenceText(example.title)}</h3>
+        ${example.description ? `<p class="notebook-example-note">${formatReferenceText(example.description)}</p>` : ''}
+        <h4>Code</h4><pre class="hdqs-code"><code>${escapeLessonText(example.code)}</code></pre>
+        <p class="notebook-explanation"><strong>Code explanation.</strong> ${formatReferenceText(codeExplanation)}</p>
+        <h4>Recorded output</h4>${example.output ? `<pre class="hdqs-output"><code>${escapeLessonText(example.output)}</code></pre>` : '<p>No text output is recorded for this file-generating cell.</p>'}
+        <p class="notebook-explanation"><strong>Output explanation.</strong> ${formatReferenceText(outputExplanation)}</p>
+        ${files ? `<div class="structured-example-links">${files}</div>` : ''}
+      </section>`;
+    }).join('');
+    return `<section class="qubit-lesson sia-reference-lesson"><div class="qubit-section"><h2>Interactive HTML examples</h2><p>${formatReferenceText(topic.theory)}</p>${examples}</div></section>`;
+  }
   const partIntros = topic.notebookParts.map((part) => {
     const intro = part.intro.replace(/^## Part [^\n]+\n+/, '');
     return `<p>${formatReferenceText(intro)}</p>`;
@@ -2586,10 +2567,12 @@ function siaDocLessonMarkup(topic) {
     <h4>Sia Script</h4>
     ${gateDiagrams ? `<div class="notebook-gate-diagrams" aria-label="Quantum gate diagrams">${gateDiagrams}</div>` : ''}
     <pre class="hdqs-code"><code>${escapeLessonText(example.code)}</code></pre>
+    ${example.htmlFiles?.length ? `<div class="structured-example-links">${example.htmlFiles.map((file) => `<a class="model-action-link" href="${escapeLessonText(file)}" target="_blank" rel="noopener noreferrer">Open ${escapeLessonText(file.split('/').pop())} ↗</a>`).join('')}</div>` : ''}
     ${example.codeExplanation ? `<p class="notebook-explanation"><strong>Code explanation.</strong> ${formatReferenceText(example.codeExplanation)}</p>` : ''}
     ${example.output ? `<h4>Recorded notebook output</h4><pre class="hdqs-output"><code>${escapeLessonText(example.output)}</code></pre>` : ''}
     ${example.assets.map((asset) => `<figure class="notebook-output-figure"><img src="${escapeLessonText(asset)}" alt="Saved notebook output: ${escapeLessonText(example.title)}"><figcaption>Saved notebook output: ${formatReferenceText(example.title)}.</figcaption></figure>`).join('')}
     ${example.outputExplanation ? `<p class="notebook-explanation"><strong>Output explanation.</strong> ${formatReferenceText(example.outputExplanation)}</p>` : ''}
+    ${example.htmlFiles?.length ? `<div class="structured-example-step structured-example-links"><h4>Link</h4>${example.htmlFiles.map((file) => `<a class="model-action-link" href="${escapeLessonText(file)}" target="_blank" rel="noopener noreferrer">Open ${escapeLessonText(file.split('/').pop())} interactive visualization ↗</a>`).join('')}</div>` : ''}
   </section>`;
   }).join('');
   return `<section class="qubit-lesson sia-reference-lesson">
@@ -2770,7 +2753,7 @@ function loadSiaDocTopic(topicIndex, updateHash = true) {
   $('#next-button small').textContent = 'Next topic';
   $('#lesson-body').innerHTML = siaDocLessonMarkup(topic);
   if (topic.title === 'Simulation Modes') addLessonSupport('simulation-modes');
-  if (topic.title === 'The Browser Playground') addLessonSupport('browser-playground');
+  if (topic.title === 'Browser Circuit Playground') addLessonSupport('browser-playground');
   if (topic.title === '3D Models') initializeInteractive3DModels();
   $('#mobile-breadcrumb').innerHTML = `Chapter ${String(topic.chapter + 1).padStart(2, '0')} <span>/</span> ${topic.title}`;
   $('#doc-breadcrumb').innerHTML = `${navigationSections[topic.sectionIndex + 2].title} <span>/</span> ${topic.title}`;

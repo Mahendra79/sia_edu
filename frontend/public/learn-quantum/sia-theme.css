@@ -1091,7 +1091,8 @@ html.sia-guide .topbar .sia-search:not(.is-open) .search-box > span[aria-hidden=
 /* Top bar (phones): brand mark and menu button. */
 html.sia-guide .brand-mark { display: inline-grid; place-items: center; color: #fff; }
 html.sia-guide .brand-mark .sia-brand-icon { width: 19px; height: 19px; stroke-width: 1.6; }
-html.sia-guide .menu-button { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 4px; }
+html.sia-guide .menu-button { display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 10px; }
+html.sia-guide .menu-button:hover { background: var(--sia-bg-soft); }
 html.sia-guide .menu-button > span { display: inline-flex; margin: 0; font-size: 0; }
 html.sia-guide .menu-button .sia-icon { width: 20px; height: 20px; }
 @media (min-width: 901px) { html.sia-guide .menu-button { display: none; } }

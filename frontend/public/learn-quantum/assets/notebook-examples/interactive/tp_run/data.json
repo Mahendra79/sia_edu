@@ -1,0 +1,268 @@
+{
+ "schema": "sia.algorithm.v1",
+ "algorithm": "teleport",
+ "title": "Quantum teleportation \u00b7 moving a qubit state with 2 classical bits",
+ "result": {
+  "measurements": [
+   "1",
+   "1"
+  ],
+  "fidelity": 1.0
+ },
+ "meta": {
+  "target": [
+   0.6154446636,
+   0.1903793441,
+   0.7648421873
+  ],
+  "m0": "1",
+  "m1": "1"
+ },
+ "scenes": [
+  {
+   "title": "The circuit for this input",
+   "note": "Prepare the state, make a Bell pair, Alice's CNOT and H, two measurements, and Bob's X and Z applied only when the matching bit is 1. r.code() prints it as an hdqs chain.",
+   "state": {}
+  },
+  {
+   "title": "The state to send",
+   "note": "Alice holds a qubit in an unknown state (arrow). She wants Bob to have it without sending the qubit.",
+   "state": {
+    "v": [
+     [
+      0.6154446636,
+      0.1903793441,
+      0.7648421873
+     ],
+     [
+      0.0,
+      0.0,
+      1.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0
+     ]
+    ],
+    "travel": 0.0,
+    "bits": 0.0,
+    "l01": 0.0,
+    "l12": 0.0,
+    "ghost": 0.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Shared entangled pair",
+   "note": "Alice and Bob share an entangled pair: alone, each half is completely random (no arrow).",
+   "state": {
+    "v": [
+     [
+      0.6154446636,
+      0.1903793441,
+      0.7648421873
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ],
+    "travel": 0.0,
+    "bits": 0.0,
+    "l01": 0.0,
+    "l12": 1.0,
+    "ghost": 0.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Alice: CNOT",
+   "note": "Alice entangles her message qubit with her half of the pair (CNOT).",
+   "state": {
+    "v": [
+     [
+      0.0,
+      0.0,
+      0.7648421873
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ],
+    "travel": 0.0,
+    "bits": 0.0,
+    "l01": 1.0,
+    "l12": 1.0,
+    "ghost": 0.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Alice: Hadamard",
+   "note": "A Hadamard on the message qubit. The state now hides in correlations: each of Alice's 4 possible results leaves Bob with a rotated copy.",
+   "state": {
+    "v": [
+     [
+      0.7648421873,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ],
+    "travel": 0.0,
+    "bits": 0.0,
+    "l01": 1.0,
+    "l12": 1.0,
+    "ghost": 0.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Alice measures and phones Bob",
+   "note": "Alice measures: m0 = 1, m1 = 1. Bob's qubit is already a rotated copy; two classical bits travel to him (no faster than light).",
+   "state": {
+    "v": [
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      -0.6154446636,
+      0.1903793441,
+      -0.7648421873
+     ]
+    ],
+    "travel": 1.0,
+    "bits": 1.0,
+    "l01": 0.0,
+    "l12": 0.0,
+    "ghost": 1.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Bob: X correction",
+   "note": "m1 = 1, so Bob applies X.",
+   "state": {
+    "v": [
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      -0.6154446636,
+      -0.1903793441,
+      0.7648421873
+     ]
+    ],
+    "travel": 1.0,
+    "bits": 1.0,
+    "l01": 0.0,
+    "l12": 0.0,
+    "ghost": 1.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Bob: Z correction",
+   "note": "m0 = 1, so Bob applies Z.",
+   "state": {
+    "v": [
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.6154446636,
+      0.1903793441,
+      0.7648421873
+     ]
+    ],
+    "travel": 1.0,
+    "bits": 1.0,
+    "l01": 0.0,
+    "l12": 0.0,
+    "ghost": 1.0,
+    "fid": 1.0,
+    "showfid": ""
+   }
+  },
+  {
+   "title": "Teleported",
+   "note": "Bob's qubit matches the original state (dashed): fidelity 1.0000. Alice's copy was destroyed by her measurement: no cloning.",
+   "state": {
+    "v": [
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     [
+      0.6154446636,
+      0.1903793441,
+      0.7648421873
+     ]
+    ],
+    "travel": 1.0,
+    "bits": 1.0,
+    "l01": 0.0,
+    "l12": 0.0,
+    "ghost": 1.0,
+    "fid": 1.0,
+    "showfid": "yes"
+   }
+  }
+ ]
+}

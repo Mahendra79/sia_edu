@@ -270,7 +270,13 @@
   };
   const setIcon = (selector, icon) => { const el = $(selector); if (el) el.innerHTML = icon; };
   setIcon('.search-box > span[aria-hidden="true"]', UI_ICONS.search);
-  setIcon('#menu-button > span', UI_ICONS.menu);
+  // Phone menu: hamburger icon only (the "Menu" word is dropped; the button keeps
+  // its aria-label "Open navigation" for screen readers).
+  const menuButton = $('#menu-button');
+  if (menuButton) {
+    menuButton.innerHTML = `<span>${UI_ICONS.menu}</span>`;
+    menuButton.title = 'Open navigation';
+  }
   // Brand: the SIA logo (same image as the main site's mobile bar).
   setIcon('.brand-mark', '<img class="sia-brand-logo" src="images/sia-logo.webp" alt="" width="30" height="30">');
   $('.brand-mark')?.classList.add('has-logo');
@@ -294,6 +300,12 @@
   lessonGrid?.append(toc);
 
   const updatePosition = () => {
+    // Keep the header's chapter chip in step with the sidebar section number
+    // (upstream hard-codes it per lesson type, which drifts as sections are added).
+    const sectionNumber = $('#chapter-list .chapter-item.active .chapter-index')?.textContent?.trim();
+    const headerNumber = $('#lesson-number');
+    if (sectionNumber && headerNumber && headerNumber.textContent !== sectionNumber) headerNumber.textContent = sectionNumber;
+
     const activeTopic = $('#chapter-list .chapter-topic.active');
     if (!activeTopic) { position.hidden = true; return; }
     // Count lessons within the topic's group (sub-group labels split groups).
@@ -469,8 +481,16 @@
     });
   });
 
-  // Replace the trailing "↗" character in links with an SVG icon.
+  // Replace the trailing "↗" character in links with an SVG icon, and open
+  // generated HTML pages in a new tab so they never replace the guide itself.
   const polishLinks = () => {
+    $$('a[href]', lessonBody).forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      if (!link.target && !link.hasAttribute('download') && /\.html?(\?|#|$)/i.test(href) && !href.startsWith('#')) {
+        link.target = '_blank';
+        link.rel = 'noopener';
+      }
+    });
     $$('a', lessonBody).forEach((link) => {
       if (link.dataset.siaLink) return;
       const last = [...link.childNodes].reverse().find((node) => node.nodeType === 3 && node.textContent.trim());

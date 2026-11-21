@@ -1,0 +1,10 @@
+% hdqs register — HDQS
+% 2 qubits, 3 operations, 3 columns. Needs \usepackage{quantikz}.
+\documentclass[border=6pt]{standalone}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}[row sep={0.75cm,between origins}, column sep=0.3cm]
+\lstick{$q_{0}$} & \gate{H} & \ctrl{1} & \qw & \qw \\
+\lstick{$q_{1}$} & \qw & \targ{} & \gate{R_y(0.4)} & \qw
+\end{quantikz}
+\end{document}

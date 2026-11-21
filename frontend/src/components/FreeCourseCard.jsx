@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HiOutlineBookOpen, HiOutlinePlayCircle } from "react-icons/hi2";
+import { HiOutlinePlayCircle } from "react-icons/hi2";
 
 import { extractYoutubeThumbnail } from "../utils/youtube";
 
@@ -35,9 +35,11 @@ export default function FreeCourseCard({ freeCourse }) {
             onError={() => setImageFailed(true)}
           />
         ) : (
+          // The title is already shown below the image, so the placeholder
+          // only marks this as a video lesson instead of repeating it.
           <div className="course-image-placeholder">
-            <HiOutlineBookOpen />
-            <span>{freeCourse.title}</span>
+            <HiOutlinePlayCircle />
+            <span>Free video lesson</span>
           </div>
         )}
       </div>

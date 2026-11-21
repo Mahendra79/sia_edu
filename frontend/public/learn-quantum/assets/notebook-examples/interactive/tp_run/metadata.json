@@ -1,0 +1,55 @@
+{
+ "schema": "sia.bundle.v1",
+ "engine": "sia-script 1.5.6",
+ "generated_at": "2026-11-20T10:54:14Z",
+ "kind": "algorithm",
+ "algorithm": "teleport",
+ "inputs": {
+  "theta": 0.7,
+  "phi": 0.3,
+  "seed": 2
+ },
+ "seed": 2,
+ "shots": null,
+ "circuit_hash": "sha256:57c2297531398bcad3649c6e385a3e62a6087e54da1c026d40848e5e55f706f3",
+ "num_qubits": 3,
+ "sections": [
+  [
+   "state to send",
+   0,
+   2
+  ],
+  [
+   "Bell pair",
+   2,
+   4
+  ],
+  [
+   "Alice",
+   4,
+   8
+  ],
+  [
+   "Bob corrects",
+   8,
+   10
+  ]
+ ],
+ "result": {
+  "measurements": [
+   "1",
+   "1"
+  ],
+  "fidelity": 1.0
+ },
+ "provenance": {
+  "player.html": "exact",
+  "stages.pdf": "derived",
+  "summary.png": "derived",
+  "data.json": "exact / sampled",
+  "circuit.qasm": "derived",
+  "circuit.tex": "derived",
+  "experiment.py": "source"
+ },
+ "notes": []
+}

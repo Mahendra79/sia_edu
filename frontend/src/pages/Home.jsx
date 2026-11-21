@@ -360,7 +360,7 @@ export default function Home() {
                     <img src={getCourseImageUrl(item.course)} alt="" />
                   </span>
                   <span className="app-sidebar-course-info">
-                    <strong>{item.course.title}</strong>
+                    <strong title={item.course.title}>{item.course.title}</strong>
                     <small>{item.status === "completed" ? "Completed" : "In progress"}</small>
                   </span>
                 </button>

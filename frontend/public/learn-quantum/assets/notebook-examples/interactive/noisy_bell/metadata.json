@@ -1,0 +1,41 @@
+{
+ "schema": "sia.bundle.v1",
+ "engine": "sia-script 1.5.6",
+ "generated_at": "2026-11-20T10:54:19Z",
+ "kind": "register",
+ "num_qubits": 2,
+ "operations": 3,
+ "seed": 3,
+ "shots": 1000,
+ "mode": "density_matrix",
+ "backend": "numpy",
+ "circuit_hash": "sha256:ed1515bbe6769632af3c52f7d939cd787cf9ace8eb6c2b22e7561818744ae9b8",
+ "conventions": {
+  "bit_order": "qubit 0 is the leftmost bit (MSB)",
+  "phase": "radians in (-pi, pi]"
+ },
+ "state": {
+  "purity": 0.7299999999999998,
+  "top_states": {
+   "11": 0.45,
+   "00": 0.45,
+   "10": 0.049999999999999996,
+   "01": 0.049999999999999996
+  }
+ },
+ "noise": [
+  "kraus"
+ ],
+ "provenance": {
+  "figure.pdf": "derived",
+  "figure.svg": "derived",
+  "figure.caption.txt": "derived",
+  "data.json": "exact",
+  "data.csv": "exact",
+  "circuit.qasm": "derived",
+  "circuit.tex": "derived",
+  "experiment.py": "source",
+  "explorer.html": "exact"
+ },
+ "notes": []
+}

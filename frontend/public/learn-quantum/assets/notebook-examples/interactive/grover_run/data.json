@@ -1,0 +1,137 @@
+{
+ "schema": "sia.algorithm.v1",
+ "algorithm": "grover",
+ "title": "Grover search \u00b7 finding |101\u27e9 among 8 possibilities",
+ "result": {
+  "iterations": 2,
+  "counts": {
+   "101": 978,
+   "000": 9,
+   "011": 9,
+   "010": 6,
+   "111": 6,
+   "001": 7,
+   "110": 4,
+   "100": 5
+  },
+  "best": "101",
+  "success_probability": 0.9453125
+ },
+ "meta": {
+  "n": 3,
+  "N": 8,
+  "M": 1,
+  "marked": [
+   5
+  ],
+  "theta": 0.3613671239,
+  "shots": 1024,
+  "top": [
+   [
+    "101",
+    978
+   ],
+   [
+    "000",
+    9
+   ],
+   [
+    "011",
+    9
+   ],
+   [
+    "001",
+    7
+   ],
+   [
+    "010",
+    6
+   ],
+   [
+    "111",
+    6
+   ],
+   [
+    "100",
+    5
+   ],
+   [
+    "110",
+    4
+   ]
+  ]
+ },
+ "scenes": [
+  {
+   "title": "The circuit for this input",
+   "note": "H on every qubit, then oracle (X on the 0-bits of each marked string, a multi-controlled Z, X again) and diffuser (H, X, multi-controlled Z, X, H), repeated. Multi-controlled Z = H \u00b7 MCX \u00b7 H. r.code() prints it as an hdqs chain.",
+   "state": {}
+  },
+  {
+   "title": "Start: equal superposition",
+   "note": "Hadamards on all 3 qubits give every one of the 8 answers the same amplitude 1/\u221a8. The state sits at angle \u03b8 = 20.7\u00b0 above \"all wrong answers\".",
+   "state": {
+    "am": 0.3535533906,
+    "au": 0.3535533906,
+    "mirror": "",
+    "ghost": null,
+    "counts_view": false
+   }
+  },
+  {
+   "title": "Iteration 1 \u00b7 oracle marks the answer",
+   "note": "The oracle flips the sign of |101\u27e9. Geometrically this is a reflection in the \"wrong answers\" axis (dashed mirror).",
+   "state": {
+    "am": -0.3535533906,
+    "au": 0.3535533906,
+    "mirror": "x",
+    "ghost": 0.3613671239,
+    "counts_view": false
+   }
+  },
+  {
+   "title": "Iteration 1 \u00b7 inversion about the mean",
+   "note": "Every amplitude is reflected about the mean (dashed line): the marked one grows, the rest shrink. Geometrically: a reflection in the start direction |s\u27e9.",
+   "state": {
+    "am": 0.8838834765,
+    "au": 0.1767766953,
+    "mirror": "s",
+    "ghost": -0.3613671239,
+    "counts_view": false
+   }
+  },
+  {
+   "title": "Iteration 2 \u00b7 oracle marks the answer",
+   "note": "The oracle flips the sign of |101\u27e9. Geometrically this is a reflection in the \"wrong answers\" axis (dashed mirror).",
+   "state": {
+    "am": -0.8838834765,
+    "au": 0.1767766953,
+    "mirror": "x",
+    "ghost": 1.0841013717,
+    "counts_view": false
+   }
+  },
+  {
+   "title": "Iteration 2 \u00b7 inversion about the mean",
+   "note": "Every amplitude is reflected about the mean (dashed line): the marked one grows, the rest shrink. Geometrically: a reflection in the start direction |s\u27e9.",
+   "state": {
+    "am": 0.9722718241,
+    "au": -0.0883883476,
+    "mirror": "s",
+    "ghost": -1.0841013717,
+    "counts_view": false
+   }
+  },
+  {
+   "title": "Measure",
+   "note": "1024 shots: 101 appeared 978 times. Success probability 0.945 after 2 iterations (a classical search needs about 4 tries on average).",
+   "state": {
+    "am": 0.9722718241,
+    "au": -0.0883883476,
+    "mirror": "",
+    "ghost": null,
+    "counts_view": true
+   }
+  }
+ ]
+}

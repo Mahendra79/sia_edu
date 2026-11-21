@@ -1,0 +1,11 @@
+% teleport — HDQS
+% 3 qubits, 10 operations, 12 columns. Needs \usepackage{quantikz}.
+\documentclass[border=6pt]{standalone}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}[row sep={0.75cm,between origins}, column sep=0.3cm]
+\lstick{$q_{0}$} & \gate{R_y(0.7)} \gategroup[3,steps=2,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small state to send} & \gate{R_z(0.3)} & \qw & \qw \gategroup[3,steps=2,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small Bell pair} & \qw & \qw & \ctrl{1} \gategroup[3,steps=3,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small Alice} & \gate{H} & \meter{} & \cw & \cw \gategroup[3,steps=2,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small Bob corrects} & \cw & \cw \\
+\lstick{$q_{1}$} & \qw & \qw & \qw & \gate{H} & \ctrl{1} & \qw & \targ{} & \meter{} & \cw & \cw & \cw & \cw & \cw \\
+\lstick{$q_{2}$} & \qw & \qw & \qw & \qw & \targ{} & \qw & \qw & \qw & \qw & \qw & \gate{X^{m_{1}}} & \gate{Z^{m_{0}}} & \qw
+\end{quantikz}
+\end{document}

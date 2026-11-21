@@ -1,0 +1,204 @@
+{
+ "schema": "sia.views.v1",
+ "engine": "1.5.6",
+ "num_qubits": 2,
+ "conventions": {
+  "bit_order": "qubit 0 is the leftmost bit (MSB)",
+  "phase": "radians in (-pi, pi]",
+  "entropy_units": "bits"
+ },
+ "views": {
+  "c": {
+   "name": "Circuit",
+   "data": {
+    "num_qubits": 2,
+    "operations": [
+     {
+      "name": "h",
+      "qubits": [
+       0
+      ],
+      "params": [],
+      "key": null,
+      "condition": null,
+      "label": "H(0)"
+     },
+     {
+      "name": "cx",
+      "qubits": [
+       0,
+       1
+      ],
+      "params": [],
+      "key": null,
+      "condition": null,
+      "label": "CX(0,1)"
+     },
+     {
+      "name": "kraus",
+      "qubits": [
+       0
+      ],
+      "params": [],
+      "key": null,
+      "condition": null,
+      "label": "noise(0)"
+     }
+    ]
+   }
+  },
+  "p": {
+   "name": "Probabilities",
+   "data": {
+    "num_qubits": 2,
+    "index": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "labels": [
+     "|00\u27e9",
+     "|01\u27e9",
+     "|10\u27e9",
+     "|11\u27e9"
+    ],
+    "probability": [
+     0.45,
+     0.049999999999999996,
+     0.049999999999999996,
+     0.45
+    ],
+    "shown": 4,
+    "total": 4
+   }
+  },
+  "b": {
+   "name": "Bloch spheres",
+   "data": {
+    "num_qubits": 2,
+    "qubits": [
+     {
+      "qubit": 0,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "length": 0.0,
+      "purity": 0.5,
+      "theta": null,
+      "phi": null
+     },
+     {
+      "qubit": 1,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "length": 0.0,
+      "purity": 0.5,
+      "theta": null,
+      "phi": null
+     }
+    ],
+    "total": 2
+   }
+  },
+  "e": {
+   "name": "Entanglement map",
+   "data": {
+    "num_qubits": 2,
+    "entropy": [
+     1.0,
+     1.0
+    ],
+    "mutual_information": [
+     [
+      1.0,
+      1.1524153201754266
+     ],
+     [
+      1.1524153201754266,
+      1.0
+     ]
+    ],
+    "concurrence": [
+     [
+      0.0,
+      0.6999999999999995
+     ],
+     [
+      0.6999999999999995,
+      0.0
+     ]
+    ]
+   }
+  },
+  "d": {
+   "name": "Density matrix",
+   "data": {
+    "num_qubits": 2,
+    "qubits": [
+     0,
+     1
+    ],
+    "labels": [
+     "|00\u27e9",
+     "|01\u27e9",
+     "|10\u27e9",
+     "|11\u27e9"
+    ],
+    "real": [
+     [
+      0.4499999999999999,
+      0.0,
+      0.0,
+      0.39999999999999997
+     ],
+     [
+      0.0,
+      0.04999999999999998,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.04999999999999998,
+      0.0
+     ],
+     [
+      0.39999999999999997,
+      0.0,
+      0.0,
+      0.4499999999999999
+     ]
+    ],
+    "imag": [
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   }
+  }
+ }
+}

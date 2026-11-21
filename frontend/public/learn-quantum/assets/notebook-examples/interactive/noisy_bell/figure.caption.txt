@@ -1,0 +1,1 @@
+Circuit diagram, Bloch vectors, exact probabilities, and density matrix of a 2-qubit register after 3 operations (H on q0, CNOT q0→q1, KRAUS on q0). Exact density-matrix simulation. Generated with HDQS (Sia Software Innovations).

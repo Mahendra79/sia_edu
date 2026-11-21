@@ -4,7 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useDocumentMeta } from "../hooks/useDocumentMeta";
 
 // Bump when files in public/learn-quantum change so browsers fetch the new version.
-const GUIDE_VERSION = "20261120-6";
+const GUIDE_VERSION = "20261121-3";
 const LESSON_HASH = /^#[a-z0-9-]+$/i;
 
 export default function Learn() {

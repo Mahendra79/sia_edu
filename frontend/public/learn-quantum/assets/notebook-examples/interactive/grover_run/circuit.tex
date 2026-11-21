@@ -1,0 +1,11 @@
+% grover — HDQS
+% 3 qubits, 43 operations, 25 columns. Needs \usepackage{quantikz}.
+\documentclass[border=6pt]{standalone}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}[row sep={0.75cm,between origins}, column sep=0.3cm]
+\lstick{$q_{0}$} & \gate{H} \gategroup[3,steps=1,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small superpose} & \qw & \qw \gategroup[3,steps=3,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small oracle 1} & \ctrl{2} & \qw & \qw & \gate{H} \gategroup[3,steps=7,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small diffuser 1} & \gate{X} & \qw & \ctrl{2} & \gate{X} & \gate{H} & \qw & \qw & \qw \gategroup[3,steps=3,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small oracle 2} & \ctrl{2} & \qw & \qw & \gate{H} \gategroup[3,steps=7,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=north,yshift=0.25cm}]{\small diffuser 2} & \gate{X} & \qw & \ctrl{2} & \gate{X} & \gate{H} & \qw & \qw \\
+\lstick{$q_{1}$} & \gate{H} & \qw & \gate{X} & \ctrl{1} & \gate{X} & \qw & \gate{H} & \gate{X} & \qw & \ctrl{1} & \gate{X} & \gate{H} & \qw & \qw & \gate{X} & \ctrl{1} & \gate{X} & \qw & \gate{H} & \gate{X} & \qw & \ctrl{1} & \gate{X} & \gate{H} & \qw & \qw \\
+\lstick{$q_{2}$} & \gate{H} & \qw & \gate{H} & \targ{} & \gate{H} & \qw & \gate{H} & \gate{X} & \gate{H} & \targ{} & \gate{H} & \gate{X} & \gate{H} & \qw & \gate{H} & \targ{} & \gate{H} & \qw & \gate{H} & \gate{X} & \gate{H} & \targ{} & \gate{H} & \gate{X} & \gate{H} & \qw
+\end{quantikz}
+\end{document}

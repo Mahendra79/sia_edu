@@ -170,7 +170,31 @@ export default function Chatbot() {
   const messagesRef = useRef(null);
 
   const [open, setOpen] = useState(false);
+  // On phones the floating button tucks away while scrolling down (where it
+  // would cover cards and buttons) and returns on scroll up or when scrolling stops.
+  const [fabTucked, setFabTucked] = useState(false);
   const [input, setInput] = useState("");
+
+  useEffect(() => {
+    const phone = window.matchMedia("(max-width: 720px)");
+    let lastY = window.scrollY;
+    let idleTimer;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (phone.matches) {
+        if (y > lastY + 6 && y > 120) setFabTucked(true);
+        else if (y < lastY - 6) setFabTucked(false);
+        window.clearTimeout(idleTimer);
+        idleTimer = window.setTimeout(() => setFabTucked(false), 900);
+      }
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(idleTimer);
+    };
+  }, []);
   const [botTyping, setBotTyping] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -365,7 +389,7 @@ export default function Chatbot() {
       
       <button
         type="button"
-        className={`chatbot-fab ${open ? "hidden" : ""}`}
+        className={`chatbot-fab ${open ? "hidden" : ""} ${fabTucked && !open ? "is-tucked" : ""}`.trim()}
         onClick={() => setOpen(true)}
         aria-label="Open study assistant"
       >

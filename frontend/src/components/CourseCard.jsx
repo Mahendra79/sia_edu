@@ -77,7 +77,7 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHover
       />
       <div className="course-content">
         <div className="course-tags">
-          <span className="pill">{course.category?.name || "General"}</span>
+          <span className="pill" title={course.category?.name || "General"}>{course.category?.name || "General"}</span>
           {startLabel ? (
             <span className="pill">
               <HiOutlineCalendarDays />
@@ -103,15 +103,18 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHover
         </h3>
         <p>{course.short_description}</p>
         <div className="course-meta">
-          <span className="course-price-stack">
-            <strong className="course-price-current">{formatCurrency(discountedPrice, "INR")}</strong>
-            {hasDiscount && (
-              <span className="course-price-was">
-                <small className="course-price-original">{formatCurrency(listPrice, "INR")}</small>
-                <span className="pill pill-discount">{discountPercent.toFixed(0)}% OFF</span>
-              </span>
-            )}
-          </span>
+          {/* Owned courses don't need a price or discount; only the action button shows. */}
+          {isPurchased ? null : (
+            <span className="course-price-stack">
+              <strong className="course-price-current">{formatCurrency(discountedPrice, "INR")}</strong>
+              {hasDiscount && (
+                <span className="course-price-was">
+                  <small className="course-price-original">{formatCurrency(listPrice, "INR")}</small>
+                  <span className="pill pill-discount">{discountPercent.toFixed(0)}% OFF</span>
+                </span>
+              )}
+            </span>
+          )}
           <button
             type="button"
             className={`btn btn-icon ${isPurchased ? "btn-muted" : "btn-primary"}`}
@@ -128,19 +131,22 @@ export default function CourseCard({ course, searchQuery, onBuy, onOpen, onHover
 
 function CourseImage({ imageUrl, placeholderUrl, title }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [placeholderFailed, setPlaceholderFailed] = useState(false);
+  const showsPhoto = Boolean(imageUrl) && !imageFailed;
 
   return (
-    <div className="course-image-wrap">
-      {imageUrl && !imageFailed ? (
+    <div className={`course-image-wrap ${showsPhoto && !imageLoaded ? "is-loading" : ""}`.trim()}>
+      {showsPhoto ? (
         <img
           src={imageUrl}
           alt={title}
-          className="course-image"
+          className={`course-image ${imageLoaded ? "is-loaded" : ""}`.trim()}
           width="960"
           height="640"
           loading="lazy"
           decoding="async"
+          onLoad={() => setImageLoaded(true)}
           onError={() => setImageFailed(true)}
         />
       ) : placeholderUrl && !placeholderFailed ? (
@@ -153,7 +159,7 @@ function CourseImage({ imageUrl, placeholderUrl, title }) {
       ) : (
         <div className="course-image-placeholder">
           <HiOutlineBookOpen />
-          <span>SIA Software Innovations Private Limited</span>
+          <span>SIA Software Innovations</span>
         </div>
       )}
     </div>
