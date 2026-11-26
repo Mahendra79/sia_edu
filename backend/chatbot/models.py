@@ -11,6 +11,12 @@ class DocumentEmbedding(models.Model):
 
     class Meta:
         db_table = 'chatbot_document_embedding'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('title', 'chunk_index'),
+                name='unique_document_embedding_chunk',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.title} [Chunk {self.chunk_index}]"

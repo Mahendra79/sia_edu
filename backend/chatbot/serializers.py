@@ -19,5 +19,5 @@ class ChatRequestSerializer(serializers.Serializer):
 
 
 class ChatEvaluationRequestSerializer(serializers.Serializer):
-    use_model = serializers.BooleanField(required=False, default=False)
+    provider = serializers.ChoiceField(choices=("gemini", "groq"))
     max_cases = serializers.IntegerField(required=False, min_value=1, max_value=12, default=6)

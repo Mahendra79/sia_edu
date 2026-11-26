@@ -14,9 +14,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--use-model",
-            action="store_true",
-            help="Use configured LLM provider during evaluation. Default runs offline policy/fallback evaluation.",
+            "--provider",
+            choices=("gemini", "groq"),
+            required=True,
+            help="Online model provider to evaluate.",
         )
         parser.add_argument(
             "--max-cases",
@@ -31,10 +32,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        use_model = bool(options.get("use_model"))
+        provider = options["provider"]
         max_cases = int(options.get("max_cases") or 6)
 
-        report = evaluate_chatbot_suite(user=None, use_model=use_model, max_cases=max_cases)
+        report = evaluate_chatbot_suite(user=None, provider=provider, max_cases=max_cases)
         summary = report["summary"]
 
         self.stdout.write(self.style.SUCCESS("Chatbot evaluation completed"))

@@ -14,6 +14,10 @@ const QUICK_SUGGESTIONS = [
   { label: "Billing Help", query: "Billing and enrollment help" },
 ];
 
+function formatMetricMs(value) {
+  return value == null ? "not reported" : `${Number(value).toFixed(2)} ms`;
+}
+
 function renderInlineBold(text) {
   return String(text)
     .split(/(\*\*[^*]+\*\*)/g)
@@ -190,6 +194,49 @@ export default function Chatbot() {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [messages, botTyping, open]);
 
+<<<<<<< Updated upstream
+=======
+  const typeOutMessage = (reply, sources, diagnostics) => {
+    setMessages((prev) => [...prev, { role: "bot", text: "", sources, diagnostics }]);
+
+    let currentText = "";
+    let index = 0;
+    const charsPerStep = 4;
+    const intervalTime = 20;
+
+    const interval = setInterval(() => {
+      if (index >= reply.length) {
+        clearInterval(interval);
+        activeIntervalsRef.current = activeIntervalsRef.current.filter((item) => item !== interval);
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage?.role === "bot") {
+            updated[updated.length - 1] = { ...lastMessage, text: reply };
+          }
+          return updated;
+        });
+        setBotTyping(false);
+        return;
+      }
+
+      currentText += reply.slice(index, index + charsPerStep);
+      index += charsPerStep;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastMessage = updated[updated.length - 1];
+        if (lastMessage?.role === "bot") {
+          updated[updated.length - 1] = { ...lastMessage, text: currentText };
+        }
+        return updated;
+      });
+    }, intervalTime);
+
+    activeIntervalsRef.current.push(interval);
+  };
+
+>>>>>>> Stashed changes
   const askBot = async (rawText) => {
     const text = rawText.trim();
     if (!text || botTyping) {
@@ -223,7 +270,11 @@ export default function Chatbot() {
       });
       const reply = response?.data?.reply || "**Quick Retry**\n- I can help with your education doubts.\n- Please rephrase the question.";
       const sources = Array.isArray(response?.data?.sources) ? response.data.sources : [];
+<<<<<<< Updated upstream
       setMessages((prev) => [...prev, { role: "bot", text: reply, sources }]);
+=======
+      typeOutMessage(reply, sources, response?.data?.diagnostics);
+>>>>>>> Stashed changes
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -261,14 +312,36 @@ export default function Chatbot() {
               {activeCourseId ? " Focused on selected course." : ""}
             </p>
           </div>
+<<<<<<< Updated upstream
           <button type="button" className="btn btn-muted chat-close-btn" onClick={() => setOpen(false)}>
             <HiOutlineXMark />
+=======
+          <button
+            type="button"
+            className="chat-close-btn"
+            onClick={() => setOpen(false)}
+            aria-label="Close chat"
+          >
+            <X size={18} />
+>>>>>>> Stashed changes
           </button>
         </header>
         <div className="chatbot-messages" ref={messagesRef}>
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={`chat-msg ${message.role}`}>
               <div className="chat-msg-body">{renderMessageText(message.text)}</div>
+              {message.diagnostics ? (
+                <details className="chat-msg-diagnostics">
+                  <summary>Performance diagnostics</summary>
+                  <p>Total request: {formatMetricMs(message.diagnostics.latency_ms?.total_request_ms)}</p>
+                  <p>LLM generation: {formatMetricMs(message.diagnostics.latency_ms?.llm_generation_ms)}</p>
+                  <p>Embedding initialization: {formatMetricMs(message.diagnostics.latency_ms?.embedding_model_initialization_ms)}</p>
+                  <p>Embedding generation: {formatMetricMs(message.diagnostics.latency_ms?.embedding_generation_ms)}</p>
+                  <p>Vector retrieval: {formatMetricMs(message.diagnostics.latency_ms?.vector_database_retrieval_ms)}</p>
+                  <p>Generated tokens: {message.diagnostics.llm?.generated_tokens ?? "not reported"}</p>
+                  <p>Tokens/second: {message.diagnostics.llm?.tokens_per_second ?? "not reported"}</p>
+                </details>
+              ) : null}
             </div>
           ))}
           {botTyping ? <div className="chat-msg bot">Support chat is preparing your answer...</div> : null}
@@ -292,9 +365,20 @@ export default function Chatbot() {
               }
             }}
           />
+<<<<<<< Updated upstream
           <button type="button" className="btn btn-primary btn-icon" onClick={handleSend} disabled={botTyping}>
             <HiOutlinePaperAirplane />
             Send
+=======
+          <button
+            type="button"
+            className="chat-send-btn"
+            onClick={handleSend}
+            disabled={botTyping || !input.trim()}
+            aria-label="Send message"
+          >
+            <Send size={16} />
+>>>>>>> Stashed changes
           </button>
         </div>
       </div>

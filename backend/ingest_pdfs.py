@@ -67,6 +67,7 @@ def ingest():
             chunks = split_text_manually(text_content, chunk_size=750, overlap=100)
             print(f"Extracted {len(chunks)} text chunks. Generating local embeddings...")
 
+            saved_count = 0
             for i, chunk_text in enumerate(chunks):
                 chunk_text = chunk_text.strip()
                 if not chunk_text:
@@ -79,16 +80,17 @@ def ingest():
                     print(f"Embedding Generation failed: {e}")
                     return
 
-                # Save directly to Neon (vector_db database)
-                entry = DocumentEmbedding(
+                DocumentEmbedding.objects.using('default').update_or_create(
                     title=file_name,
                     chunk_index=i,
-                    content=chunk_text,
-                    embedding=vector
+                    defaults={
+                        "content": chunk_text,
+                        "embedding": vector,
+                    },
                 )
-                entry.save(using='vector_db')
+                saved_count += 1
 
-            print(f"SUCCESS: Split and loaded {len(chunks)} vectors for '{file_name}' to Neon database!")
+            print(f"SUCCESS: Loaded or updated {saved_count} vectors for '{file_name}' in the primary database!")
         except Exception as e:
             print(f"Failed to process '{file_name}': {e}")
 

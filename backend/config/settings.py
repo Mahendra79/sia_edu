@@ -199,15 +199,6 @@ else:
         }
     }
 
-VECTOR_DATABASE_URL = os.getenv("VECTOR_DATABASE_URL", "").strip()
-if VECTOR_DATABASE_URL:
-    DATABASES["vector_db"] = _database_from_url(VECTOR_DATABASE_URL)
-else:
-    DATABASES["vector_db"] = DATABASES["default"]
-
-DATABASE_ROUTERS = ['config.db_router.VectorDatabaseRouter']
-
-
 AUTH_USER_MODEL = "accounts.User"
 
 
@@ -404,10 +395,9 @@ CHATBOT_MAX_HISTORY = int(os.getenv("CHATBOT_MAX_HISTORY", "8"))
 CHATBOT_MAX_TOKENS = int(os.getenv("CHATBOT_MAX_TOKENS", "420"))
 CHATBOT_RAG_CACHE_TTL = int(os.getenv("CHATBOT_RAG_CACHE_TTL", "300"))
 
-CHATBOT_LLM_PROVIDER = os.getenv("CHATBOT_LLM_PROVIDER", "ollama").strip()
-LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1").strip()
-LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "llama3.2:latest").strip()
-LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "ollama").strip()
+CHATBOT_LLM_PROVIDER = os.getenv("CHATBOT_LLM_PROVIDER", "gemini").strip().lower()
+if CHATBOT_LLM_PROVIDER not in {"gemini", "groq"}:
+    raise ImproperlyConfigured("CHATBOT_LLM_PROVIDER must be either 'gemini' or 'groq'.")
 
 # Gemini Multi-API Key Rotation & Model Settings
 GEMINI_API_KEYS = []

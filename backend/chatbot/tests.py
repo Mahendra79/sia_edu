@@ -1,15 +1,22 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import override_settings, SimpleTestCase
 from django.core.cache import cache
 from django.urls import reverse
 from chatbot.llm_manager import GeminiKeyRotationManager
+from chatbot import services as chatbot_services
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
 from courses.models import Category, Course, Enrollment
-from chatbot.services import build_chat_context
+from chatbot.services import (
+    ChatContext,
+    ChatbotConfigError,
+    build_chat_context,
+    create_inference_diagnostics,
+    evaluate_chatbot_suite,
+)
 
 
 class _MockGroqResponse:
@@ -20,6 +27,21 @@ class _MockGroqResponse:
 
     def json(self):
         return self._payload
+
+
+class EmbeddingDeviceTests(SimpleTestCase):
+    def test_model_uses_cpu_and_caches_it(self):
+        cpu_model = Mock()
+        with (
+            patch.object(chatbot_services, "_embeddings_model", None),
+            patch.object(chatbot_services, "_embeddings_device", None),
+            patch.object(chatbot_services, "_create_embeddings_model", return_value=cpu_model) as create_model,
+        ):
+            self.assertIs(chatbot_services._get_embeddings_model(), cpu_model)
+            self.assertIs(chatbot_services._get_embeddings_model(), cpu_model)
+
+            create_model.assert_called_once_with()
+            self.assertEqual(chatbot_services._embeddings_device, "cpu")
 
 
 class ChatbotApiTests(APITestCase):
@@ -54,6 +76,122 @@ class ChatbotApiTests(APITestCase):
         self.assertEqual(response.data["model"], "greeting")
         self.assertIn("education", response.data["reply"])
         mock_post.assert_not_called()
+
+    def test_chat_diagnostics_are_restricted_to_admin_users(self):
+        learner = User.objects.create_user(
+            username="diagnostic_learner",
+            email="diagnostic_learner@example.com",
+            phone="7991000014",
+            name="Diagnostic Learner",
+            password="StrongPass123!",
+        )
+        self.client.force_authenticate(learner)
+        learner_response = self.client.post(self.url, {"message": "hello"}, format="json")
+        self.assertEqual(learner_response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("diagnostics", learner_response.data)
+
+        admin = User.objects.create_user(
+            username="diagnostic_admin",
+            email="diagnostic_admin@example.com",
+            phone="7991000015",
+            name="Diagnostic Admin",
+            password="StrongPass123!",
+            is_staff=True,
+        )
+        self.client.force_authenticate(admin)
+        admin_response = self.client.post(self.url, {"message": "hello"}, format="json")
+        self.assertEqual(admin_response.status_code, status.HTTP_200_OK)
+        self.assertIn("diagnostics", admin_response.data)
+        self.assertIn("total_inference_ms", admin_response.data["diagnostics"]["latency_ms"])
+        self.assertEqual(admin_response.data["diagnostics"]["llm"]["api_calls"], 0)
+
+    def test_stream_endpoint_is_removed(self):
+        response = self.client.post("/api/chatbot/message/stream/", {"message": "hi"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    @override_settings(CHATBOT_LLM_PROVIDER="groq")
+    @patch("chatbot.views.build_chat_context")
+    @patch("chatbot.views.generate_reply", return_value="A compatible JSON response.")
+    def test_existing_json_message_endpoint_remains_available(self, mock_generate_reply, mock_context):
+        learner = User.objects.create_user(
+            username="json_compatibility_learner",
+            email="json_compatibility_learner@example.com",
+            phone="7991000020",
+            name="JSON Compatibility Learner",
+            password="StrongPass123!",
+        )
+        self.client.force_authenticate(learner)
+        mock_context.return_value = ChatContext(
+            course_access="none",
+            focused_course_id=None,
+            retrieval_mode="none",
+            retrieval_hits=0,
+            context_text="No context",
+            sources=[],
+        )
+
+        response = self.client.post(
+            self.url,
+            {"message": "Explain gradient descent in machine learning"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["reply"], "A compatible JSON response.")
+        self.assertEqual(response.data["provider"], "groq")
+        mock_generate_reply.assert_called_once()
+
+    @patch("chatbot.views.generate_reply", side_effect=ChatbotConfigError("provider unavailable"))
+    def test_admin_diagnostics_report_llm_fallback(self, mock_generate):
+        admin = User.objects.create_user(
+            username="diagnostic_fallback_admin",
+            email="diagnostic_fallback_admin@example.com",
+            phone="7991000017",
+            name="Diagnostic Fallback Admin",
+            password="StrongPass123!",
+            is_staff=True,
+        )
+        self.client.force_authenticate(admin)
+
+        response = self.client.post(
+            self.url,
+            {"message": "Explain gradient descent in machine learning"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["diagnostics"]["llm"]["fallback_used"])
+        self.assertEqual(response.data["diagnostics"]["llm"]["status"], "error")
+        self.assertEqual(response.data["provider"], "fallback")
+        mock_generate.assert_called_once()
+
+    @patch("chatbot.services._get_embeddings_model", return_value=None)
+    def test_context_diagnostics_include_selected_lexical_chunks(self, mock_embeddings):
+        admin = User.objects.create_user(
+            username="diagnostic_retrieval_admin",
+            email="diagnostic_retrieval_admin@example.com",
+            phone="7991000016",
+            name="Diagnostic Retrieval Admin",
+            password="StrongPass123!",
+            is_staff=True,
+        )
+        diagnostics = create_inference_diagnostics(provider="groq", model="test-model")
+
+        context = build_chat_context(
+            message="Applied Machine Learning curriculum and prerequisites",
+            user=admin,
+            course_id=None,
+            diagnostics=diagnostics,
+        )
+
+        self.assertGreater(context.retrieval_hits, 0)
+        self.assertEqual(diagnostics["retrieval"]["backend"], "lexical_bm25")
+        self.assertEqual(len(diagnostics["retrieval"]["chunks"]), context.retrieval_hits)
+        self.assertEqual(diagnostics["retrieval"]["chunks"][0]["rank"], 1)
+        self.assertTrue(diagnostics["retrieval"]["chunks"][0]["chunk_id"])
+        self.assertTrue(diagnostics["retrieval"]["chunks"][0]["source_document"])
+        self.assertFalse(diagnostics["retrieval"]["chunks"][0]["passed_to_llm"])
+        mock_embeddings.assert_not_called()
 
     @patch("chatbot.services.requests.post")
     @override_settings(GROQ_API_KEY="gsk_test_key")
@@ -217,8 +355,8 @@ class ChatbotApiTests(APITestCase):
         self.assertEqual(response.data["retrieval_mode"], "lexical_bm25_rag")
         self.assertGreaterEqual(response.data["retrieval_hits"], 1)
 
-    @patch("chatbot.services.requests.post")
-    def test_chatbot_evaluation_requires_admin(self, mock_post):
+    @patch("chatbot.views.evaluate_chatbot_suite")
+    def test_chatbot_evaluation_requires_admin(self, mock_evaluate):
         learner = User.objects.create_user(
             username="non_admin_eval",
             email="non_admin_eval@example.com",
@@ -227,12 +365,12 @@ class ChatbotApiTests(APITestCase):
             password="StrongPass123!",
         )
         self.client.force_authenticate(learner)
-        response = self.client.post(self.eval_url, {"use_model": False, "max_cases": 4}, format="json")
+        response = self.client.post(self.eval_url, {"provider": "gemini", "max_cases": 4}, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        mock_post.assert_not_called()
+        mock_evaluate.assert_not_called()
 
-    @patch("chatbot.services.requests.post")
-    def test_chatbot_evaluation_runs_for_admin(self, mock_post):
+    @patch("chatbot.views.evaluate_chatbot_suite")
+    def test_chatbot_evaluation_runs_for_admin(self, mock_evaluate):
         admin = User.objects.create_user(
             username="admin_eval",
             email="admin_eval@example.com",
@@ -241,15 +379,113 @@ class ChatbotApiTests(APITestCase):
             password="StrongPass123!",
             is_staff=True,
         )
+        mock_evaluate.return_value = {
+            "summary": {"total_cases": 4},
+            "results": [{} for _ in range(4)],
+        }
         self.client.force_authenticate(admin)
-        response = self.client.post(self.eval_url, {"use_model": False, "max_cases": 4}, format="json")
+        response = self.client.post(self.eval_url, {"provider": "groq", "max_cases": 4}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("summary", response.data)
         self.assertIn("results", response.data)
         self.assertEqual(response.data["summary"]["total_cases"], 4)
         self.assertTrue(len(response.data["results"]) == 4)
-        mock_post.assert_not_called()
+        mock_evaluate.assert_called_once_with(user=admin, provider="groq", max_cases=4)
 
+    def test_chatbot_evaluation_rejects_non_online_provider(self):
+        admin = User.objects.create_user(
+            username="admin_eval_provider",
+            email="admin_eval_provider@example.com",
+            phone="7991000012",
+            name="Admin Eval Provider",
+            password="StrongPass123!",
+            is_staff=True,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.post(self.eval_url, {"provider": "local"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("chatbot.views.evaluate_chatbot_suite", side_effect=ChatbotConfigError("GROQ_API_KEY is not configured."))
+    def test_chatbot_evaluation_surfaces_provider_configuration_error(self, mock_evaluate):
+        admin = User.objects.create_user(
+            username="admin_eval_config",
+            email="admin_eval_config@example.com",
+            phone="7991000013",
+            name="Admin Eval Config",
+            password="StrongPass123!",
+            is_staff=True,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.post(self.eval_url, {"provider": "groq"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["detail"], "GROQ_API_KEY is not configured.")
+        mock_evaluate.assert_called_once()
+
+
+class ChatbotEvaluationServiceTests(SimpleTestCase):
+    @patch("chatbot.services.generate_reply", return_value="A structured answer about learning.")
+    @patch("chatbot.services.build_chat_context")
+    def test_evaluation_calls_the_selected_online_provider(self, mock_build_context, mock_generate):
+        context = ChatContext(
+            course_access="none",
+            focused_course_id=None,
+            retrieval_mode="none",
+            retrieval_hits=0,
+            context_text="No context",
+            sources=[],
+        )
+        mock_build_context.return_value = context
+
+        report = evaluate_chatbot_suite(user=None, provider="groq", max_cases=1)
+
+        self.assertEqual(mock_generate.call_args.kwargs["message"], "Give me AI learning roadmap for beginners")
+        self.assertEqual(mock_generate.call_args.kwargs["provider"], "groq")
+        diagnostics = mock_generate.call_args.kwargs["diagnostics"]
+        self.assertEqual(report["results"][0]["diagnostics"], diagnostics)
+        self.assertGreater(diagnostics["latency_ms"]["query_processing_ms"], 0)
+        self.assertEqual(report["summary"]["provider"], "groq")
+        self.assertEqual(report["summary"]["evaluation_mode"], "groq_online")
+        self.assertEqual(report["results"][0]["provider"], "groq")
+
+    @patch("langchain_openai.ChatOpenAI")
+    @override_settings(GROQ_API_KEY="test-groq-key", GROQ_CHAT_MODEL="test-groq-model")
+    def test_generate_reply_records_call_latency_and_token_usage(self, mock_chat_openai):
+        from unittest.mock import MagicMock
+        from langchain_core.messages import AIMessage
+        from chatbot.services import generate_reply
+
+        mock_model = MagicMock()
+        mock_model.invoke.return_value = AIMessage(
+            content="Grounded answer.",
+            usage_metadata={"input_tokens": 12, "output_tokens": 7, "total_tokens": 19},
+        )
+        mock_chat_openai.return_value = mock_model
+
+        context = ChatContext(
+            course_access="none",
+            focused_course_id=None,
+            retrieval_mode="none",
+            retrieval_hits=0,
+            context_text="No context",
+            sources=[],
+        )
+        diagnostics = create_inference_diagnostics(provider="groq", model="test-groq-model")
+        diagnostics["retrieval"]["chunks"].append(
+            {
+                "chunk_id": "test-chunk",
+                "passed_to_llm": False,
+            }
+        )
+
+        reply = generate_reply("Explain a course topic", [], context, provider="groq", diagnostics=diagnostics)
+
+        self.assertEqual(reply, "Grounded answer.")
+        self.assertEqual(diagnostics["llm"]["api_calls"], 1)
+        self.assertEqual(diagnostics["llm"]["status"], "success")
+        self.assertEqual(diagnostics["llm"]["retry_count"], 0)
+        self.assertEqual(diagnostics["llm"]["token_usage"]["total_tokens"], 19)
+        self.assertGreaterEqual(diagnostics["llm"]["calls"][0]["latency_ms"], 0)
+        self.assertTrue(diagnostics["retrieval"]["chunks"][0]["passed_to_llm"])
 
 class GeminiKeyRotationTests(SimpleTestCase):
     def setUp(self):
@@ -299,13 +535,12 @@ class GeminiKeyRotationTests(SimpleTestCase):
         class MockRateLimitError(Exception):
             pass
 
-        mock_chain = MagicMock()
-        mock_instance.__or__.return_value = mock_chain
-
         # Mocking the invoke call: first raises rate limit exception, second succeeds
-        mock_chain.invoke.side_effect = [
+        from langchain_core.messages import AIMessage
+
+        mock_instance.invoke.side_effect = [
             MockRateLimitError("429 Rate limit exceeded"),
-            "Success reply"
+            AIMessage(content="Success reply"),
         ]
 
         context = ChatContext(
@@ -321,4 +556,5 @@ class GeminiKeyRotationTests(SimpleTestCase):
         self.assertEqual(reply, "Success reply")
         # Check that ChatGoogleGenerativeAI was instantiated twice (once for key_1, once for key_2)
         self.assertEqual(mock_chat_openai.call_count, 2)
+        self.assertTrue(all(call.kwargs["retries"] == 0 for call in mock_chat_openai.call_args_list))
 

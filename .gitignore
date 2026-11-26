@@ -1,18 +1,36 @@
 # Python
 __pycache__/
+.venv/
+venv/
+backend/venv/
 *.py[cod]
 *.pyo
 *.pyd
 *.sqlite3
 *.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 backend/media/
 backend/staticfiles/
 backend/documents
+
+# Local agent configuration
+.agents/
+.claude/
+.windsurf/
 
 # Node
 node_modules/
 frontend/node_modules/
 frontend/dist/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Env
 .env
@@ -21,5 +39,12 @@ frontend/.env
 
 
 backend/venv
+<<<<<<< Updated upstream
 chatbot_architecture.md 
 image.png
+=======
+chatbot_architecture.md
+image.png
+
+/generated/prisma
+>>>>>>> Stashed changes

@@ -7,6 +7,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 import requests
 from django.core.cache import cache
@@ -19,16 +20,60 @@ from courses.models import Course, Enrollment
 logger = logging.getLogger(__name__)
 
 _embeddings_model = None
+_embeddings_device: str | None = "cpu"
 
-def _get_embeddings_model():
-    global _embeddings_model
-    if _embeddings_model is None:
-        try:
-            from langchain_huggingface import HuggingFaceEmbeddings
-            _embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        except Exception:
-            logger.exception("Failed to initialize HuggingFaceEmbeddings globally.")
+
+def _create_embeddings_model():
+    from langchain_huggingface import HuggingFaceEmbeddings
+
+    return HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+    )
+
+
+def _get_embeddings_model(diagnostics: dict[str, Any] | None = None):
+    global _embeddings_model, _embeddings_device
+    if _embeddings_model is not None:
+        return _embeddings_model
+
+    initialization_started = time.perf_counter()
+    try:
+        _embeddings_model = _create_embeddings_model()
+        _embeddings_device = "cpu"
+    except Exception:
+        _embeddings_device = None
+        logger.exception("Failed to initialize HuggingFaceEmbeddings on CPU.")
+    finally:
+        record_inference_duration(
+            diagnostics,
+            "embedding_model_initialization_ms",
+            initialization_started,
+            accumulate=True,
+        )
+
     return _embeddings_model
+
+
+def _embed_query(
+    message: str,
+    diagnostics: dict[str, Any] | None = None,
+) -> list[float] | None:
+    embeddings_model = _get_embeddings_model(diagnostics)
+    if embeddings_model is None:
+        return None
+
+    embedding_started = time.perf_counter()
+    try:
+        return embeddings_model.embed_query(message)
+    finally:
+        record_inference_duration(
+            diagnostics,
+            "embedding_generation_ms",
+            embedding_started,
+            accumulate=True,
+        )
+
 
 CHATBOT_RAG_CACHE_PREFIX = "chatbot:rag:v2"
 
@@ -185,6 +230,162 @@ class ChatbotConfigError(RuntimeError):
 
 class ChatbotServiceError(RuntimeError):
     pass
+
+
+def create_inference_diagnostics(
+    *,
+    provider: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "latency_ms": {
+            "query_processing_ms": 0.0,
+            "embedding_model_initialization_ms": 0.0,
+            "embedding_generation_ms": 0.0,
+            "vector_database_retrieval_ms": 0.0,
+            "lexical_retrieval_ms": 0.0,
+            "reranking_ms": 0.0,
+            "retrieval_total_ms": 0.0,
+            "context_preparation_ms": 0.0,
+            "llm_generation_ms": 0.0,
+            "post_processing_ms": 0.0,
+            "total_inference_ms": 0.0,
+            "total_request_ms": 0.0,
+        },
+        "retrieval": {
+            "backend": "not_run",
+            "vector_search_used": False,
+            "embedding_device": "not_used",
+            "fallback_used": False,
+            "fallback_reason": None,
+            "reranking_used": False,
+            "chunks": [],
+            "supplemental_context": [],
+        },
+        "llm": {
+            "provider": provider,
+            "model": model,
+            "api_calls": 0,
+            "calls": [],
+            "retry_count": 0,
+            "status": "not_called",
+            "fallback_used": False,
+            "token_usage": None,
+            "generated_tokens": None,
+            "tokens_per_second": None,
+        },
+    }
+
+
+def record_inference_duration(
+    diagnostics: dict[str, Any] | None,
+    stage: str,
+    started_at: float,
+    *,
+    accumulate: bool = False,
+) -> None:
+    if diagnostics is None:
+        return
+    elapsed_ms = round(max((time.perf_counter() - started_at) * 1000, 0.0), 3)
+    current = float(diagnostics["latency_ms"].get(stage, 0.0))
+    diagnostics["latency_ms"][stage] = round(current + elapsed_ms if accumulate else elapsed_ms, 3)
+
+
+def _extract_token_usage(response: Any) -> dict[str, int] | None:
+    usage = getattr(response, "usage_metadata", None)
+    if not isinstance(usage, dict):
+        response_metadata = getattr(response, "response_metadata", {})
+        usage = response_metadata.get("token_usage") if isinstance(response_metadata, dict) else None
+    if not isinstance(usage, dict):
+        return None
+
+    aliases = {
+        "input_tokens": ("input_tokens", "prompt_tokens"),
+        "output_tokens": ("output_tokens", "completion_tokens"),
+        "total_tokens": ("total_tokens",),
+    }
+    token_usage: dict[str, int] = {}
+    for output_key, input_keys in aliases.items():
+        value = next((usage[key] for key in input_keys if usage.get(key) is not None), None)
+        if isinstance(value, (int, float)) and value >= 0:
+            token_usage[output_key] = int(value)
+    if not token_usage:
+        return None
+    if "total_tokens" not in token_usage and {"input_tokens", "output_tokens"} <= token_usage.keys():
+        token_usage["total_tokens"] = token_usage["input_tokens"] + token_usage["output_tokens"]
+    return token_usage
+
+
+def _record_llm_call(
+    diagnostics: dict[str, Any] | None,
+    *,
+    started_at: float,
+    attempt: int,
+    response: Any = None,
+    error: Exception | None = None,
+) -> None:
+    if diagnostics is None:
+        return
+
+    usage = _extract_token_usage(response) if error is None else None
+    call = {
+        "attempt": attempt,
+        "retry": attempt > 1,
+        "latency_ms": round(max((time.perf_counter() - started_at) * 1000, 0.0), 3),
+        "status": "error" if error else "success",
+        "status_code": None,
+        "token_usage": usage,
+    }
+    if error is not None:
+        call["error_type"] = type(error).__name__
+        response_obj = getattr(error, "response", None)
+        status_code = getattr(error, "status_code", None) or getattr(response_obj, "status_code", None)
+        if isinstance(status_code, int):
+            call["status_code"] = status_code
+
+    llm_diagnostics = diagnostics["llm"]
+    llm_diagnostics["api_calls"] += 1
+    llm_diagnostics["retry_count"] += int(attempt > 1)
+    llm_diagnostics["calls"].append(call)
+    llm_diagnostics["status"] = call["status"]
+
+    if usage:
+        total_usage = llm_diagnostics["token_usage"] or {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+        }
+        for token_name, token_count in usage.items():
+            total_usage[token_name] = total_usage.get(token_name, 0) + token_count
+        llm_diagnostics["token_usage"] = total_usage
+        llm_diagnostics["generated_tokens"] = total_usage.get("output_tokens")
+
+
+def finalize_llm_metrics(diagnostics: dict[str, Any] | None) -> None:
+    if diagnostics is None:
+        return
+    llm_diagnostics = diagnostics["llm"]
+    generated_tokens = llm_diagnostics.get("generated_tokens")
+    generation_ms = float(diagnostics["latency_ms"].get("llm_generation_ms") or 0.0)
+    if isinstance(generated_tokens, int) and generated_tokens >= 0 and generation_ms > 0:
+        llm_diagnostics["tokens_per_second"] = round(generated_tokens / (generation_ms / 1000), 2)
+
+
+def _mark_retrieved_chunks_passed_to_llm(diagnostics: dict[str, Any] | None) -> None:
+    if diagnostics is None:
+        return
+    for chunk in diagnostics["retrieval"]["chunks"]:
+        chunk["passed_to_llm"] = True
+    for context_item in diagnostics["retrieval"]["supplemental_context"]:
+        context_item["passed_to_llm"] = True
+
+
+def chatbot_model_name(provider: str) -> str:
+    if provider == "gemini":
+        return str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
+    if provider == "groq":
+        return str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
+    return "unknown"
 
 
 @dataclass
@@ -710,39 +911,87 @@ def _retrieve_grounded_chunks(
     focused_course_id: int | None,
     history_course_ids: list[int],
     limit: int = 8,
+    diagnostics: dict[str, Any] | None = None,
 ) -> tuple[list[dict], dict[int, str]]:
     from chatbot.models import DocumentEmbedding
     from pgvector.django import CosineDistance
 
-    # Try executing vector similarity search on Neon (vector_db)
+    # Use the existing vector query when embeddings are available.
     try:
-        if DocumentEmbedding.objects.using('vector_db').exists():
-            embeddings_model = _get_embeddings_model()
-            if embeddings_model is not None:
-                query_vector = embeddings_model.embed_query(message)
+        exists_started = time.perf_counter()
+        try:
+            has_embeddings = DocumentEmbedding.objects.using("default").exists()
+        finally:
+            record_inference_duration(
+                diagnostics,
+                "vector_database_retrieval_ms",
+                exists_started,
+                accumulate=True,
+            )
 
-                hits = DocumentEmbedding.objects.using('vector_db').order_by(
-                    CosineDistance('embedding', query_vector)
-                )[:limit]
+        if has_embeddings:
+            try:
+                query_vector = _embed_query(message, diagnostics)
+            except Exception:
+                if diagnostics is not None:
+                    diagnostics["retrieval"]["embedding_device"] = "unavailable"
+                raise
+            else:
+                if diagnostics is not None:
+                    diagnostics["retrieval"]["embedding_device"] = _embeddings_device or "unavailable"
 
+            if query_vector is not None:
+                if diagnostics is not None:
+                    diagnostics["retrieval"]["vector_search_used"] = True
+                vector_search_started = time.perf_counter()
+                try:
+                    hits = list(
+                        DocumentEmbedding.objects.using("default")
+                        .annotate(distance=CosineDistance("embedding", query_vector))
+                        .order_by("distance")[:limit]
+                    )
+                finally:
+                    record_inference_duration(
+                        diagnostics,
+                        "vector_database_retrieval_ms",
+                        vector_search_started,
+                        accumulate=True,
+                    )
 
-            selected = []
-            for hit in hits:
-                selected.append({
-                    "score": 1.0,
-                    "course_id": None,
-                    "section": "Document",
-                    "visibility": "public",
-                    "text": hit.content,
-                    "course_title": hit.title,
-                })
-            return selected, {}
+                selected = []
+                for rank, hit in enumerate(hits, start=1):
+                    similarity = round(1.0 - float(hit.distance), 4)
+                    selected.append(
+                        {
+                            "chunk_id": f"document-embedding:{hit.pk}",
+                            "chunk_index": hit.chunk_index,
+                            "rank": rank,
+                            "score": similarity,
+                            "score_type": "cosine_similarity",
+                            "course_id": None,
+                            "section": "Document",
+                            "visibility": "public",
+                            "text": hit.content,
+                            "course_title": hit.title,
+                            "source_document": hit.title,
+                        }
+                    )
+                if diagnostics is not None:
+                    diagnostics["retrieval"]["backend"] = "pgvector_cosine"
+                return selected, {}
     except Exception as exc:
-        logger.exception("pgvector retrieval from Neon failed. Falling back to default RAG.")
+        if diagnostics is not None:
+            diagnostics["retrieval"]["fallback_reason"] = type(exc).__name__
+        logger.exception("pgvector retrieval from the primary database failed. Falling back to default RAG.")
 
+    if diagnostics is not None:
+        diagnostics["retrieval"]["backend"] = "lexical_bm25"
+        diagnostics["retrieval"]["fallback_used"] = True
+    lexical_started = time.perf_counter()
     corpus = _load_retrieval_corpus()
     chunks: list[dict] = corpus.get("chunks", [])
     if not chunks:
+        record_inference_duration(diagnostics, "lexical_retrieval_ms", lexical_started)
         return [], {}
 
     unique_course_ids = sorted({chunk["course_id"] for chunk in chunks})
@@ -803,21 +1052,34 @@ def _retrieve_grounded_chunks(
         seen_keys.add(key)
         selected.append(
             {
+                "chunk_id": key,
+                "chunk_index": None,
+                "rank": len(selected) + 1,
                 "score": round(float(item["score"]), 4),
+                "score_type": "bm25",
                 "course_id": int(item["chunk"]["course_id"]),
                 "section": item["chunk"]["section"],
                 "visibility": item["chunk"]["visibility"],
                 "text": item["chunk"]["text"],
                 "course_title": item["chunk"]["course_title"],
+                "source_document": item["chunk"]["course_title"],
             }
         )
         if len(selected) >= limit:
             break
 
+    record_inference_duration(diagnostics, "lexical_retrieval_ms", lexical_started)
     return selected, access_map
 
 
-def build_chat_context(message: str, user, course_id: int | None, history: list[dict] | None = None) -> ChatContext:
+def build_chat_context(
+    message: str,
+    user,
+    course_id: int | None,
+    history: list[dict] | None = None,
+    diagnostics: dict[str, Any] | None = None,
+) -> ChatContext:
+    query_started = time.perf_counter()
     base_queryset = (
         Course.objects.select_related("category")
         .filter(is_deleted=False, is_active=True)
@@ -826,15 +1088,20 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
     focused_course = base_queryset.filter(id=course_id).first() if course_id else None
     focused_course_id = focused_course.id if focused_course else None
     history_course_ids = _extract_course_ids_from_history(history)
+    record_inference_duration(diagnostics, "query_processing_ms", query_started, accumulate=True)
 
+    retrieval_started = time.perf_counter()
     hits, access_map = _retrieve_grounded_chunks(
         message=message,
         user=user,
         focused_course_id=focused_course_id,
         history_course_ids=history_course_ids,
         limit=8,
+        diagnostics=diagnostics,
     )
+    record_inference_duration(diagnostics, "retrieval_total_ms", retrieval_started)
 
+    context_started = time.perf_counter()
     sources: list[str] = []
     context_rows: list[str] = []
     for hit in hits:
@@ -865,6 +1132,16 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
                     include_private=(course_access == "full"),
                 ),
             )
+            if diagnostics is not None:
+                diagnostics["retrieval"]["supplemental_context"].append(
+                    {
+                        "type": "focused_course",
+                        "course_id": focused_course.id,
+                        "source_document": focused_course.title,
+                        "visibility": "full" if course_access == "full" else "public",
+                        "passed_to_llm": False,
+                    }
+                )
     elif hits:
         course_access = "public"
 
@@ -872,7 +1149,48 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         context_rows.append("No active courses were available in the catalog context.")
 
     context_text = "Internal SIA EDU course context:\n" + "\n\n".join(context_rows)
+<<<<<<< Updated upstream
     return ChatContext(
+=======
+    if diagnostics is not None:
+        diagnostics["retrieval"]["chunks"] = [
+            {
+                "chunk_id": hit["chunk_id"],
+                "chunk_index": hit["chunk_index"],
+                "source_document": hit["source_document"],
+                "section": hit["section"],
+                "retrieved_text": hit["text"],
+                "retrieval_score": hit["score"],
+                "score_type": hit["score_type"],
+                "rank": hit["rank"],
+                "passed_to_llm": False,
+            }
+            for hit in hits
+        ]
+
+    material_sources = []
+    for hit in hits:
+        title = hit.get("course_title")
+        if title:
+            if title.lower().endswith(".pdf"):
+                title = title[:-4]
+            title = re.sub(r"\(\d+\)", "", title)
+            title = title.replace("_", " ").replace("-", " ").strip()
+            title = title.title()
+            if title not in material_sources:
+                material_sources.append(title)
+
+    if focused_course:
+        fc_title = focused_course.title.strip()
+        if fc_title.lower().endswith(".pdf"):
+            fc_title = fc_title[:-4]
+        fc_title = re.sub(r"\(\d+\)", "", fc_title)
+        fc_title = fc_title.replace("_", " ").replace("-", " ").strip().title()
+        if fc_title not in material_sources:
+            material_sources.insert(0, fc_title)
+
+    context = ChatContext(
+>>>>>>> Stashed changes
         context_text=context_text,
         sources=sources[:8],
         course_access=course_access,
@@ -880,6 +1198,8 @@ def build_chat_context(message: str, user, course_id: int | None, history: list[
         retrieval_mode="lexical_bm25_rag",
         retrieval_hits=len(hits),
     )
+    record_inference_duration(diagnostics, "context_preparation_ms", context_started)
+    return context
 
 
 def _build_system_prompt(context: ChatContext) -> str:
@@ -927,14 +1247,43 @@ def _normalize_history(history: list[dict] | None) -> list[dict]:
     return normalized
 
 
-def generate_reply(message: str, history: list[dict] | None, context: ChatContext) -> str:
-    provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
+def _build_llm_messages(
+    message: str,
+    history: list[dict] | None,
+    context: ChatContext,
+) -> list[Any]:
+    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+    messages = [
+        SystemMessage(content=_build_system_prompt(context)),
+        SystemMessage(content=f"Internal SIA EDU course context:\n{context.context_text}"),
+    ]
+    for item in _normalize_history(history):
+        if item["role"] == "user":
+            messages.append(HumanMessage(content=item["content"]))
+        else:
+            messages.append(AIMessage(content=item["content"]))
+    messages.append(HumanMessage(content=message))
+    return messages
+
+
+def generate_reply(
+    message: str,
+    history: list[dict] | None,
+    context: ChatContext,
+    provider: str | None = None,
+    diagnostics: dict[str, Any] | None = None,
+) -> str:
+    provider = str(provider or getattr(settings, "CHATBOT_LLM_PROVIDER", "gemini")).strip().lower()
+    if provider not in {"gemini", "groq"}:
+        raise ChatbotConfigError("CHATBOT_LLM_PROVIDER must be either 'gemini' or 'groq'.")
+    if diagnostics is not None:
+        diagnostics["llm"].update(provider=provider, model=chatbot_model_name(provider), status="in_progress")
 
     if provider == "gemini":
         from chatbot.llm_manager import GeminiKeyRotationManager
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
             from langchain_core.output_parsers import StrOutputParser
         except ImportError as exc:
             logger.error("Failed to import langchain-google-genai. Check dependencies.")
@@ -944,6 +1293,7 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
         if not keys:
             raise ChatbotConfigError("No Gemini API keys configured.")
 
+<<<<<<< Updated upstream
         model_name = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
         max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
 
@@ -962,6 +1312,11 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
                 messages.append(AIMessage(content=item["content"]))
 
         messages.append(HumanMessage(content=message))
+=======
+        model_name = chatbot_model_name(provider)
+        max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 900))
+        messages = _build_llm_messages(message, history, context)
+>>>>>>> Stashed changes
 
         num_keys = len(keys)
         last_exception = None
@@ -979,17 +1334,21 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
                 api_key=api_key,
                 temperature=0.2,
                 max_tokens=max_tokens,
+                retries=0,
             )
 
+            call_started = time.perf_counter()
             try:
-                chain = llm | StrOutputParser()
-                reply = chain.invoke(messages).strip()
-                if reply:
-                    return reply
-                else:
-                    logger.warning(f"Empty response from Gemini with key index {active_idx}")
-                    raise ChatbotServiceError("Empty response from LLM.")
+                _mark_retrieved_chunks_passed_to_llm(diagnostics)
+                response = llm.invoke(messages)
+                reply = StrOutputParser().invoke(response).strip()
             except Exception as exc:
+                _record_llm_call(
+                    diagnostics,
+                    started_at=call_started,
+                    attempt=attempt + 1,
+                    error=exc,
+                )
                 last_exception = exc
                 err_msg = str(exc).lower()
                 err_type = type(exc).__name__
@@ -1006,14 +1365,28 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
                         f"Temporary Gemini error with key index {active_idx}: {err_type} - {exc}. Rotating key..."
                     )
                     GeminiKeyRotationManager.mark_key_rate_limited(api_key)
+                    continue
                 else:
                     logger.error(f"Permanent/Non-rotatable error with Gemini LLM: {exc}")
                     raise ChatbotServiceError(f"Failed to generate response from Gemini LLM: {exc}") from exc
 
-        logger.error("All Gemini API keys and fallbacks have been exhausted and failed.")
+            _record_llm_call(
+                diagnostics,
+                started_at=call_started,
+                attempt=attempt + 1,
+                response=response,
+            )
+            if reply:
+                return reply
+            logger.warning(f"Empty response from Gemini with key index {active_idx}")
+            if diagnostics is not None:
+                diagnostics["llm"]["status"] = "error"
+            raise ChatbotServiceError("Empty response from LLM.")
+
+        logger.error("All Gemini API keys have been exhausted and failed.")
         raise ChatbotServiceError("Failed to generate response from Gemini LLM. All keys exhausted.") from last_exception
 
-    # Non-Gemini Providers
+    # Groq
     if provider == "groq":
         api_key = str(getattr(settings, "GROQ_API_KEY", "")).strip()
         if not api_key:
@@ -1023,24 +1396,17 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
         ).strip()
         # ChatOpenAI expects base_url without the "/chat/completions" path suffix
         base_url = api_url.replace("/chat/completions", "")
-        model_name = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
-    else:
-        # Local LLM (Ollama or LM Studio)
-        base_url = str(getattr(settings, "LOCAL_LLM_BASE_URL", "http://localhost:11434/v1")).strip()
-        api_key = str(getattr(settings, "LOCAL_LLM_API_KEY", "ollama")).strip() or "ollama"
-        model_name = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
-
+        model_name = chatbot_model_name(provider)
     max_tokens = int(getattr(settings, "CHATBOT_MAX_TOKENS", 420))
 
     try:
         from langchain_openai import ChatOpenAI
-        from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
         from langchain_core.output_parsers import StrOutputParser
     except ImportError as exc:
         logger.error("Failed to import LangChain classes. Check dependencies.")
         raise ChatbotConfigError("LangChain dependencies are not installed correctly.") from exc
 
-    # Initialize LangChain model pointing to either Groq or local LLM server
+    # Initialize the Groq model through its OpenAI-compatible API.
     llm = ChatOpenAI(
         base_url=base_url,
         api_key=api_key,
@@ -1049,34 +1415,24 @@ def generate_reply(message: str, history: list[dict] | None, context: ChatContex
         max_tokens=max_tokens,
     )
 
-    system_prompt = _build_system_prompt(context)
-    context_prompt = f"Internal SIA EDU course context:\n{context.context_text}"
+    messages = _build_llm_messages(message, history, context)
 
-    messages = [
-        SystemMessage(content=system_prompt),
-        SystemMessage(content=context_prompt),
-    ]
-
-    for item in _normalize_history(history):
-        if item["role"] == "user":
-            messages.append(HumanMessage(content=item["content"]))
-        else:
-            messages.append(AIMessage(content=item["content"]))
-
-    messages.append(HumanMessage(content=message))
-
+    call_started = time.perf_counter()
     try:
-        chain = llm | StrOutputParser()
-        reply = chain.invoke(messages).strip()
+        _mark_retrieved_chunks_passed_to_llm(diagnostics)
+        response = llm.invoke(messages)
+        reply = StrOutputParser().invoke(response).strip()
     except Exception as exc:
+        _record_llm_call(diagnostics, started_at=call_started, attempt=1, error=exc)
         logger.exception("LangChain LLM invocation failed")
-        raise ChatbotServiceError("Failed to generate response from local LLM.") from exc
+        raise ChatbotServiceError("Failed to generate response from Groq.") from exc
 
+    _record_llm_call(diagnostics, started_at=call_started, attempt=1, response=response)
     if not reply:
+        if diagnostics is not None:
+            diagnostics["llm"]["status"] = "error"
         raise ChatbotServiceError("Empty response from LLM.")
     return reply
-
-
 
 
 def fallback_reply(message: str, context: ChatContext) -> str:
@@ -1115,46 +1471,45 @@ def _answer_for_message(
     *,
     message: str,
     user,
+    provider: str,
+    diagnostics: dict[str, Any] | None = None,
     course_id: int | None = None,
     history: list[dict] | None = None,
-    use_model: bool = False,
 ) -> tuple[str, str, str, bool, ChatContext, int]:
     started = time.perf_counter()
-    context = build_chat_context(message=message, user=user, course_id=course_id, history=history)
-
+    query_started = time.perf_counter()
+    record_inference_duration(diagnostics, "query_processing_ms", query_started, accumulate=True)
+    context = build_chat_context(
+        message=message,
+        user=user,
+        course_id=course_id,
+        history=history,
+        diagnostics=diagnostics,
+    )
+    llm_started = time.perf_counter()
     try:
-        local_reply = local_intent_reply(message=message, context=context)
-        if local_reply:
-            reply = local_reply
-            provider = "policy"
-            model = "intent_router"
-            degraded = False
-        elif use_model:
-            reply = generate_reply(message=message, history=history, context=context)
-            provider = str(getattr(settings, "CHATBOT_LLM_PROVIDER", "ollama")).strip().lower()
-            if provider == "gemini":
-                model = str(getattr(settings, "GEMINI_MODEL_NAME", "gemini-3.5-flash")).strip()
-            elif provider == "groq":
-                model = str(getattr(settings, "GROQ_CHAT_MODEL", "llama-3.1-8b-instant")).strip()
-            else:
-                model = str(getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:latest")).strip()
-            degraded = False
-        else:
-            raise ChatbotServiceError("Model usage disabled for this evaluation run.")
-    except (ChatbotConfigError, ChatbotServiceError):
-        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
-        provider = "fallback"
-        model = "fallback"
-        degraded = True
-    except Exception:
-        logger.exception("Unhandled chatbot execution error during evaluation")
-        reply = "I am currently experiencing connection issues with my AI service. Please try again later."
-        provider = "fallback"
-        model = "fallback"
-        degraded = True
+        reply = generate_reply(
+            message=message,
+            history=history,
+            context=context,
+            provider=provider,
+            diagnostics=diagnostics,
+        )
+    finally:
+        record_inference_duration(diagnostics, "llm_generation_ms", llm_started)
+        finalize_llm_metrics(diagnostics)
 
+    post_processing_started = time.perf_counter()
+    formatted_reply = format_chat_reply(reply, context)
+    record_inference_duration(diagnostics, "post_processing_ms", post_processing_started)
+    record_inference_duration(diagnostics, "total_inference_ms", started)
+    record_inference_duration(diagnostics, "total_request_ms", started)
     elapsed_ms = max(int((time.perf_counter() - started) * 1000), 0)
+<<<<<<< Updated upstream
     return format_chat_reply(reply), provider, model, degraded, context, elapsed_ms
+=======
+    return formatted_reply, provider, chatbot_model_name(provider), False, context, elapsed_ms
+>>>>>>> Stashed changes
 
 
 def _evaluate_case_quality(reply: str, context: ChatContext, case: ChatEvaluationCase) -> tuple[int, dict]:
@@ -1182,18 +1537,27 @@ def _evaluate_case_quality(reply: str, context: ChatContext, case: ChatEvaluatio
     return min(quality_score, 100), checks
 
 
-def evaluate_chatbot_suite(*, user=None, use_model: bool = False, max_cases: int = 6) -> dict:
+def evaluate_chatbot_suite(*, user=None, provider: str, max_cases: int = 6) -> dict:
+    provider = str(provider).strip().lower()
+    if provider not in {"gemini", "groq"}:
+        raise ChatbotConfigError("Evaluation provider must be either 'gemini' or 'groq'.")
+
     total_cases = max(1, min(int(max_cases or 1), len(DEFAULT_EVAL_CASES)))
     selected_cases = DEFAULT_EVAL_CASES[:total_cases]
     results: list[dict] = []
 
     for case in selected_cases:
+        diagnostics = create_inference_diagnostics(
+            provider=provider,
+            model=chatbot_model_name(provider),
+        )
         reply, provider, model, degraded, context, latency_ms = _answer_for_message(
             message=case.prompt,
             user=user,
+            provider=provider,
+            diagnostics=diagnostics,
             course_id=case.course_id,
             history=None,
-            use_model=use_model,
         )
         score, checks = _evaluate_case_quality(reply=reply, context=context, case=case)
         passed = score >= 70
@@ -1209,6 +1573,7 @@ def evaluate_chatbot_suite(*, user=None, use_model: bool = False, max_cases: int
                 "latency_ms": latency_ms,
                 "retrieval_hits": context.retrieval_hits,
                 "sources_count": len(context.sources),
+                "diagnostics": diagnostics,
                 "checks": checks,
                 "reply_preview": reply[:420],
             }
@@ -1225,8 +1590,8 @@ def evaluate_chatbot_suite(*, user=None, use_model: bool = False, max_cases: int
             "pass_rate": pass_rate,
             "average_score": average_score,
             "average_latency_ms": average_latency_ms,
-            "used_model": bool(use_model),
-            "evaluation_mode": "model_online" if use_model else "offline_policy_fallback",
+            "provider": provider,
+            "evaluation_mode": f"{provider}_online",
         },
         "results": results,
     }

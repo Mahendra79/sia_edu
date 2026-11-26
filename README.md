@@ -84,8 +84,8 @@ Backend commands:
 
 ```powershell
 cd backend
-python manage.py evaluate_chatbot --max-cases 6
-python manage.py evaluate_chatbot --use-model --max-cases 6 --output chatbot_eval_report.json
+python manage.py evaluate_chatbot --provider gemini --max-cases 6 --output gemini_eval_report.json
+python manage.py evaluate_chatbot --provider groq --max-cases 6 --output groq_eval_report.json
 python manage.py export_chatbot_finetune --output chatbot_finetune_dataset.jsonl
 ```
 
