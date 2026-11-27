@@ -321,6 +321,9 @@ export default function LessonPlayer() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  // Videos normally play straight from Cloudflare; this flips to the backend proxy
+  // only if the browser cannot load the Cloudflare URL directly.
+  const [useVideoProxy, setUseVideoProxy] = useState(false);
   const WATCH_THRESHOLD_PERCENT = 80;
   const requestedStartTime = Math.max(0, Number(new URLSearchParams(location.search).get("t")) || 0);
 
@@ -345,6 +348,7 @@ export default function LessonPlayer() {
     setDuration(0);
     setIsPlaying(false);
     setIsVideoReady(false);
+    setUseVideoProxy(false);
     videoRecoveryAttemptsRef.current = 0;
 
     if (cached) {
@@ -601,6 +605,15 @@ export default function LessonPlayer() {
   const videoViewerUrl = videoUrl && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/video/${mediaTokenQuery}` : "";
   const thumbnailViewerUrl =
     lesson?.thumbnail_url && mediaTokenQuery ? `${API_BASE_URL}/courses/lms/lessons/${lessonId}/thumbnail/${mediaTokenQuery}` : "";
+  // Streaming every video through the backend ties up a Render worker per viewer, so
+  // the browser loads https Cloudflare URLs itself and the proxy is only a fallback.
+  const isDirectMediaUrl = (value) => /^https:\/\//i.test(value);
+  const directVideoUrl = isDirectMediaUrl(videoUrl) ? videoUrl : "";
+  const directThumbnailUrl = isDirectMediaUrl(String(lesson?.thumbnail_url || "").trim())
+    ? String(lesson.thumbnail_url).trim()
+    : "";
+  const videoPlaybackUrl = directVideoUrl && !useVideoProxy ? directVideoUrl : videoViewerUrl;
+  const posterUrl = (!useVideoProxy && directThumbnailUrl) || thumbnailViewerUrl;
   const pdfName = `${String(lesson?.title || `Module ${moduleId} - Lesson ${lessonId}`).trim()}.pdf`;
   const isPlayableLesson = (item) =>
     Boolean(item && Number.isInteger(Number(item.id)) && Number(item.id) > 0 && item.is_unlocked);
@@ -709,12 +722,25 @@ export default function LessonPlayer() {
   };
 
   const handleVideoError = async (event) => {
+    const media = event.currentTarget;
+
+    // Direct Cloudflare playback failed (e.g. hotlink protection or a non-public URL):
+    // switch to the backend stream once, keeping the learner's position.
+    if (!useVideoProxy && directVideoUrl && videoViewerUrl) {
+      pendingVideoResumeRef.current = {
+        time: Number(media.currentTime || 0),
+        shouldResume: Boolean(!media.paused && !media.ended),
+      };
+      setIsVideoReady(false);
+      setUseVideoProxy(true);
+      return;
+    }
+
     if (refreshingVideoTokenRef.current || videoRecoveryAttemptsRef.current >= 2) {
       addToast({ type: "error", message: "Video playback stopped. Please reload the lesson and try again." });
       return;
     }
 
-    const media = event.currentTarget;
     pendingVideoResumeRef.current = {
       time: Number(media.currentTime || 0),
       shouldResume: Boolean(!media.paused && !media.ended),
@@ -839,7 +865,7 @@ export default function LessonPlayer() {
   };
 
   useEffect(() => {
-    if (!videoUrl || !videoViewerUrl || showPdfViewer) {
+    if (!videoPlaybackUrl || showPdfViewer) {
       return undefined;
     }
 
@@ -873,7 +899,7 @@ export default function LessonPlayer() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [videoUrl, videoViewerUrl, showPdfViewer, currentTime, duration, isPlaying, addToast, revealFullscreenControls]);
+  }, [videoPlaybackUrl, showPdfViewer, currentTime, duration, isPlaying, addToast, revealFullscreenControls]);
 
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
@@ -1047,7 +1073,7 @@ export default function LessonPlayer() {
               {lesson.description || "Watch this lesson to complete it and unlock the next lesson."}
             </p>
 
-            {videoUrl && videoViewerUrl ? (
+            {videoPlaybackUrl ? (
               <div
                 className={`lesson-video-wrap custom-video-player${isFullscreen && isPlaying && !controlsVisible ? " controls-hidden" : ""}`}
                 ref={playerRef}
@@ -1065,8 +1091,8 @@ export default function LessonPlayer() {
                   controlsList="nodownload"
                   preload="metadata"
                   className="lesson-video"
-                  src={videoViewerUrl}
-                  poster={thumbnailViewerUrl || undefined}
+                  src={videoPlaybackUrl}
+                  poster={posterUrl || undefined}
                   onContextMenu={(event) => event.preventDefault()}
                   onClick={togglePlay}
                   onLoadedMetadata={handleVideoLoadedMetadata}

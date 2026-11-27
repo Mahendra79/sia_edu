@@ -339,14 +339,17 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
     ),
+    # "user"/"profile" are counted per account and "anon"/"auth" per IP address, so a
+    # shared login or a whole classroom behind one Wi-Fi shares a single bucket.
+    # Override any rate from the environment, e.g. THROTTLE_PROFILE_RATE=300/min.
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "40/min",
-        "user": "200/min",
-        "auth": "10/min",
-        "payments": "20/min",
-        "webhook": "60/min",
-        "chatbot": "30/min",
-        "profile": "20/min",
+        "anon": os.getenv("THROTTLE_ANON_RATE", "120/min"),
+        "user": os.getenv("THROTTLE_USER_RATE", "600/min"),
+        "auth": os.getenv("THROTTLE_AUTH_RATE", "30/min"),
+        "payments": os.getenv("THROTTLE_PAYMENTS_RATE", "20/min"),
+        "webhook": os.getenv("THROTTLE_WEBHOOK_RATE", "60/min"),
+        "chatbot": os.getenv("THROTTLE_CHATBOT_RATE", "30/min"),
+        "profile": os.getenv("THROTTLE_PROFILE_RATE", "120/min"),
     },
 }
 
@@ -406,6 +409,13 @@ GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/co
 CHATBOT_MAX_HISTORY = int(os.getenv("CHATBOT_MAX_HISTORY", "8"))
 CHATBOT_MAX_TOKENS = int(os.getenv("CHATBOT_MAX_TOKENS", "420"))
 CHATBOT_RAG_CACHE_TTL = int(os.getenv("CHATBOT_RAG_CACHE_TTL", "300"))
+# The local sentence-transformers model pulls in torch (several hundred MB of RAM per
+# gunicorn worker), which crashes small Render instances. Off by default on Render
+# (Render sets RENDER=true); the chatbot then uses keyword retrieval instead.
+CHATBOT_LOCAL_EMBEDDINGS = os.getenv(
+    "CHATBOT_LOCAL_EMBEDDINGS",
+    "False" if os.getenv("RENDER") else "True",
+).lower() == "true"
 
 CHATBOT_LLM_PROVIDER = os.getenv("CHATBOT_LLM_PROVIDER", "ollama").strip()
 LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1").strip()

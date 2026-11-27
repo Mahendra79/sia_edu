@@ -28,9 +28,17 @@ export function AuthProvider({ children }) {
         const response = await authService.getProfile();
         setUser(response.data);
         setStoredAuth({ access, refresh: getStoredAuth().refresh, user: response.data });
-      } catch {
-        clearStoredAuth();
-        setUser(null);
+      } catch (error) {
+        // Only a real auth rejection ends the session. A timeout (server waking up),
+        // 429 rate limit or 5xx says nothing about the login, so keep the stored user;
+        // the next API call recovers once the server responds.
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) {
+          clearStoredAuth();
+          setUser(null);
+        } else {
+          setUser(storedUser);
+        }
       } finally {
         setLoading(false);
       }

@@ -28,3 +28,4 @@ PyPDF2>=3.0.0
 sentence-transformers>=3.0.0
 langchain-huggingface>=0.1.0
 langchain-google-genai>=2.0.0
+redis>=5.0

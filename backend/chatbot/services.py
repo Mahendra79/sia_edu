@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import logging
 import re
+import threading
 import time
 from collections import Counter
 from dataclasses import dataclass
@@ -19,15 +20,30 @@ from courses.models import Course, Enrollment
 logger = logging.getLogger(__name__)
 
 _embeddings_model = None
+_embeddings_load_failed = False
+_embeddings_lock = threading.Lock()
+
 
 def _get_embeddings_model():
-    global _embeddings_model
-    if _embeddings_model is None:
-        try:
-            from langchain_huggingface import HuggingFaceEmbeddings
-            _embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        except Exception:
-            logger.exception("Failed to initialize HuggingFaceEmbeddings globally.")
+    """Load the local embedding model once per process; return None when unavailable.
+
+    Disabled via CHATBOT_LOCAL_EMBEDDINGS (default off on Render) because torch alone
+    can exhaust a small instance's memory. A failed load is not retried on every
+    request, which would re-import torch each time.
+    """
+    global _embeddings_model, _embeddings_load_failed
+    if not getattr(settings, "CHATBOT_LOCAL_EMBEDDINGS", True):
+        return None
+    if _embeddings_model is not None or _embeddings_load_failed:
+        return _embeddings_model
+    with _embeddings_lock:
+        if _embeddings_model is None and not _embeddings_load_failed:
+            try:
+                from langchain_huggingface import HuggingFaceEmbeddings
+                _embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            except Exception:
+                _embeddings_load_failed = True
+                logger.exception("Failed to initialize HuggingFaceEmbeddings; using keyword retrieval.")
     return _embeddings_model
 
 CHATBOT_RAG_CACHE_PREFIX = "chatbot:rag:v2"
@@ -715,17 +731,18 @@ def _retrieve_grounded_chunks(
     from chatbot.models import DocumentEmbedding
     from pgvector.django import CosineDistance
 
-    # Try executing vector similarity search on Neon (vector_db)
+    # Try executing vector similarity search on Neon (vector_db). Without an embedding
+    # model there is nothing to search with, so go straight to keyword retrieval.
     try:
-        if DocumentEmbedding.objects.using('vector_db').exists():
+        embeddings_model = None
+        if getattr(settings, "CHATBOT_LOCAL_EMBEDDINGS", True) and DocumentEmbedding.objects.using('vector_db').exists():
             embeddings_model = _get_embeddings_model()
-            if embeddings_model is not None:
-                query_vector = embeddings_model.embed_query(message)
+        if embeddings_model is not None:
+            query_vector = embeddings_model.embed_query(message)
 
-                hits = DocumentEmbedding.objects.using('vector_db').order_by(
-                    CosineDistance('embedding', query_vector)
-                )[:limit]
-
+            hits = DocumentEmbedding.objects.using('vector_db').order_by(
+                CosineDistance('embedding', query_vector)
+            )[:limit]
 
             selected = []
             for hit in hits:

@@ -37,6 +37,12 @@ Notes:
   - Prefer `DATABASE_URL=postgresql://...` from Render Postgres connection string (if set, backend uses it directly).
   - Use Render start command: `bash backend/render-start.sh`
   - This ensures `python manage.py migrate --noinput` runs on every deploy, which is required for JWT login/signup tables (`token_blacklist_*`).
+- Render capacity (see `backend/.env.example` for all knobs):
+  - Lesson videos and thumbnails play directly from Cloudflare in the browser; the backend `/video/` stream is only a fallback. Keep lesson `video_url` values as public `https://` Cloudflare links.
+  - The start script runs gunicorn with `gthread` workers: `WEB_CONCURRENCY` (default 2) x `GUNICORN_THREADS` (default 4) requests at once. On larger plans raise `WEB_CONCURRENCY` (about 1 worker per 256 MB RAM).
+  - `CHATBOT_LOCAL_EMBEDDINGS` defaults to `False` on Render because torch needs more RAM than small instances have; the chatbot then uses keyword search. Set it to `True` only on 2 GB+ plans.
+  - With more than one worker, use a shared cache: create a Render Key Value instance and set `DJANGO_CACHE_BACKEND=redis` and `DJANGO_REDIS_URL=<internal URL>`.
+  - Free instances sleep after 15 minutes without traffic and take about a minute to wake; paid instances stay awake.
 
 Run migrations and server:
 
