@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { getCourseUrl } from "../src/utils/courseUrl.js";
 
 const SITE_URL = "https://edu.siasoftwareinnovations.com";
-const API_BASE_URL = (process.env.VITE_API_BASE_URL || "https://sia-edu.onrender.com/api").replace(/\/$/, "");
+const API_BASE_URL = (process.env.VITE_API_BASE_URL || "https://sia-edu-backend.onrender.com/api").replace(/\/$/, "");
 
 const STATIC_PAGES = [
   { path: "", priority: "1.0" },

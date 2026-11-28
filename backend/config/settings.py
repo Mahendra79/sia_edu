@@ -75,10 +75,10 @@ def _database_from_url(database_url: str) -> dict:
 
 
 LOCAL_FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
-RENDER_FRONTEND_ORIGINS = ["https://siasoftwareinnovationseducation.onrender.com"]
+RENDER_FRONTEND_ORIGINS = ["https://edu.siasoftwareinnovations.com", "https://sia-edu-frontend.onrender.com"]
 DEFAULT_CORS_ORIGINS = [*LOCAL_FRONTEND_ORIGINS, *RENDER_FRONTEND_ORIGINS]
 DEFAULT_CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000", *DEFAULT_CORS_ORIGINS]
-DEFAULT_ALLOWED_HOSTS = ["127.0.0.1", "localhost", "sia-edu.onrender.com"]
+DEFAULT_ALLOWED_HOSTS = ["127.0.0.1", "localhost", "sia-edu-backend.onrender.com"]
 
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
