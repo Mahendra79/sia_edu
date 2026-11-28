@@ -328,7 +328,7 @@ export default function LessonPlayer() {
   const requestedStartTime = Math.max(0, Number(new URLSearchParams(location.search).get("t")) || 0);
 
   // Sticky Notes ("Brain Dump") states
-  const [showNotes, setShowNotes] = useState(true);
+  const [showNotes, setShowNotes] = useState(false);
   const [noteBlocks, setNoteBlocks] = useState([]);
   const blockContentsRef = useRef({});
 
